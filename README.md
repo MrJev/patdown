@@ -1,4 +1,4 @@
-# squint
+# patdown
 
 Standalone CLI that lints a tree against fuzzy rules in one markdown file.
 
@@ -6,12 +6,12 @@ Standalone CLI that lints a tree against fuzzy rules in one markdown file.
 
 The agent is [jev](https://typesafe.ai/blog/introducing-system-one-models-and-jev) by default. Swap it if you want.
 
-Rules live in `AGENTS.SQUINT.md`. One `# heading` per rule. Optional `globs:` line under the heading. Text above the first heading is ignored.
+Rules live in `AGENTS.PATDOWN.md`. One `# heading` per rule. Optional `globs:` line under the heading. Text above the first heading is ignored.
 
 ```
-pnpm -w squint
-pnpm -w squint -- rules
-pnpm -w squint -- ask --noul "Is this markdown heading title case?" --state "# Hello World"
+pnpm -w patdown
+pnpm -w patdown -- rules
+pnpm -w patdown -- ask --noul "Is this markdown heading title case?" --state "# Hello World"
 ```
 
 Lint and `ask` call TypeSafe System One with `TYPESAFE_API_KEY`. A noul above 0.85 is yes. Lint treats yes as a rule violation.

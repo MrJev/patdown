@@ -1,4 +1,4 @@
-import { baseConfig } from '@squint/oxlint-config/base'
+import { baseConfig } from '@patdown/oxlint-config/base'
 import { defineConfig } from 'oxlint'
 
 export default defineConfig({

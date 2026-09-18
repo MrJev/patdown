@@ -262,7 +262,7 @@ const workspaceVerificationRule: RuleModule = {
 
 				const manifest = readPackageManifest(manifestPath)
 
-				if (manifest.name !== '@squint/oxlint-config') {
+				if (manifest.name !== '@patdown/oxlint-config') {
 					return
 				}
 
@@ -339,7 +339,7 @@ const noRecordStringUnknownRule: RuleModule = {
 
 const plugin: OxlintJsPlugin = {
 	meta: {
-		name: 'squint-contracts',
+		name: 'patdown-contracts',
 	},
 	rules: {
 		'artifact-entrypoint-contract': artifactRule,

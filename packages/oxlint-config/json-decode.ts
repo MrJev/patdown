@@ -33,7 +33,7 @@ export const PackageManifestSchema = Schema.Struct({
 	files: Schema.optionalKey(Schema.Array(Schema.Json)),
 	imports: Schema.optionalKey(Schema.Json),
 	main: Schema.optionalKey(Schema.String),
-	squint: Schema.optionalKey(
+	patdown: Schema.optionalKey(
 		Schema.Struct({
 			packageKind: Schema.optionalKey(Schema.String),
 		}),

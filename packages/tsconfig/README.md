@@ -1,4 +1,4 @@
-# @squint/tsconfig
+# @patdown/tsconfig
 
 Shared TypeScript presets for this repo.
 
@@ -55,7 +55,7 @@ Example package config:
 
 ```json
 {
-	"extends": "@squint/tsconfig/node-library.json",
+	"extends": "@patdown/tsconfig/node-library.json",
 	"compilerOptions": {
 		"noEmit": true
 	},

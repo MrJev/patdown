@@ -1,0 +1,70 @@
+{
+	"name": "@patdown/cli",
+	"version": "0.0.0",
+	"private": true,
+	"description": "Standalone CLI that lints a tree against fuzzy markdown rules",
+	"license": "MIT",
+	"bin": {
+		"patdown": "./dist/index.js"
+	},
+	"files": [
+		"dist",
+		"src"
+	],
+	"type": "module",
+	"main": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"imports": {
+		"#/*": {
+			"source": "./src/*.ts",
+			"types": "./dist/*.d.ts",
+			"test": "./src/*.ts",
+			"node": "./dist/*.js",
+			"default": "./dist/*.js"
+		}
+	},
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"test": "./dist/index.js",
+			"node": "./dist/index.js",
+			"import": "./dist/index.js",
+			"default": "./dist/index.js"
+		}
+	},
+	"scripts": {
+		"build": "node ../../scripts/warn-direct-package-task.mjs build && tsc -p tsconfig.build.json",
+		"check": "node ../../scripts/warn-direct-package-task.mjs check && pnpm run lint && pnpm run format:check && pnpm run typecheck && pnpm run test",
+		"clean": "rm -rf dist coverage",
+		"dev": "tsc -p tsconfig.build.json --watch --preserveWatchOutput",
+		"format": "oxfmt --write .",
+		"format:check": "node ../../scripts/warn-direct-package-task.mjs format:check && oxfmt --check .",
+		"lint": "node ../../scripts/warn-direct-package-task.mjs lint && oxlint --disable-nested-config -c ./oxlint.config.ts --tsconfig ./tsconfig.app.json .",
+		"run": "node dist/index.js",
+		"test": "node ../../scripts/warn-direct-package-task.mjs test && vitest run",
+		"test:coverage": "node ../../scripts/warn-direct-package-task.mjs test:coverage && vitest run --coverage",
+		"typecheck": "node ../../scripts/warn-direct-package-task.mjs typecheck && tsc -p tsconfig.app.json --incremental --tsBuildInfoFile typecheck.app.tsbuildinfo && tsc -p tsconfig.vitest.json --incremental --tsBuildInfoFile typecheck.vitest.tsbuildinfo"
+	},
+	"dependencies": {
+		"@effect/platform-node": "catalog:effect",
+		"@patdown/jev": "workspace:*",
+		"@patdown/rules": "workspace:*",
+		"effect": "catalog:effect"
+	},
+	"devDependencies": {
+		"@effect/language-service": "catalog:effect",
+		"@effect/vitest": "catalog:effect",
+		"@patdown/oxlint-config": "workspace:*",
+		"@patdown/tsconfig": "workspace:*",
+		"@types/node": "catalog:",
+		"@vitest/coverage-v8": "catalog:",
+		"oxfmt": "catalog:",
+		"oxlint": "catalog:",
+		"oxlint-tsgolint": "catalog:",
+		"typescript": "catalog:",
+		"vitest": "catalog:"
+	},
+	"engines": {
+		"node": ">=24.18.0"
+	}
+}

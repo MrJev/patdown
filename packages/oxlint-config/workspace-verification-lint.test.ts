@@ -7,7 +7,7 @@ type WorkspacePackageFixture = {
 	hasOxlintConfig: boolean
 	hasSourceDirectory: boolean
 	manifest: {
-		squint?: { packageKind: string }
+		patdown?: { packageKind: string }
 		name: string
 		scripts: Record<string, string>
 	}
@@ -20,14 +20,14 @@ function createWorkspacePackage(overrides = {}): WorkspacePackageFixture {
 		hasOxlintConfig: true,
 		hasSourceDirectory: true,
 		manifest: {
-			name: '@squint/example',
+			name: '@patdown/example',
 			scripts: {
 				'format:check': 'oxfmt --check .',
 				'lint': 'oxlint .',
 				'typecheck': 'tsc -p tsconfig.json',
 			},
 		},
-		oxlintConfigText: `import { baseConfig } from '@squint/oxlint-config/base'\nexport default defineConfig({ ...baseConfig })\n`,
+		oxlintConfigText: `import { baseConfig } from '@patdown/oxlint-config/base'\nexport default defineConfig({ ...baseConfig })\n`,
 		packageDirectory: '/repo/packages/example',
 		...overrides,
 	}
@@ -40,7 +40,7 @@ void test('accepts standard shared verification packages', () => {
 void test('requires format:check for every workspace package', () => {
 	const diagnostics = lintWorkspaceVerification([
 		createWorkspacePackage({
-			manifest: { name: '@squint/example', scripts: { lint: 'oxlint .' } },
+			manifest: { name: '@patdown/example', scripts: { lint: 'oxlint .' } },
 		}),
 	])
 
@@ -70,7 +70,7 @@ void test('requires lint and typecheck scripts for standard packages', () => {
 	const diagnostics = lintWorkspaceVerification([
 		createWorkspacePackage({
 			manifest: {
-				name: '@squint/example',
+				name: '@patdown/example',
 				scripts: {
 					'format:check': 'oxfmt --check .',
 				},
@@ -89,8 +89,8 @@ void test('config-package exemption allows missing lint and typecheck', () => {
 			hasOxlintConfig: false,
 			hasSourceDirectory: false,
 			manifest: {
-				squint: { packageKind: 'config-package' },
-				name: '@squint/config-package',
+				patdown: { packageKind: 'config-package' },
+				name: '@patdown/config-package',
 				scripts: {
 					'format:check': 'oxfmt --check .',
 				},
@@ -106,8 +106,8 @@ void test('config-package exemption rejects src directories', () => {
 	const diagnostics = lintWorkspaceVerification([
 		createWorkspacePackage({
 			manifest: {
-				squint: { packageKind: 'config-package' },
-				name: '@squint/config-package',
+				patdown: { packageKind: 'config-package' },
+				name: '@patdown/config-package',
 				scripts: {
 					'format:check': 'oxfmt --check .',
 				},

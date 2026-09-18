@@ -107,7 +107,7 @@ function hasSsrTestResolveCondition(vitestConfigText: string | undefined): boole
 }
 
 function isNodeLibraryPackage(rootTsconfig: TsconfigFile | undefined): boolean {
-	return rootTsconfig?.extends === '@squint/tsconfig/node-library.json'
+	return rootTsconfig?.extends === '@patdown/tsconfig/node-library.json'
 }
 
 function hasVitestCustomCondition(vitestTsconfig: TsconfigFile | undefined): boolean {

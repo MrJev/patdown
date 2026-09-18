@@ -15,7 +15,7 @@ function lintArtifactPackage(overrides = {}): string[] {
 			},
 			files: ['dist', 'src'],
 			main: './dist/index.js',
-			name: '@squint/example',
+			name: '@patdown/example',
 			scripts: { build: 'tsc -p tsconfig.build.json' },
 			type: 'module',
 			types: './dist/index.d.ts',
@@ -28,7 +28,7 @@ function lintArtifactPackage(overrides = {}): string[] {
 void test('skips non-buildable packages', () => {
 	const diagnostics = lintArtifactEntrypoints({
 		hasSourceDirectory: false,
-		manifest: { name: '@squint/example', scripts: {} },
+		manifest: { name: '@patdown/example', scripts: {} },
 		packageDirectory: '/repo/packages/example',
 	})
 
@@ -49,7 +49,7 @@ void test('requires main and types for buildable runtime packages', () => {
 				},
 			},
 			files: ['dist'],
-			name: '@squint/example',
+			name: '@patdown/example',
 			scripts: { build: 'tsc -p tsconfig.build.json' },
 		},
 	})
@@ -69,7 +69,7 @@ void test('requires main and types to stay under dist', () => {
 			},
 			files: ['dist'],
 			main: './src/index.ts',
-			name: '@squint/example',
+			name: '@patdown/example',
 			scripts: { build: 'tsc -p tsconfig.build.json' },
 			types: './src/index.ts',
 		},
@@ -91,7 +91,7 @@ void test('requires root export alignment with main and types', () => {
 			},
 			files: ['dist'],
 			main: './dist/index.js',
-			name: '@squint/example',
+			name: '@patdown/example',
 			scripts: { build: 'tsc -p tsconfig.build.json' },
 			types: './dist/index.d.ts',
 		},
@@ -115,7 +115,7 @@ void test('accepts private Expo Router apps with dist package exports', () => {
 				},
 			},
 			main: 'expo-router/entry',
-			name: '@squint/example-mobile',
+			name: '@patdown/example-mobile',
 			private: true,
 			scripts: { build: 'expo export --platform android' },
 			types: './dist/index.d.ts',
@@ -139,7 +139,7 @@ void test('accepts private Expo Router apps with a custom source entrypoint', ()
 				},
 			},
 			main: './index.ts',
-			name: '@squint/example-mobile',
+			name: '@patdown/example-mobile',
 			private: true,
 			scripts: { build: 'expo export --platform android' },
 			types: './dist/index.d.ts',
@@ -164,7 +164,7 @@ void test('requires bin entries under dist', () => {
 			},
 			files: ['dist'],
 			main: './dist/index.js',
-			name: '@squint/example',
+			name: '@patdown/example',
 			scripts: { build: 'tsc -p tsconfig.build.json' },
 			types: './dist/index.d.ts',
 		},
@@ -185,7 +185,7 @@ void test('requires dist in files for libraries and cli packages', () => {
 			},
 			files: ['src'],
 			main: './dist/index.js',
-			name: '@squint/example',
+			name: '@patdown/example',
 			scripts: { build: 'tsc -p tsconfig.build.json' },
 			types: './dist/index.d.ts',
 		},
@@ -205,7 +205,7 @@ void test('hosted apps are not forced to declare files', () => {
 				},
 			},
 			main: './dist/index.js',
-			name: '@squint/example-app',
+			name: '@patdown/example-app',
 			scripts: { build: 'vite build' },
 			types: './dist/index.d.ts',
 		},
@@ -218,8 +218,8 @@ void test('hosted apps are not forced to declare files', () => {
 void test('config-package exemptions skip artifact contract', () => {
 	const diagnostics = lintArtifactPackage({
 		manifest: {
-			squint: { packageKind: 'config-package' },
-			name: '@squint/config',
+			patdown: { packageKind: 'config-package' },
+			name: '@patdown/config',
 			scripts: { build: 'tsc -p tsconfig.build.json' },
 		},
 	})

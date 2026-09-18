@@ -15,7 +15,7 @@ function hasBuildScript(manifest: PackageManifest): boolean {
 }
 
 function isConfigPackage(manifest: PackageManifest): boolean {
-	return manifest.squint?.packageKind === 'config-package'
+	return manifest.patdown?.packageKind === 'config-package'
 }
 
 function hasBin(manifest: PackageManifest): boolean {

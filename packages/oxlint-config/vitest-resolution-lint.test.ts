@@ -20,7 +20,7 @@ function lintVitestResolutionForPackage(overrides = {}): string[] {
 			scripts: { test: 'vitest run' },
 		},
 		rootTsconfig: {
-			extends: '@squint/tsconfig/node-library.json',
+			extends: '@patdown/tsconfig/node-library.json',
 		},
 		vitestConfigText: `export default defineConfig({\n  resolve: {\n    conditions: ['test'],\n  },\n  ssr: { resolve: { conditions: ['test'] } },\n})\n`,
 		vitestTsconfig: {
@@ -107,7 +107,7 @@ void test('requires customConditions for node-library packages', () => {
 void test('app-shaped packages do not require customConditions', () => {
 	const diagnostics = lintVitestResolutionForPackage({
 		rootTsconfig: {
-			extends: '@squint/tsconfig/base.json',
+			extends: '@patdown/tsconfig/base.json',
 		},
 		vitestTsconfig: {
 			compilerOptions: {},

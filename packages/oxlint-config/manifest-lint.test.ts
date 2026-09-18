@@ -93,7 +93,7 @@ function assertFixtureLintFails(fixtureDirectory: string): void {
 void test('skips packages without src directories', () => {
 	const diagnostics = lintPackageManifest({
 		hasSourceDirectory: false,
-		manifest: { name: '@squint/config' },
+		manifest: { name: '@patdown/config' },
 	})
 
 	assert.deepEqual(diagnostics, [])
@@ -101,7 +101,7 @@ void test('skips packages without src directories', () => {
 
 void test('requires an imports map for runtime packages', () => {
 	const diagnostics = lintManifest({
-		name: '@squint/example',
+		name: '@patdown/example',
 		exports: {
 			'.': {
 				default: './dist/index.js',
@@ -116,7 +116,7 @@ void test('requires an imports map for runtime packages', () => {
 
 void test('requires a catch-all #/* entry', () => {
 	const diagnostics = lintManifest({
-		name: '@squint/example',
+		name: '@patdown/example',
 		exports: {
 			'.': {
 				default: './dist/index.js',
@@ -139,7 +139,7 @@ void test('requires a catch-all #/* entry', () => {
 
 void test('allows condition-based code entries', () => {
 	const diagnostics = lintManifest({
-		name: '@squint/example',
+		name: '@patdown/example',
 		exports: {
 			'.': {
 				default: './dist/index.js',
@@ -169,7 +169,7 @@ void test('allows condition-based code entries', () => {
 
 void test('rejects code entries without source conditions', () => {
 	const diagnostics = lintManifest({
-		name: '@squint/example',
+		name: '@patdown/example',
 		exports: {
 			'.': {
 				default: './dist/index.js',
@@ -191,7 +191,7 @@ void test('rejects code entries without source conditions', () => {
 
 void test('allows source-only asset entries', () => {
 	const diagnostics = lintManifest({
-		name: '@squint/example',
+		name: '@patdown/example',
 		exports: {
 			'.': {
 				default: './dist/index.js',
@@ -214,7 +214,7 @@ void test('allows source-only asset entries', () => {
 
 void test('allows condition-based asset entries', () => {
 	const diagnostics = lintManifest({
-		name: '@squint/example',
+		name: '@patdown/example',
 		exports: {
 			'.': {
 				default: './dist/index.js',
@@ -243,7 +243,7 @@ void test('allows condition-based asset entries', () => {
 
 void test('rejects asset types outside dist', () => {
 	const diagnostics = lintManifest({
-		name: '@squint/example',
+		name: '@patdown/example',
 		exports: {
 			'.': {
 				default: './dist/index.js',
@@ -272,7 +272,7 @@ void test('rejects asset types outside dist', () => {
 
 void test('allows explicit CSS source exports', () => {
 	const diagnostics = lintManifest({
-		name: '@squint/example',
+		name: '@patdown/example',
 		exports: {
 			'.': {
 				default: './dist/index.js',
@@ -296,7 +296,7 @@ void test('allows explicit CSS source exports', () => {
 
 void test('rejects non-source CSS source exports', () => {
 	const diagnostics = lintManifest({
-		name: '@squint/example',
+		name: '@patdown/example',
 		exports: {
 			'.': {
 				default: './dist/index.js',
@@ -320,7 +320,7 @@ void test('rejects non-source CSS source exports', () => {
 
 void test('rejects code entries that only provide source', () => {
 	const diagnostics = lintManifest({
-		name: '@squint/example',
+		name: '@patdown/example',
 		exports: {
 			'.': {
 				default: './dist/index.js',
@@ -338,7 +338,7 @@ void test('rejects code entries that only provide source', () => {
 
 void test('rejects non-object imports targets', () => {
 	const diagnostics = lintManifest({
-		name: '@squint/example',
+		name: '@patdown/example',
 		exports: {
 			'.': {
 				default: './dist/index.js',
@@ -356,7 +356,7 @@ void test('rejects non-object imports targets', () => {
 
 void test('rejects wrong path families', () => {
 	const diagnostics = lintManifest({
-		name: '@squint/example',
+		name: '@patdown/example',
 		exports: {
 			'.': {
 				default: './dist/index.js',
@@ -384,7 +384,7 @@ void test('rejects wrong path families', () => {
 
 void test('requires an exports map for runtime packages', () => {
 	const diagnostics = lintManifest({
-		name: '@squint/example',
+		name: '@patdown/example',
 		imports: {
 			'#/*': {
 				source: './src/*.ts',
@@ -401,7 +401,7 @@ void test('requires an exports map for runtime packages', () => {
 
 void test('requires a root exports entry', () => {
 	const diagnostics = lintManifest({
-		name: '@squint/example',
+		name: '@patdown/example',
 		exports: {
 			'./feature': {
 				default: './dist/feature.js',
@@ -425,7 +425,7 @@ void test('requires a root exports entry', () => {
 
 void test('requires condition objects for code exports', () => {
 	const diagnostics = lintManifest({
-		name: '@squint/example',
+		name: '@patdown/example',
 		exports: {
 			'.': './dist/index.js',
 		},
@@ -446,7 +446,7 @@ void test('requires condition objects for code exports', () => {
 
 void test('requires types and default for code exports', () => {
 	const diagnostics = lintManifest({
-		name: '@squint/example',
+		name: '@patdown/example',
 		exports: {
 			'.': {
 				types: './dist/index.d.ts',
@@ -469,7 +469,7 @@ void test('requires types and default for code exports', () => {
 
 void test('requires built dist paths for all export conditions', () => {
 	const diagnostics = lintManifest({
-		name: '@squint/example',
+		name: '@patdown/example',
 		exports: {
 			'.': {
 				default: './src/index.ts',
@@ -503,7 +503,7 @@ void test('requires built dist paths for all export conditions', () => {
 void test('oxlint executes the plugin for a conforming fixture', () => {
 	withFixtureWorkspace(
 		{
-			name: '@squint/manifest-pass-fixture',
+			name: '@patdown/manifest-pass-fixture',
 			private: true,
 			imports: {
 				'#/*': {
@@ -531,7 +531,7 @@ void test('oxlint executes the plugin for a conforming fixture', () => {
 void test('oxlint executes the plugin for a failing fixture', () => {
 	withFixtureWorkspace(
 		{
-			name: '@squint/manifest-fail-fixture',
+			name: '@patdown/manifest-fail-fixture',
 			private: true,
 			type: 'module',
 		},

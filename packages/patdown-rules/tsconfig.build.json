@@ -1,0 +1,13 @@
+{
+	"extends": "@patdown/tsconfig/node-library.json",
+	"compilerOptions": {
+		"noEmit": false,
+		"rootDir": "./src",
+		"outDir": "./dist",
+		"declaration": true,
+		"declarationMap": true,
+		"customConditions": ["source"],
+		"skipLibCheck": true
+	},
+	"include": ["src/**/*.ts"]
+}

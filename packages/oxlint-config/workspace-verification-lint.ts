@@ -26,7 +26,7 @@ function createWorkspacePackageInfo(packageDirectory: string): WorkspacePackageI
 }
 
 function isConfigPackage(manifest: PackageManifest): boolean {
-	return manifest.squint?.packageKind === 'config-package'
+	return manifest.patdown?.packageKind === 'config-package'
 }
 
 function hasScript(manifest: PackageManifest, scriptName: string): boolean {
@@ -49,7 +49,7 @@ function createStandardPackageDiagnostics(
 
 	if (!pkg.hasOxlintConfig) {
 		diagnostics.push(
-			`${JSON.stringify(packageName)} must define oxlint.config.ts and use the shared @squint/oxlint-config baseConfig.`,
+			`${JSON.stringify(packageName)} must define oxlint.config.ts and use the shared @patdown/oxlint-config baseConfig.`,
 		)
 
 		return diagnostics
@@ -57,7 +57,7 @@ function createStandardPackageDiagnostics(
 
 	if (!usesSharedBaseConfig(pkg.oxlintConfigText)) {
 		diagnostics.push(
-			`${JSON.stringify(packageName)} oxlint.config.ts must spread shared ${JSON.stringify('baseConfig')} from @squint/oxlint-config.`,
+			`${JSON.stringify(packageName)} oxlint.config.ts must spread shared ${JSON.stringify('baseConfig')} from @patdown/oxlint-config.`,
 		)
 	}
 

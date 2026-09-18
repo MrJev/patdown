@@ -1,5 +1,5 @@
 {
-	"name": "squint",
+	"name": "patdown",
 	"version": "0.0.0",
 	"private": true,
 	"description": "Standalone CLI that lints a tree against fuzzy markdown rules",
@@ -16,8 +16,8 @@
 		"format:root": "oxfmt --check package.json pnpm-workspace.yaml turbo.json lefthook.yml scripts/*.mjs && printf 'Root format check passed.\\n'",
 		"hooks:pre-push": "pnpm -w format:root",
 		"lint": "turbo run lint",
+		"patdown": "turbo run run -F @patdown/cli --ui stream --output-logs=full",
 		"prepare": "effect-tsgo patch",
-		"squint": "turbo run run -F @squint/cli --ui stream --output-logs=full",
 		"test": "turbo run test",
 		"typecheck": "turbo run typecheck"
 	},
