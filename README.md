@@ -49,6 +49,22 @@ Exit 1 on a violation, a missing rules file, a read error, or a Jev error.
 
 `pnpm -w patdown` forwards `TYPESAFE_*` through Turbo.
 
+## Release
+
+Version lives in `apps/patdown/package.json`. That is what `patdown --version` prints.
+
+```
+pnpm -w release patch
+pnpm -w release minor
+pnpm -w release major
+```
+
+Needs a clean tree. Runs `pnpm check`, bumps that version, commits, tags `vX.Y.Z`, and pushes to `github` (and `gitea` if that remote exists). Then watches the GitHub Action.
+
+The tag workflow runs check again and opens a GitHub Release with generated notes. No npm publish.
+
+Pull requests and pushes to `main` run `pnpm check`. That is oxlint, tests, and typecheck. Not the fuzzy linter.
+
 ## Related
 
 Inspired by [pi-warden](https://github.com/DevMortimer/pi-warden). Same idea, inside pi.

@@ -8,11 +8,12 @@ import { Command } from 'effect/unstable/cli'
 import { FetchHttpClient } from 'effect/unstable/http'
 
 import { patdownCommand } from '#/cli'
+import { patdownCliVersion } from '#/patdown-cli-version'
 import { PatdownOutputLive } from '#/patdown-output'
 
 patdownCommand.pipe(
 	Command.run({
-		version: '0.0.0',
+		version: patdownCliVersion,
 	}),
 	Effect.provide(
 		Layer.mergeAll(
