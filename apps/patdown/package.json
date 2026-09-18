@@ -1,6 +1,6 @@
 {
 	"name": "@patdown/cli",
-	"version": "0.0.0",
+	"version": "0.0.1",
 	"private": true,
 	"description": "Standalone CLI that lints a tree against fuzzy markdown rules",
 	"license": "MIT",
