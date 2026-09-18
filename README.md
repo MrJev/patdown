@@ -107,6 +107,43 @@ Exit 1 on a violation, a missing rules file, a read error, or a judge error. Add
 
 See [judge providers](docs/judge-providers.md) for custom layers and the planned Effect Decision integration.
 
+## Custom output
+
+Embedded callers can replace `PatdownOutput` instead of using the default yes/no and lint formatting. Pass an output Layer as the fourth argument to `runPatdownCli`:
+
+```ts
+import { Console, Effect, Layer } from 'effect'
+import { PatdownOutput, patdownJudgmentIsYes, runPatdownCli } from '@patdown/cli'
+
+const JsonOutputLive = Layer.succeed(PatdownOutput, {
+	writeAnswer: (judgment, _verbose) =>
+		Console.log(
+			JSON.stringify({
+				answer: patdownJudgmentIsYes(judgment) ? 'yes' : 'no',
+				yesProbability: judgment.yesProbability,
+			}),
+		),
+	writeLintResult: (result, _verbose) => Console.log(JSON.stringify(result)),
+	writeRulesDocument: (document) => Console.log(JSON.stringify(document)),
+	writeNoFilesMatched: (ruleTitle) => Console.log(JSON.stringify({ skipped: ruleTitle })),
+	writeLintOk: Console.log(JSON.stringify({ status: 'ok' })),
+	writeLintFailed: Console.log(JSON.stringify({ status: 'failed' })),
+})
+
+await Effect.runPromise(
+	runPatdownCli(
+		undefined, // default rule-source discovery
+		process.argv.slice(2),
+		undefined, // default judge
+		JsonOutputLive,
+	),
+)
+```
+
+The output service receives structured judgments and lint results, including probabilities even when `--verbose` is off. Your layer decides what to print, collect, or omit. Formatting does not change the cutoff or exit status. The example emits one JSON object per output event, not a single JSON document for the entire run.
+
+This is an embedding API, not a `--format` flag or dynamically discovered output plugin. Supply any dependencies inside your output layer; its effects must handle their own failures. CLI help, argument errors, and loading/provider errors still use the CLI's existing help/stderr paths rather than this service. Imports currently require the local workspace setup described in the adapter guide.
+
 ## Env
 
 With the default TypeSafe backend, `TYPESAFE_API_KEY` is required for lint and `ask`. Optional `TYPESAFE_BASE_URL` (default `https://api.typesafe.ai`) and `TYPESAFE_DEFAULT_MODEL` (default `jev-latest`).

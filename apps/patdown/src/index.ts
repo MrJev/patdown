@@ -1,6 +1,6 @@
 export { patdownCommand, makePatdownCommand } from '#/cli'
 
-export { PatdownOutput, PatdownOutputLive } from '#/patdown-output'
+export { PatdownOutput, PatdownOutputLive, type PatdownLintResult } from '#/patdown-output'
 
 export type { PatdownRuleSourceLayer } from '#/patdown-rule-source-adapter'
 
