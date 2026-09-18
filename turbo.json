@@ -1,0 +1,81 @@
+{
+	"$schema": "https://turbo.build/schema.json",
+	"futureFlags": {
+		"globalConfiguration": true
+	},
+	"global": {
+		"cacheMaxAge": "7d",
+		"cacheMaxSize": "10GB",
+		"env": ["NODE_ENV", "CI"],
+		"envMode": "strict",
+		"inputs": ["turbo.json", "pnpm-workspace.yaml"],
+		"ui": "tui"
+	},
+	"tasks": {
+		"build": {
+			"description": "Build every workspace package and cache its emitted artifacts.",
+			"dependsOn": ["^build"],
+			"outputs": ["dist/**"]
+		},
+		"dev": {
+			"description": "Run package development watchers.",
+			"dependsOn": ["^build"],
+			"cache": false,
+			"persistent": true
+		},
+		"lint": {
+			"description": "Run package-level lint and static analysis.",
+			"dependsOn": ["^build"]
+		},
+		"test": {
+			"description": "Run package unit tests after dependency builds.",
+			"dependsOn": ["^build"],
+			"env": ["CI"]
+		},
+		"test:coverage": {
+			"description": "Run Vitest coverage tasks for packages that expose a coverage script.",
+			"dependsOn": ["^build"],
+			"outputs": ["coverage/**"],
+			"env": ["CI"]
+		},
+		"typecheck": {
+			"description": "Run TypeScript validation across the workspace after dependency builds.",
+			"dependsOn": ["^build"],
+			"outputs": ["*.tsbuildinfo"]
+		},
+		"format": {
+			"description": "Write formatting changes with Oxfmt for package files.",
+			"cache": false,
+			"inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/.oxfmtrc.json"]
+		},
+		"format:check": {
+			"description": "Verify formatting with Oxfmt while hashing the shared root formatter config.",
+			"inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/.oxfmtrc.json"]
+		},
+		"check": {
+			"description": "Run the full package verification pipeline: lint, format, test, and typecheck.",
+			"dependsOn": ["lint", "format:check", "test", "typecheck", "//#format:root"]
+		},
+		"//#format:root": {
+			"description": "Verify formatting for root workspace config and automation files.",
+			"inputs": [
+				"$TURBO_ROOT$/.oxfmtrc.json",
+				"$TURBO_ROOT$/package.json",
+				"$TURBO_ROOT$/pnpm-workspace.yaml",
+				"$TURBO_ROOT$/turbo.json",
+				"$TURBO_ROOT$/lefthook.yml",
+				"$TURBO_ROOT$/scripts/*.mjs"
+			],
+			"outputs": []
+		},
+		"run": {
+			"description": "Run the built CLI after compiling it.",
+			"dependsOn": ["build"],
+			"cache": false
+		},
+		"clean": {
+			"description": "Remove package build artifacts without caching the cleanup step.",
+			"cache": false
+		}
+	}
+}

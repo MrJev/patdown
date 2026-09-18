@@ -1,0 +1,39 @@
+{
+	"name": "squint",
+	"version": "0.0.0",
+	"private": true,
+	"description": "Standalone CLI that lints a tree against fuzzy markdown rules",
+	"license": "MIT",
+	"type": "module",
+	"scripts": {
+		"build": "turbo run build",
+		"check": "turbo run check \"//#format:root\" --output-logs=errors-only --concurrency=2",
+		"check:all": "turbo run check --output-logs=errors-only --concurrency=2",
+		"clean": "turbo run clean",
+		"dev": "turbo run dev",
+		"format": "turbo run format",
+		"format:check": "turbo run format:check format:root",
+		"format:root": "oxfmt --check package.json pnpm-workspace.yaml turbo.json lefthook.yml scripts/*.mjs && printf 'Root format check passed.\\n'",
+		"hooks:pre-push": "pnpm -w format:root",
+		"lint": "turbo run lint",
+		"prepare": "effect-tsgo patch",
+		"squint": "turbo run run -F @squint/cli",
+		"test": "turbo run test",
+		"typecheck": "turbo run typecheck"
+	},
+	"devDependencies": {
+		"@effect/language-service": "catalog:effect",
+		"@effect/tsgo": "catalog:effect",
+		"lint-staged": "catalog:",
+		"oxfmt": "catalog:",
+		"turbo": "catalog:",
+		"typescript": "catalog:"
+	},
+	"lint-staged": {
+		"*.{cts,js,json,jsonc,mjs,mts,ts,yaml,yml}": "oxfmt --write"
+	},
+	"engines": {
+		"node": ">=24.18.0"
+	},
+	"packageManager": "pnpm@11.8.0"
+}

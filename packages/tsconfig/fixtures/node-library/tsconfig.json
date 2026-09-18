@@ -1,0 +1,7 @@
+{
+	"extends": "../../node-library.json",
+	"compilerOptions": {
+		"noEmit": true
+	},
+	"include": ["./index.ts"]
+}

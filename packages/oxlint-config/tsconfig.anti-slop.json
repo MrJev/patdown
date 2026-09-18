@@ -1,0 +1,16 @@
+{
+	"compilerOptions": {
+		"strict": true,
+		"target": "ES2025",
+		"module": "NodeNext",
+		"moduleDetection": "force",
+		"lib": ["ES2025"],
+		"types": ["node"],
+		"noEmit": true,
+		"allowImportingTsExtensions": true,
+		"verbatimModuleSyntax": true,
+		"erasableSyntaxOnly": true,
+		"skipLibCheck": false
+	},
+	"include": ["anti-slop/**/*.ts"]
+}

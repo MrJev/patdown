@@ -1,0 +1,30 @@
+{
+	"name": "@squint/oxlint-config",
+	"version": "0.0.0",
+	"private": true,
+	"description": "Shared Oxlint configuration presets for squint",
+	"license": "MIT",
+	"type": "module",
+	"exports": {
+		"./base": "./base.ts"
+	},
+	"scripts": {
+		"check": "node ../../scripts/warn-direct-package-task.mjs check && pnpm run lint && pnpm run format:check && pnpm run typecheck && pnpm run test",
+		"format": "oxfmt --write .",
+		"format:check": "node ../../scripts/warn-direct-package-task.mjs format:check && oxfmt --check .",
+		"lint": "node ../../scripts/warn-direct-package-task.mjs lint && oxlint . && pnpm run lint:anti-slop",
+		"lint:anti-slop": "oxlint -c ./oxlint.anti-slop.config.ts anti-slop",
+		"test": "node ../../scripts/warn-direct-package-task.mjs test && node --test artifact-entrypoint-lint.test.ts json-decode.test.ts manifest-lint.test.ts no-phantom-never-mapped-type-lint.test.ts no-record-string-unknown-lint.test.ts no-unconstrained-input-generic-lint.test.ts source-resolution-lint.test.ts tsconfig-split-lint.test.ts vitest-resolution-lint.test.ts workspace-verification-lint.test.ts",
+		"typecheck": "node ../../scripts/warn-direct-package-task.mjs typecheck && tsc -p tsconfig.json --incremental --tsBuildInfoFile typecheck.tsbuildinfo && tsc -p tsconfig.anti-slop.json --incremental --tsBuildInfoFile typecheck.anti-slop.tsbuildinfo"
+	},
+	"devDependencies": {
+		"@oxlint/plugins": "catalog:",
+		"@types/node": "catalog:",
+		"@typescript/typescript6": "catalog:",
+		"effect": "catalog:effect",
+		"oxfmt": "catalog:",
+		"oxlint": "catalog:",
+		"oxlint-tsgolint": "catalog:",
+		"typescript": "catalog:"
+	}
+}

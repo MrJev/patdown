@@ -1,0 +1,15 @@
+{
+	"compilerOptions": {
+		"allowImportingTsExtensions": true,
+		"erasableSyntaxOnly": true,
+		"lib": ["ES2025"],
+		"module": "NodeNext",
+		"moduleDetection": "force",
+		"noEmit": true,
+		"skipLibCheck": false,
+		"strict": true,
+		"target": "ES2025",
+		"types": ["node"],
+		"verbatimModuleSyntax": true
+	}
+}

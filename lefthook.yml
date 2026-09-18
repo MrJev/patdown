@@ -1,0 +1,9 @@
+pre-commit:
+  commands:
+    staged:
+      run: pnpm exec lint-staged --hide-unstaged --concurrent false
+
+pre-push:
+  commands:
+    check:
+      run: pnpm -w hooks:pre-push

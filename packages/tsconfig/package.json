@@ -1,0 +1,32 @@
+{
+	"name": "@squint/tsconfig",
+	"version": "0.0.0",
+	"private": true,
+	"description": "Shared TypeScript configuration presets for squint",
+	"license": "MIT",
+	"files": [
+		"*.json"
+	],
+	"type": "module",
+	"exports": {
+		"./base.json": "./base.json",
+		"./node-library.json": "./node-library.json"
+	},
+	"scripts": {
+		"check": "node ../../scripts/warn-direct-package-task.mjs check && pnpm run lint && pnpm run format:check && pnpm run typecheck && pnpm run test",
+		"format": "oxfmt --write .",
+		"format:check": "node ../../scripts/warn-direct-package-task.mjs format:check && oxfmt --check .",
+		"lint": "node ../../scripts/warn-direct-package-task.mjs lint && oxlint .",
+		"test": "node ../../scripts/warn-direct-package-task.mjs test && node --test typecheck-cache-safety.test.ts && tsc --showConfig -p fixtures/base/tsconfig.json >/dev/null && tsc --showConfig -p fixtures/node-library/tsconfig.json >/dev/null",
+		"typecheck": "node ../../scripts/warn-direct-package-task.mjs typecheck && tsc -p tsconfig.json --incremental --tsBuildInfoFile typecheck.tsbuildinfo && tsc -p fixtures/base/tsconfig.json --noEmit && tsc -p fixtures/node-library/tsconfig.json --noEmit"
+	},
+	"devDependencies": {
+		"@squint/oxlint-config": "workspace:*",
+		"@types/node": "catalog:",
+		"oxfmt": "catalog:",
+		"oxlint": "catalog:",
+		"oxlint-tsgolint": "catalog:",
+		"typescript": "catalog:",
+		"zod": "catalog:"
+	}
+}
