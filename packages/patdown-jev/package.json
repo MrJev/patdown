@@ -43,6 +43,7 @@
 		"effect": "catalog:effect"
 	},
 	"devDependencies": {
+		"@effect/vitest": "catalog:effect",
 		"@patdown/oxlint-config": "workspace:*",
 		"@patdown/tsconfig": "workspace:*",
 		"@types/node": "catalog:",

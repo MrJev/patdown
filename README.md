@@ -107,6 +107,14 @@ Exit 1 on a violation, a missing rules file, a read error, or a judge error. Add
 
 See [judge providers](docs/judge-providers.md) for custom layers and the planned Effect Decision integration.
 
+## Large inputs and API errors
+
+Jev has a token budget, not a fixed safe diff size. Direct testing of `jev-1.13.0` accepted a 96,768-byte synthetic diff but rejected 97,536 bytes with HTTP 400 and `max_tokens_exceeded`; a larger, low-token input still succeeded. Different text, questions, and models can move that boundary.
+
+The Jev client reports HTTP status, recognized provider error codes, input byte count, and a TypeSafe request ID when available. It distinguishes token limits from HTTP payload, authentication, rate/quota, and server failures without printing raw response bodies. It does not silently truncate input.
+
+See [the measured results and live probe commands](docs/jev-input-limits.md), including how to compare a separate Vercel AI Gateway integration.
+
 ## Custom output
 
 Embedded callers can replace `PatdownOutput` instead of using the default yes/no and lint formatting. Pass an output Layer as the fourth argument to `runPatdownCli`:

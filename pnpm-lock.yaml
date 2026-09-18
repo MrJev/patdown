@@ -173,6 +173,9 @@ importers:
         specifier: catalog:effect
         version: 4.0.0-rc.112
     devDependencies:
+      '@effect/vitest':
+        specifier: catalog:effect
+        version: 4.0.0-rc.112(effect@4.0.0-rc.112)(vitest@4.1.11)
       '@patdown/oxlint-config':
         specifier: workspace:*
         version: link:../oxlint-config
