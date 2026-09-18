@@ -12,7 +12,7 @@
 	"main": "./dist/index.js",
 	"types": "./dist/index.d.ts",
 	"imports": {
-		"#/*": {
+		"#src/*": {
 			"source": "./src/*.ts",
 			"types": "./dist/*.d.ts",
 			"test": "./src/*.ts",

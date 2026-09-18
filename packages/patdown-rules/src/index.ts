@@ -1,10 +1,10 @@
-export { parseMarkdownPatdownRules } from '#/markdown-patdown-rule-parser'
+export { parseMarkdownPatdownRules } from '#src/markdown-patdown-rule-parser'
 
 export {
 	defaultPatdownRulesFileName,
 	type PatdownRule,
 	type PatdownRulesDocument,
-} from '#/patdown-rule'
+} from '#src/patdown-rule'
 
 export {
 	findPatdownRulesFilePath,
@@ -14,4 +14,4 @@ export {
 	PatdownRulesReadFailed,
 	PatdownRulesLoadFailed,
 	resolvePatdownRulesFilePath,
-} from '#/patdown-rule-source'
+} from '#src/patdown-rule-source'

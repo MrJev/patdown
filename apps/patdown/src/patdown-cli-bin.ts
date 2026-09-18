@@ -2,6 +2,6 @@
 
 import { NodeRuntime } from '@effect/platform-node'
 
-import { runPatdownCli } from '#/run-patdown-cli'
+import { runPatdownCli } from '#src/run-patdown-cli'
 
 NodeRuntime.runMain(runPatdownCli())

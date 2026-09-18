@@ -2,7 +2,7 @@ import { Config, Context, Data, Effect, Layer, Redacted, Schema } from 'effect'
 import type { ConfigError } from 'effect/Config'
 import { HttpClient, HttpClientRequest, HttpClientResponse } from 'effect/unstable/http'
 
-import { JevNoulResultSchema, type JevNoulAnswer } from '#/jev-noul-schema'
+import { JevNoulResultSchema, type JevNoulAnswer } from '#src/jev-noul-schema'
 
 const defaultJevBaseUrl = 'https://api.typesafe.ai'
 

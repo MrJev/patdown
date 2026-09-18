@@ -114,7 +114,7 @@ void test('requires an imports map for runtime packages', () => {
 	assert.match(diagnostics[0], /must define an imports map/u)
 })
 
-void test('requires a catch-all #/* entry', () => {
+void test('requires a catch-all #src/* entry', () => {
 	const diagnostics = lintManifest({
 		name: '@patdown/example',
 		exports: {
@@ -124,7 +124,7 @@ void test('requires a catch-all #/* entry', () => {
 			},
 		},
 		imports: {
-			'#/feature': {
+			'#src/feature': {
 				source: './src/feature.ts',
 				test: './src/feature.ts',
 				types: './dist/feature.d.ts',
@@ -134,7 +134,7 @@ void test('requires a catch-all #/* entry', () => {
 	})
 
 	assert.equal(diagnostics.length, 1)
-	assert.match(diagnostics[0], /must include "#\/\*"/u)
+	assert.match(diagnostics[0], /must include "#src\/\*"/u)
 })
 
 void test('allows condition-based code entries', () => {
@@ -148,13 +148,13 @@ void test('allows condition-based code entries', () => {
 			'./styles.css': './dist/styles.css',
 		},
 		imports: {
-			'#/*': {
+			'#src/*': {
 				source: './src/*.ts',
 				test: './src/*.ts',
 				types: './dist/*.d.ts',
 				default: './dist/*.js',
 			},
-			'#/feature': {
+			'#src/feature': {
 				source: './src/feature.ts',
 				test: './src/feature.ts',
 				types: './dist/feature.d.ts',
@@ -177,7 +177,7 @@ void test('rejects code entries without source conditions', () => {
 			},
 		},
 		imports: {
-			'#/*': {
+			'#src/*': {
 				test: './src/*.ts',
 				types: './dist/*.d.ts',
 				default: './dist/*.js',
@@ -199,13 +199,13 @@ void test('allows source-only asset entries', () => {
 			},
 		},
 		imports: {
-			'#/*': {
+			'#src/*': {
 				source: './src/*.ts',
 				test: './src/*.ts',
 				types: './dist/*.d.ts',
 				default: './dist/*.js',
 			},
-			'#/styles/*': { source: './src/styles/*' },
+			'#src/styles/*': { source: './src/styles/*' },
 		},
 	})
 
@@ -222,19 +222,19 @@ void test('allows condition-based asset entries', () => {
 			},
 		},
 		imports: {
-			'#/*': {
+			'#src/*': {
 				source: './src/*.ts',
 				test: './src/*.ts',
 				types: './dist/*.d.ts',
 				default: './dist/*.js',
 			},
-			'#/page.css': {
+			'#src/page.css': {
 				source: './src/page.css',
 				types: './dist/page.css.d.ts',
 				test: './src/page.css',
 				default: './dist/page.css',
 			},
-			'#/styles/*': { source: './src/styles/*', test: './src/styles/*' },
+			'#src/styles/*': { source: './src/styles/*', test: './src/styles/*' },
 		},
 	})
 
@@ -251,13 +251,13 @@ void test('rejects asset types outside dist', () => {
 			},
 		},
 		imports: {
-			'#/*': {
+			'#src/*': {
 				source: './src/*.ts',
 				test: './src/*.ts',
 				types: './dist/*.d.ts',
 				default: './dist/*.js',
 			},
-			'#/page.css': {
+			'#src/page.css': {
 				source: './src/page.css',
 				types: './src/page.css',
 				test: './src/page.css',
@@ -267,7 +267,7 @@ void test('rejects asset types outside dist', () => {
 	})
 
 	assert.equal(diagnostics.length, 1)
-	assert.match(diagnostics[0], /imports\["#\/page\.css"\]\.types must point under "\.\/dist\/"/u)
+	assert.match(diagnostics[0], /imports\["#src\/page\.css"\]\.types must point under "\.\/dist\/"/u)
 })
 
 void test('allows explicit CSS source exports', () => {
@@ -282,7 +282,7 @@ void test('allows explicit CSS source exports', () => {
 			'./styles.source.css': './src/styles.css',
 		},
 		imports: {
-			'#/*': {
+			'#src/*': {
 				source: './src/*.ts',
 				test: './src/*.ts',
 				types: './dist/*.d.ts',
@@ -305,7 +305,7 @@ void test('rejects non-source CSS source exports', () => {
 			'./styles.source.css': './dist/styles.css',
 		},
 		imports: {
-			'#/*': {
+			'#src/*': {
 				source: './src/*.ts',
 				test: './src/*.ts',
 				types: './dist/*.d.ts',
@@ -328,7 +328,7 @@ void test('rejects code entries that only provide source', () => {
 			},
 		},
 		imports: {
-			'#/*': { source: './src/*.ts' },
+			'#src/*': { source: './src/*.ts' },
 		},
 	})
 
@@ -346,7 +346,7 @@ void test('rejects non-object imports targets', () => {
 			},
 		},
 		imports: {
-			'#/*': './src/*.ts',
+			'#src/*': './src/*.ts',
 		},
 	})
 
@@ -364,7 +364,7 @@ void test('rejects wrong path families', () => {
 			},
 		},
 		imports: {
-			'#/*': {
+			'#src/*': {
 				source: './dist/*.ts',
 				test: './dist/*.ts',
 				types: './src/*.d.ts',
@@ -386,7 +386,7 @@ void test('requires an exports map for runtime packages', () => {
 	const diagnostics = lintManifest({
 		name: '@patdown/example',
 		imports: {
-			'#/*': {
+			'#src/*': {
 				source: './src/*.ts',
 				test: './src/*.ts',
 				types: './dist/*.d.ts',
@@ -409,7 +409,7 @@ void test('requires a root exports entry', () => {
 			},
 		},
 		imports: {
-			'#/*': {
+			'#src/*': {
 				source: './src/*.ts',
 				test: './src/*.ts',
 				types: './dist/*.d.ts',
@@ -430,7 +430,7 @@ void test('requires condition objects for code exports', () => {
 			'.': './dist/index.js',
 		},
 		imports: {
-			'#/*': {
+			'#src/*': {
 				source: './src/*.ts',
 				test: './src/*.ts',
 				types: './dist/*.d.ts',
@@ -453,7 +453,7 @@ void test('requires types and default for code exports', () => {
 			},
 		},
 		imports: {
-			'#/*': {
+			'#src/*': {
 				source: './src/*.ts',
 				test: './src/*.ts',
 				types: './dist/*.d.ts',
@@ -477,7 +477,7 @@ void test('requires built dist paths for all export conditions', () => {
 			},
 		},
 		imports: {
-			'#/*': {
+			'#src/*': {
 				source: './src/*.ts',
 				test: './src/*.ts',
 				types: './dist/*.d.ts',
@@ -506,7 +506,7 @@ void test('oxlint executes the plugin for a conforming fixture', () => {
 			name: '@patdown/manifest-pass-fixture',
 			private: true,
 			imports: {
-				'#/*': {
+				'#src/*': {
 					source: './src/*.ts',
 					test: './src/*.ts',
 					types: './dist/*.d.ts',

@@ -1,7 +1,7 @@
 import { Schema } from 'effect'
 import { describe, expect, it } from 'vitest'
 
-import { JevNoulResultSchema } from '#/jev-noul-schema'
+import { JevNoulResultSchema } from '#src/jev-noul-schema'
 
 describe('JevNoulResultSchema', () => {
 	it('decodes a System One noul response', () => {

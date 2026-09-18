@@ -1,6 +1,6 @@
 import { Effect, Option, Stdio, Stream } from 'effect'
 
-import { PatdownJudgeFailed } from '#/patdown-judge'
+import { PatdownJudgeFailed } from '#src/patdown-judge'
 
 /** Reads piped UTF-8 input only when requested; explicit text and stdin are mutually exclusive. */
 export function readPatdownQuestionInput(

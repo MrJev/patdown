@@ -325,16 +325,16 @@ function createImportsPresenceDiagnostics(
 ): string[] {
 	if (imports === undefined || !isJsonObjectValue(imports)) {
 		return [
-			`Runtime workspace package ${JSON.stringify(packageName)} has a src/ directory, so package.json must define an imports map with a ${JSON.stringify('#/*')} entry for internal ${JSON.stringify('#/...')} self-imports.`,
+			`Runtime workspace package ${JSON.stringify(packageName)} has a src/ directory, so package.json must define an imports map with a ${JSON.stringify('#src/*')} entry for internal ${JSON.stringify('#src/...')} self-imports.`,
 		]
 	}
 
-	if (hasJsonKey(imports, '#/*')) {
+	if (hasJsonKey(imports, '#src/*')) {
 		return []
 	}
 
 	return [
-		`package.json imports for ${JSON.stringify(packageName)} must include ${JSON.stringify('#/*')} so source files have a catch-all internal subpath import.`,
+		`package.json imports for ${JSON.stringify(packageName)} must include ${JSON.stringify('#src/*')} so source files have a catch-all internal subpath import.`,
 	]
 }
 

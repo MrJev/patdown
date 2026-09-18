@@ -1,7 +1,7 @@
 import { Context, Data, Effect, FileSystem, Layer, Option, Path } from 'effect'
 
-import { parseMarkdownPatdownRules } from '#/markdown-patdown-rule-parser'
-import { defaultPatdownRulesFileName, type PatdownRulesDocument } from '#/patdown-rule'
+import { parseMarkdownPatdownRules } from '#src/markdown-patdown-rule-parser'
+import { defaultPatdownRulesFileName, type PatdownRulesDocument } from '#src/patdown-rule'
 
 /** No AGENTS.PATDOWN.md (or override path) existed walking up from the start directory. */
 export class PatdownRulesFileMissing extends Data.TaggedError('PatdownRulesFileMissing')<{

@@ -1,4 +1,4 @@
-import type { PatdownRule } from '#/patdown-rule'
+import type { PatdownRule } from '#src/patdown-rule'
 
 const atxHeadingPattern = /^#\s+(.*)$/u
 

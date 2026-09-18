@@ -4,6 +4,12 @@ Standalone CLI that lints a tree against fuzzy rules in one markdown file. Wrap 
 
 The judge is swappable. The default backend currently uses TypeSafe/Jev; rules and CLI commands use a provider-neutral interface.
 
+## Requirements
+
+Node.js **>=22.22.2** and pnpm **11.8.0**. CI runs checks and built-CLI smoke tests on Node 22.22.2 and Node 24. Node typings target the 22.x API surface.
+
+Releases through v0.2.2 require Node >=24.18.0 and use internal import aliases that Node 22 rejects. Disabling their engine check alone is not enough; use a newer version containing the `#src/…` alias change.
+
 ## Commands
 
 ```

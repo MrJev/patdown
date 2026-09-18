@@ -11,7 +11,7 @@ import { lintSourceResolution } from './source-resolution-lint.ts'
 
 const sourceImportsManifest: PackageManifest = {
 	imports: {
-		'#/*': {
+		'#src/*': {
 			source: './src/*.ts',
 			default: './dist/*.js',
 			types: './dist/*.d.ts',
@@ -90,7 +90,7 @@ void test('ignores packages whose import maps contain only source assets', () =>
 				lintSourceResolution({
 					hasSourceDirectory: true,
 					manifest: {
-						imports: { '#/styles/*': { source: './src/styles/*.css' } },
+						imports: { '#src/styles/*': { source: './src/styles/*.css' } },
 					},
 					packageDirectory,
 				}),

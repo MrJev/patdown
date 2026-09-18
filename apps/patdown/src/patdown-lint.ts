@@ -6,8 +6,8 @@ import {
 	PatdownJudgeFailed,
 	askPatdownJudge,
 	patdownJudgmentIsYes,
-} from '#/patdown-judge'
-import { PatdownOutput } from '#/patdown-output'
+} from '#src/patdown-judge'
+import { PatdownOutput } from '#src/patdown-output'
 
 const patdownGlobExcludes = [
 	'**/.git/**',

@@ -15,7 +15,7 @@
 	"main": "./dist/index.js",
 	"types": "./dist/index.d.ts",
 	"imports": {
-		"#/*": {
+		"#src/*": {
 			"source": "./src/*.ts",
 			"types": "./dist/*.d.ts",
 			"test": "./src/*.ts",
@@ -66,6 +66,6 @@
 		"vitest": "catalog:"
 	},
 	"engines": {
-		"node": ">=24.18.0"
+		"node": ">=22.22.2"
 	}
 }
