@@ -55,7 +55,19 @@
 		},
 		"check": {
 			"description": "Run the full package verification pipeline: lint, format, test, and typecheck.",
-			"dependsOn": ["lint", "format:check", "test", "typecheck", "//#format:root"]
+			"dependsOn": [
+				"lint",
+				"format:check",
+				"test",
+				"typecheck",
+				"//#format:root",
+				"//#test:release"
+			]
+		},
+		"//#test:release": {
+			"description": "Validate versioned release notes and their renderer.",
+			"inputs": ["$TURBO_ROOT$/scripts/release-notes*.mjs", "$TURBO_ROOT$/releases/*.md"],
+			"outputs": []
 		},
 		"//#format:root": {
 			"description": "Verify formatting for root workspace config and automation files.",

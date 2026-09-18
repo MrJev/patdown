@@ -1,16 +1,16 @@
-import { JevRequestFailed, JevSystemOne } from '@patdown/jev'
 import {
 	PatdownRuleSource,
 	PatdownRulesFileMissing,
 	PatdownRulesReadFailed,
 	PatdownRulesLoadFailed,
 } from '@patdown/rules'
-import { Effect, FileSystem, Path } from 'effect'
-import { Command, Flag } from 'effect/unstable/cli'
-import type { HttpClient } from 'effect/unstable/http'
+import { Effect, FileSystem, Path, Stdio } from 'effect'
+import { Argument, Command, Flag } from 'effect/unstable/cli'
 
+import { PatdownJudge, PatdownJudgeFailed, askPatdownJudge } from '#/patdown-judge'
 import { runPatdownLint } from '#/patdown-lint'
 import { PatdownOutput } from '#/patdown-output'
+import { readPatdownQuestionInput } from '#/patdown-question-input'
 import { loadConfiguredPatdownRules } from '#/patdown-rule-source-adapter'
 
 const failPatdown = (message: string): Effect.Effect<void> =>
@@ -23,14 +23,19 @@ const rulesFileFlag = Flag.optional(Flag.string('rules')).pipe(
 	Flag.withDescription('Path passed to the rule source. Markdown skips the AGENTS.PATDOWN.md walk'),
 )
 
+const verboseFlag = Flag.boolean('verbose').pipe(
+	Flag.withDefault(false),
+	Flag.withDescription('Show estimated yes probabilities and the decision cutoff'),
+)
+
 const adapterFlag = Flag.optional(Flag.string('adapter')).pipe(
 	Flag.withDescription('Module exporting PatdownRuleSourceLive, replacing markdown rule parsing'),
 )
 
 type PatdownLintServices =
 	| FileSystem.FileSystem
-	| HttpClient.HttpClient
-	| JevSystemOne
+	| Stdio.Stdio
+	| PatdownJudge
 	| Path.Path
 	| PatdownOutput
 	| PatdownRuleSource
@@ -88,34 +93,40 @@ export function makePatdownCommand(
 	const askCommand = Command.make(
 		'ask',
 		{
-			noul: Flag.string('noul').pipe(Flag.withDescription('Noul (yes/no) question for Jev')),
-			state: Flag.string('state').pipe(
-				Flag.withDefault(''),
-				Flag.withDescription('State text for Jev to evaluate'),
+			question: Argument.string('question'),
+			verbose: verboseFlag,
+			inputText: Flag.optional(Flag.string('input-text')).pipe(
+				Flag.withDescription('Text to evaluate'),
+			),
+			stdin: Flag.boolean('stdin').pipe(
+				Flag.withDefault(false),
+				Flag.withDescription('Read UTF-8 text from piped or redirected stdin'),
 			),
 		},
 		({
-			noul,
-			state,
-		}): Effect.Effect<void, never, HttpClient.HttpClient | JevSystemOne | PatdownOutput> =>
+			question,
+			inputText,
+			stdin,
+			verbose,
+		}): Effect.Effect<void, never, PatdownJudge | PatdownOutput | Stdio.Stdio> =>
 			Effect.gen(function* () {
-				const jev = yield* JevSystemOne
 				const output = yield* PatdownOutput
-				const answer = yield* jev.askNoul(noul, state)
+				const text = yield* readPatdownQuestionInput(inputText, stdin)
+				const answer = yield* askPatdownJudge(question, text)
 
-				yield* output.writeNoulDecision(answer.noul)
+				yield* output.writeAnswer(answer, verbose)
 			}).pipe(
 				Effect.catchTags({
-					JevRequestFailed: (error: JevRequestFailed) => failPatdown(error.message),
+					PatdownJudgeFailed: (error: PatdownJudgeFailed) => failPatdown(error.message),
 				}),
 			),
-	).pipe(Command.withDescription('Ask Jev a noul question via TypeSafe System One'))
+	).pipe(Command.withDescription('Ask a yes/no question about text'))
 
 	/** Root Effect CLI command for patdown. Default action lints files against AGENTS.PATDOWN.md. */
 	return Command.make(
 		'patdown',
-		{ adapter: adapterFlag, rules: rulesFileFlag },
-		({ rules, adapter }): Effect.Effect<void, never, PatdownLintServices> =>
+		{ adapter: adapterFlag, rules: rulesFileFlag, verbose: verboseFlag },
+		({ rules, adapter, verbose }): Effect.Effect<void, never, PatdownLintServices> =>
 			Effect.gen(function* () {
 				const patdownRuleSource = yield* PatdownRuleSource
 
@@ -123,13 +134,13 @@ export function makePatdownCommand(
 					? loadConfiguredPatdownRules(adapter, rules)
 					: patdownRuleSource.loadPatdownRules(rules)
 
-				const failed = yield* runPatdownLint(document)
+				const failed = yield* runPatdownLint(document, verbose)
 
 				yield* finishPatdownLint(failed)
 			}).pipe(
 				Effect.catchTags({
 					PatdownRulesLoadFailed: (error: PatdownRulesLoadFailed) => failPatdown(error.message),
-					JevRequestFailed: (error: JevRequestFailed) => failPatdown(error.message),
+					PatdownJudgeFailed: (error: PatdownJudgeFailed) => failPatdown(error.message),
 					PatdownRulesFileMissing: (error: PatdownRulesFileMissing) => failPatdown(error.message),
 					PatdownRulesReadFailed: (error: PatdownRulesReadFailed) => failPatdown(error.message),
 				}),

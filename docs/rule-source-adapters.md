@@ -1,6 +1,6 @@
 # Rule source adapters
 
-Adapters own rule discovery and parsing. Patdown owns matching target files, asking Jev, and reporting violations. You can load YAML, markdown with frontmatter, several files, or an in-memory ruleset. Normalize the result into the same document shape.
+Adapters own rule discovery and parsing. Patdown owns matching target files, calling the configured judge, and reporting violations. You can load YAML, markdown with frontmatter, several files, or an in-memory ruleset. Normalize the result into the same document shape.
 
 ## Contract
 

@@ -2,7 +2,7 @@
 
 Standalone CLI that lints a tree against fuzzy rules in one markdown file. Wrap it as a hook, plugin, or extension.
 
-The judge is [jev](https://typesafe.ai/blog/introducing-system-one-models-and-jev). The cutoff lives in code, not in the model. Noul above 0.85 is yes. Yes on a lint question is a violation.
+The judge is swappable. The default backend currently uses TypeSafe/Jev; rules and CLI commands use a provider-neutral interface.
 
 ## Commands
 
@@ -10,10 +10,20 @@ The judge is [jev](https://typesafe.ai/blog/introducing-system-one-models-and-je
 pnpm -w patdown
 pnpm -w patdown -- --rules ./rules.md
 pnpm -w patdown -- rules
-pnpm -w patdown -- ask --noul "Is this markdown heading title case?" --state "# Hello World"
+pnpm -w patdown -- ask "Is this markdown heading title case?" --input-text "# Hello World"
+pnpm -w patdown -- ask "Is this urgent?" --input-text "ASAP" --verbose
 ```
 
-Default command lints from the current directory. `rules` prints what it loaded. `ask` is a one-shot noul, no files involved.
+Default command lints from the current directory. `rules` prints what it loaded. `ask` answers a yes/no question, no files involved. It prints `yes` or `no`; `--verbose` also shows the estimated probability of yes and the cutoff. The old `--noul` and `--state` flags have been replaced by a positional question and `--input-text`.
+
+To judge piped output, use `--stdin`. For example, after building with `pnpm -w build` or running any `pnpm -w patdown` command:
+
+```sh
+git diff --cached | node apps/patdown/dist/patdown-cli-bin.js ask "Does this diff introduce debugging statements?" --stdin
+printf 'ASAP: production is down\n' | node apps/patdown/dist/patdown-cli-bin.js ask "Is this urgent?" --stdin
+```
+
+These send the piped content to the configured judge. Do not pipe secrets. `--stdin` reads UTF-8 text through EOF, preserving newlines; it cannot be combined with `--input-text`. Without either option, the input is an empty string. `ask` reports yes/no without treating yes as a failing exit status.
 
 Walks up from cwd looking for `AGENTS.PATDOWN.md`. `--rules` skips that walk and uses the path you pass.
 
@@ -84,20 +94,22 @@ No globs means `**/*`. Globs are relative to cwd, not to the rules file. Always 
 
 ## Lint
 
-Each matched file goes to Jev as "does this file violate the following patdown rule?" State is `path:` plus the file contents. One file at a time.
+Each matched file goes to the judge as "does this file violate the following patdown rule?" The evaluated text is `path:` plus the file contents. One file at a time.
 
 A rule with no matches prints `patdown: no files matched ...` and does not fail.
 
 ```
-patdown: fail No title case README.md (0.91, thresh 0.85)
+FAIL README.md: No title case
 patdown: failed
 ```
 
-Exit 1 on a violation, a missing rules file, a read error, or a Jev error.
+Exit 1 on a violation, a missing rules file, a read error, or a judge error. Add `--verbose` to show probabilities. Patdown counts estimated P(yes) strictly above 0.85 as yes; for lint, yes means violation. This cutoff belongs to patdown, not the provider.
+
+See [judge providers](docs/judge-providers.md) for custom layers and the planned Effect Decision integration.
 
 ## Env
 
-`TYPESAFE_API_KEY` is required for lint and `ask`. Optional `TYPESAFE_BASE_URL` (default `https://api.typesafe.ai`) and `TYPESAFE_DEFAULT_MODEL` (default `jev-latest`).
+With the default TypeSafe backend, `TYPESAFE_API_KEY` is required for lint and `ask`. Optional `TYPESAFE_BASE_URL` (default `https://api.typesafe.ai`) and `TYPESAFE_DEFAULT_MODEL` (default `jev-latest`).
 
 `pnpm -w patdown` forwards `TYPESAFE_*` through Turbo.
 
@@ -111,9 +123,9 @@ pnpm -w release minor
 pnpm -w release major
 ```
 
-Needs a clean tree. Runs `pnpm check`, bumps that version, commits, tags `vX.Y.Z`, and pushes to `github` (and `gitea` if that remote exists). Then watches the GitHub Action.
+First write and commit `releases/vX.Y.Z.md` with the next version's notes. The release command requires a clean tree and validates those notes before changing anything. It runs `pnpm check`, bumps the CLI version, commits, tags `vX.Y.Z`, and pushes to `github` and `gitea` if present. With `gh` available, it watches the matching Release workflow.
 
-The tag workflow runs check again and opens a GitHub Release with generated notes. No npm publish.
+The tag workflow runs checks again and creates a GitHub Release using the checked-in notes, without their frontmatter. No npm publish. See [the release process](releases/README.md) for the metadata format and backfilling published notes.
 
 Pull requests and pushes to `main` run `pnpm check`. That is oxlint, tests, and typecheck. Not the fuzzy linter.
 

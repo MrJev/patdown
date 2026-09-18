@@ -4,7 +4,6 @@ import { join } from 'node:path'
 
 import { NodeServices } from '@effect/platform-node'
 import { describe, expect, it } from '@effect/vitest'
-import { JevSystemOne } from '@patdown/jev'
 import {
 	PatdownRuleSource,
 	PatdownRulesFileMissing,
@@ -13,9 +12,9 @@ import {
 import { Effect, Layer } from 'effect'
 import { TestConsole } from 'effect/testing'
 import { CliOutput, Command } from 'effect/unstable/cli'
-import { FetchHttpClient } from 'effect/unstable/http'
 
 import { patdownCommand } from '#/cli'
+import { PatdownJudge } from '#/patdown-judge'
 import { PatdownOutputLive } from '#/patdown-output'
 
 const sampleDocument: PatdownRulesDocument = {
@@ -43,22 +42,21 @@ const missingSource = Layer.succeed(PatdownRuleSource, {
 		),
 })
 
-const jevSource = Layer.succeed(JevSystemOne, {
-	askNoul: (_instructions, _state) => Effect.succeed({ noul: 0.81, type: 'noul' as const }),
+const judgeSource = Layer.succeed(PatdownJudge, {
+	ask: (_question, _text) => Effect.succeed({ yesProbability: 0.81 }),
 })
 
 const cliHarnessLayer = Layer.mergeAll(
 	NodeServices.layer,
 	TestConsole.layer,
 	CliOutput.layer(CliOutput.defaultFormatter({ colors: false })),
-	FetchHttpClient.layer,
 	PatdownOutputLive,
 )
 
 const runPatdown = Command.runWith(patdownCommand, { version: '0.0.0' })
 
 describe('patdown CLI', () => {
-	it.layer(Layer.mergeAll(succeedingSource, jevSource, cliHarnessLayer))((layeredIt) => {
+	it.layer(Layer.mergeAll(succeedingSource, judgeSource, cliHarnessLayer))((layeredIt) => {
 		layeredIt.effect('prints loaded rule titles from the rules command', () =>
 			Effect.gen(function* () {
 				yield* runPatdown(['rules'])
@@ -70,7 +68,7 @@ describe('patdown CLI', () => {
 		)
 	})
 
-	it.layer(Layer.mergeAll(missingSource, jevSource, cliHarnessLayer))((layeredIt) => {
+	it.layer(Layer.mergeAll(missingSource, judgeSource, cliHarnessLayer))((layeredIt) => {
 		layeredIt.effect('fails quietly when the rules file is missing', () =>
 			Effect.gen(function* () {
 				const previousExitCode = process.exitCode
@@ -81,7 +79,7 @@ describe('patdown CLI', () => {
 		)
 	})
 
-	it.layer(Layer.mergeAll(succeedingSource, jevSource, cliHarnessLayer))((layeredIt) => {
+	it.layer(Layer.mergeAll(succeedingSource, judgeSource, cliHarnessLayer))((layeredIt) => {
 		layeredIt.effect('ask ignores a broken adapter and prints a yes/no decision', () =>
 			Effect.gen(function* () {
 				const cwd = process.cwd()
@@ -90,9 +88,9 @@ describe('patdown CLI', () => {
 				process.chdir(directory)
 
 				try {
-					yield* runPatdown(['ask', '--noul', 'Is this urgent?', '--state', 'ASAP'])
+					yield* runPatdown(['ask', 'Is this urgent?', '--input-text', 'ASAP'])
 					const lines = yield* TestConsole.logLines
-					expect(lines.at(-1)).toBe('patdown: no (0.81, thresh 0.85)')
+					expect(lines.at(-1)).toBe('no')
 				} finally {
 					process.chdir(cwd)
 					rmSync(directory, { recursive: true, force: true })

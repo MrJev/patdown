@@ -3,7 +3,10 @@
 import { spawnSync } from 'node:child_process'
 import { readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
+import { setTimeout } from 'node:timers/promises'
 import { fileURLToPath } from 'node:url'
+
+import { readPatdownReleaseNotes } from './release-notes.mjs'
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..')
 const patdownCliPackageJsonPath = join(repoRoot, 'apps/patdown/package.json')
@@ -128,6 +131,45 @@ function ghIsAvailable() {
 	return result.status === 0
 }
 
+async function watchPatdownRelease() {
+	const commit = gitStdout(['rev-parse', 'HEAD']).trim()
+
+	for (let attempt = 0; attempt < 30; attempt += 1) {
+		const result = spawnSync(
+			'gh',
+			[
+				'run',
+				'list',
+				'--workflow',
+				'release.yml',
+				'--commit',
+				commit,
+				'--json',
+				'databaseId',
+				'--jq',
+				'.[0].databaseId // empty',
+			],
+			{ cwd: repoRoot, encoding: 'utf8' },
+		)
+		const runId = result.stdout?.trim()
+
+		if (result.status !== 0) {
+			throw new Error(`patdown: release pushed, but workflow lookup failed: ${result.stderr}`)
+		}
+
+		if (runId) {
+			runReleaseCommand('gh', ['run', 'watch', runId, '--exit-status'])
+			return
+		}
+
+		await setTimeout(2000)
+	}
+
+	throw new Error(
+		'patdown: release pushed, but no Release workflow run appeared within 60 seconds; inspect GitHub before retrying',
+	)
+}
+
 const bumpKind = process.argv[2]
 
 if (bumpKind !== 'patch' && bumpKind !== 'minor' && bumpKind !== 'major') {
@@ -136,10 +178,17 @@ if (bumpKind !== 'patch' && bumpKind !== 'minor' && bumpKind !== 'major') {
 }
 
 assertGitWorkingTreeClean()
-runReleaseCommand('pnpm', ['check'])
 
 const nextVersion = bumpPatdownCliSemver(readPatdownCliPackageVersion(), bumpKind)
 const tagName = `v${nextVersion}`
+
+readPatdownReleaseNotes(tagName)
+
+if (!gitRemoteNames().includes('github')) throw new Error('patdown: release: no github remote')
+if (gitStdout(['tag', '--list', tagName]).trim())
+	throw new Error('patdown: release: tag already exists')
+
+runReleaseCommand('pnpm', ['check'])
 
 writePatdownCliPackageVersion(nextVersion)
 runReleaseCommand('git', ['add', 'apps/patdown/package.json'])
@@ -148,5 +197,5 @@ runReleaseCommand('git', ['tag', '-a', tagName, '-m', tagName])
 pushPatdownReleaseRemotes()
 
 if (ghIsAvailable()) {
-	runReleaseCommand('gh', ['run', 'watch', '--exit-status'])
+	await watchPatdownRelease()
 }

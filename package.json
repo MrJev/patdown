@@ -20,6 +20,7 @@
 		"prepare": "effect-tsgo patch",
 		"release": "node scripts/release.mjs",
 		"test": "turbo run test",
+		"test:release": "node --test scripts/release-notes.test.mjs",
 		"typecheck": "turbo run typecheck"
 	},
 	"devDependencies": {

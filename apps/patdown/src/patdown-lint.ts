@@ -1,8 +1,12 @@
-import { JevRequestFailed, JevSystemOne, jevNoulIsYes } from '@patdown/jev'
 import type { PatdownRule, PatdownRulesDocument } from '@patdown/rules'
 import { Effect, FileSystem, Path } from 'effect'
-import type { HttpClient } from 'effect/unstable/http'
 
+import {
+	PatdownJudge,
+	PatdownJudgeFailed,
+	askPatdownJudge,
+	patdownJudgmentIsYes,
+} from '#/patdown-judge'
 import { PatdownOutput } from '#/patdown-output'
 
 const patdownGlobExcludes = [
@@ -59,35 +63,43 @@ function lintPatdownRuleFile(
 	rule: PatdownRule,
 	cwd: string,
 	filePath: string,
+	verbose: boolean,
 ): Effect.Effect<
 	boolean,
-	JevRequestFailed,
-	FileSystem.FileSystem | HttpClient.HttpClient | JevSystemOne | Path.Path | PatdownOutput
+	PatdownJudgeFailed,
+	FileSystem.FileSystem | PatdownJudge | Path.Path | PatdownOutput
 > {
 	return Effect.gen(function* () {
 		const fileSystem = yield* FileSystem.FileSystem
 		const path = yield* Path.Path
-		const jev = yield* JevSystemOne
 		const output = yield* PatdownOutput
 		const relativePath = path.relative(cwd, filePath)
 
 		const contents = yield* fileSystem.readFileString(filePath).pipe(
 			Effect.mapError(
 				() =>
-					new JevRequestFailed({
+					new PatdownJudgeFailed({
 						message: `patdown: failed to read ${relativePath}`,
 					}),
 			),
 		)
 
-		const answer = yield* jev.askNoul(
+		const answer = yield* askPatdownJudge(
 			patdownViolationInstructions(rule),
 			patdownFileState(relativePath, contents),
 		)
 
-		const failed = jevNoulIsYes(answer.noul)
+		const failed = patdownJudgmentIsYes(answer)
 
-		yield* output.writeLintLine(failed, rule.patdownRuleTitle, relativePath, answer.noul)
+		yield* output.writeLintResult(
+			{
+				violated: failed,
+				ruleTitle: rule.patdownRuleTitle,
+				filePath: relativePath,
+				violationProbability: answer.yesProbability,
+			},
+			verbose,
+		)
 
 		return failed
 	})
@@ -96,10 +108,11 @@ function lintPatdownRuleFile(
 function lintPatdownRule(
 	rule: PatdownRule,
 	cwd: string,
+	verbose: boolean,
 ): Effect.Effect<
 	boolean,
-	JevRequestFailed,
-	FileSystem.FileSystem | HttpClient.HttpClient | JevSystemOne | Path.Path | PatdownOutput
+	PatdownJudgeFailed,
+	FileSystem.FileSystem | PatdownJudge | Path.Path | PatdownOutput
 > {
 	return Effect.gen(function* () {
 		const output = yield* PatdownOutput
@@ -113,7 +126,7 @@ function lintPatdownRule(
 
 		const failures = yield* Effect.forEach(
 			files,
-			(filePath) => lintPatdownRuleFile(rule, cwd, filePath),
+			(filePath) => lintPatdownRuleFile(rule, cwd, filePath, verbose),
 			{ concurrency: 1 },
 		)
 
@@ -121,13 +134,14 @@ function lintPatdownRule(
 	})
 }
 
-/** Lint files matched by each rule's globs. Yes on the noul means a violation. */
+/** Lint files matched by each rule's globs. A yes judgment means a violation. */
 export function runPatdownLint(
 	document: PatdownRulesDocument,
+	verbose: boolean = false,
 ): Effect.Effect<
 	boolean,
-	JevRequestFailed,
-	FileSystem.FileSystem | HttpClient.HttpClient | JevSystemOne | Path.Path | PatdownOutput
+	PatdownJudgeFailed,
+	FileSystem.FileSystem | PatdownJudge | Path.Path | PatdownOutput
 > {
 	return Effect.gen(function* () {
 		const path = yield* Path.Path
@@ -135,7 +149,7 @@ export function runPatdownLint(
 
 		const failures = yield* Effect.forEach(
 			document.patdownRules,
-			(rule) => lintPatdownRule(rule, cwd),
+			(rule) => lintPatdownRule(rule, cwd, verbose),
 			{ concurrency: 1 },
 		)
 

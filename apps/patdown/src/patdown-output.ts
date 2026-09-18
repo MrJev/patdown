@@ -1,26 +1,31 @@
-import { jevNoulIsYes, jevNoulYesThreshold } from '@patdown/jev'
 import type { PatdownRulesDocument } from '@patdown/rules'
 import { Console, Context, Effect, Layer } from 'effect'
 
-function formatPatdownNoulDecision(noul: number): string {
-	const decision = jevNoulIsYes(noul) ? 'yes' : 'no'
+import { patdownJudgmentIsYes, patdownYesThreshold, type PatdownJudgment } from '#/patdown-judge'
 
-	return `patdown: ${decision} (${String(noul)}, thresh ${String(jevNoulYesThreshold)})`
+/** One file/rule result; probability estimates a violation, not correctness of the verdict. */
+export type PatdownLintResult = {
+	readonly violated: boolean
+	readonly ruleTitle: string
+	readonly filePath: string
+	readonly violationProbability: number
 }
 
-function formatPatdownLintLine(
-	failed: boolean,
-	ruleTitle: string,
-	relativePath: string,
-	noul: number,
-): string {
-	const verdict = failed ? 'fail' : 'pass'
-
-	return `patdown: ${verdict} ${ruleTitle} ${relativePath} (${String(noul)}, thresh ${String(jevNoulYesThreshold)})`
+function formatPatdownProbability(probability: number): string {
+	return `estimated P(yes): ${String(probability)}; cutoff: >${String(patdownYesThreshold)}`
 }
 
-function formatPatdownRuleGlobs(globs: ReadonlyArray<string>): string {
-	return globs.length === 0 ? '*' : globs.join(' ')
+function formatPatdownAnswer(judgment: PatdownJudgment, verbose: boolean): string {
+	const answer = patdownJudgmentIsYes(judgment) ? 'yes' : 'no'
+
+	return verbose ? `${answer} (${formatPatdownProbability(judgment.yesProbability)})` : answer
+}
+
+function formatPatdownLintResult(result: PatdownLintResult, verbose: boolean): string {
+	const verdict = result.violated ? 'FAIL' : 'PASS'
+	const line = `${verdict} ${result.filePath}: ${result.ruleTitle}`
+
+	return verbose ? `${line} (${formatPatdownProbability(result.violationProbability)})` : line
 }
 
 function formatPatdownRulesDocument(document: PatdownRulesDocument): string {
@@ -31,45 +36,33 @@ function formatPatdownRulesDocument(document: PatdownRulesDocument): string {
 	for (const rule of document.patdownRules) {
 		lines.push('')
 		lines.push(rule.patdownRuleTitle)
-		lines.push(`globs: ${formatPatdownRuleGlobs(rule.patdownRuleGlobs)}`)
+		lines.push(
+			`globs: ${rule.patdownRuleGlobs.length === 0 ? '*' : rule.patdownRuleGlobs.join(' ')}`,
+		)
 	}
 
 	return lines.join('\n')
 }
 
-/** How patdown prints. Swap the live layer for JSON, SARIF, or another line shape. */
+/** Swappable output service. Probability details are opt-in. */
 export class PatdownOutput extends Context.Service<
 	PatdownOutput,
 	{
 		readonly writeLintFailed: Effect.Effect<void>
-		readonly writeLintLine: (
-			failed: boolean,
-			ruleTitle: string,
-			relativePath: string,
-			noul: number,
-		) => Effect.Effect<void>
 		readonly writeLintOk: Effect.Effect<void>
+		readonly writeLintResult: (result: PatdownLintResult, verbose: boolean) => Effect.Effect<void>
 		readonly writeNoFilesMatched: (ruleTitle: string) => Effect.Effect<void>
-		readonly writeNoulDecision: (noul: number) => Effect.Effect<void>
+		readonly writeAnswer: (judgment: PatdownJudgment, verbose: boolean) => Effect.Effect<void>
 		readonly writeRulesDocument: (document: PatdownRulesDocument) => Effect.Effect<void>
 	}
 >()('@patdown/cli/PatdownOutput') {}
 
-/** Human line-oriented patdown output. */
+/** Default human-readable output, without provider-specific vocabulary. */
 export const PatdownOutputLive = Layer.succeed(PatdownOutput, {
 	writeLintFailed: Console.log('patdown: failed'),
-	writeLintLine: (
-		failed: boolean,
-		ruleTitle: string,
-		relativePath: string,
-		noul: number,
-	): Effect.Effect<void> =>
-		Console.log(formatPatdownLintLine(failed, ruleTitle, relativePath, noul)),
 	writeLintOk: Console.log('patdown: ok'),
-	writeNoFilesMatched: (ruleTitle: string): Effect.Effect<void> =>
-		Console.log(`patdown: no files matched ${ruleTitle}`),
-	writeNoulDecision: (noul: number): Effect.Effect<void> =>
-		Console.log(formatPatdownNoulDecision(noul)),
-	writeRulesDocument: (document: PatdownRulesDocument): Effect.Effect<void> =>
-		Console.log(formatPatdownRulesDocument(document)),
+	writeLintResult: (result, verbose) => Console.log(formatPatdownLintResult(result, verbose)),
+	writeNoFilesMatched: (title) => Console.log(`patdown: no files matched ${title}`),
+	writeAnswer: (judgment, verbose) => Console.log(formatPatdownAnswer(judgment, verbose)),
+	writeRulesDocument: (document) => Console.log(formatPatdownRulesDocument(document)),
 })

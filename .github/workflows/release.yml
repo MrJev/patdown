@@ -31,6 +31,9 @@ jobs:
         run: |
           tag="${GITHUB_REF#refs/tags/}"
 
+          node scripts/release-notes.mjs "$tag" --verify-version > "$RUNNER_TEMP/release-notes.md"
+
           gh release create "$tag" \
+            --verify-tag \
             --title="$tag" \
-            --generate-notes
+            --notes-file "$RUNNER_TEMP/release-notes.md"
