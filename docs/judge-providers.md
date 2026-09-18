@@ -11,7 +11,7 @@ ask(question: string, text: string): Effect.Effect<
 
 The probability must be finite and between 0 and 1. Patdown validates responses before printing or applying its decision policy. It is always the probability of **yes**, not confidence in the selected answer. A value of 0.02 indicates strong support for no.
 
-Providers estimate; patdown decides. The shared cutoff is strictly `> 0.85`. In lint, yes means a rule violation. Default output hides the probability. `--verbose` exposes it without provider terminology.
+Providers estimate; patdown decides. Yes means estimated P(yes) is strictly above the configured cutoff. The default remains `0.85`. Override it with `--yes-threshold`, package.json `patdown.yesThreshold`, or a per-rule `yes-threshold:` line. In lint, yes means a rule violation. Default output hides the probability. `--verbose` exposes it without provider terminology.
 
 ## Supply a provider
 

@@ -1,4 +1,10 @@
-import type { PatdownRule, PatdownRulesDocument } from '@patdown/rules'
+import {
+	defaultPatdownYesThreshold,
+	PatdownYesThresholdInvalid,
+	type PatdownRule,
+	type PatdownRulesDocument,
+	type PatdownYesThreshold,
+} from '@patdown/rules'
 import { Effect, FileSystem, Path } from 'effect'
 
 import {
@@ -8,6 +14,7 @@ import {
 	patdownJudgmentIsYes,
 } from '#/patdown-judge'
 import { PatdownOutput } from '#/patdown-output'
+import { decodePatdownRuleYesThreshold } from '#/patdown-yes-threshold-config'
 
 const patdownGlobExcludes = [
 	'**/.git/**',
@@ -61,9 +68,12 @@ function globPatdownRuleFiles(
 
 function lintPatdownRuleFile(
 	rule: PatdownRule,
-	cwd: string,
 	filePath: string,
-	verbose: boolean,
+	options: {
+		readonly cwd: string
+		readonly verbose: boolean
+		readonly yesThreshold: PatdownYesThreshold
+	},
 ): Effect.Effect<
 	boolean,
 	PatdownJudgeFailed,
@@ -73,7 +83,7 @@ function lintPatdownRuleFile(
 		const fileSystem = yield* FileSystem.FileSystem
 		const path = yield* Path.Path
 		const output = yield* PatdownOutput
-		const relativePath = path.relative(cwd, filePath)
+		const relativePath = path.relative(options.cwd, filePath)
 
 		const contents = yield* fileSystem.readFileString(filePath).pipe(
 			Effect.mapError(
@@ -89,7 +99,7 @@ function lintPatdownRuleFile(
 			patdownFileState(relativePath, contents),
 		)
 
-		const failed = patdownJudgmentIsYes(answer)
+		const failed = patdownJudgmentIsYes(answer, options.yesThreshold)
 
 		yield* output.writeLintResult(
 			{
@@ -97,8 +107,9 @@ function lintPatdownRuleFile(
 				ruleTitle: rule.patdownRuleTitle,
 				filePath: relativePath,
 				violationProbability: answer.yesProbability,
+				yesThreshold: options.yesThreshold,
 			},
-			verbose,
+			options.verbose,
 		)
 
 		return failed
@@ -109,14 +120,20 @@ function lintPatdownRule(
 	rule: PatdownRule,
 	cwd: string,
 	verbose: boolean,
+	defaultYesThreshold: PatdownYesThreshold,
 ): Effect.Effect<
 	boolean,
-	PatdownJudgeFailed,
+	PatdownJudgeFailed | PatdownYesThresholdInvalid,
 	FileSystem.FileSystem | PatdownJudge | Path.Path | PatdownOutput
 > {
 	return Effect.gen(function* () {
 		const output = yield* PatdownOutput
 		const files = yield* globPatdownRuleFiles(cwd, rule.patdownRuleGlobs)
+
+		const yesThreshold =
+			rule.patdownRuleYesThreshold === undefined
+				? defaultYesThreshold
+				: yield* decodePatdownRuleYesThreshold(rule.patdownRuleYesThreshold, rule.patdownRuleTitle)
 
 		if (files.length === 0) {
 			yield* output.writeNoFilesMatched(rule.patdownRuleTitle)
@@ -126,7 +143,7 @@ function lintPatdownRule(
 
 		const failures = yield* Effect.forEach(
 			files,
-			(filePath) => lintPatdownRuleFile(rule, cwd, filePath, verbose),
+			(filePath) => lintPatdownRuleFile(rule, filePath, { cwd, verbose, yesThreshold }),
 			{ concurrency: 1 },
 		)
 
@@ -138,9 +155,10 @@ function lintPatdownRule(
 export function runPatdownLint(
 	document: PatdownRulesDocument,
 	verbose: boolean = false,
+	yesThreshold: PatdownYesThreshold = defaultPatdownYesThreshold,
 ): Effect.Effect<
 	boolean,
-	PatdownJudgeFailed,
+	PatdownJudgeFailed | PatdownYesThresholdInvalid,
 	FileSystem.FileSystem | PatdownJudge | Path.Path | PatdownOutput
 > {
 	return Effect.gen(function* () {
@@ -149,7 +167,7 @@ export function runPatdownLint(
 
 		const failures = yield* Effect.forEach(
 			document.patdownRules,
-			(rule) => lintPatdownRule(rule, cwd, verbose),
+			(rule) => lintPatdownRule(rule, cwd, verbose, yesThreshold),
 			{ concurrency: 1 },
 		)
 

@@ -1,3 +1,8 @@
+import {
+	defaultPatdownYesThreshold,
+	patdownJudgmentIsYes as comparePatdownYesProbability,
+	type PatdownYesThreshold,
+} from '@patdown/rules'
 import { Context, Data, Effect, Schema } from 'effect'
 
 /** Provider-neutral estimate. This is P(yes), not confidence in whichever answer wins. */
@@ -24,12 +29,15 @@ export class PatdownJudge extends Context.Service<
 	}
 >()('@patdown/cli/PatdownJudge') {}
 
-/** Patdown policy, not provider policy: only probabilities strictly above this count as yes. */
-export const patdownYesThreshold = 0.85
+/** Default cutoff, still used when no flag, package.json, or per-rule value is set. */
+export const patdownYesThreshold = defaultPatdownYesThreshold
 
-/** Applies the same yes cutoff to direct questions and rule violations. */
-export function patdownJudgmentIsYes(judgment: PatdownJudgment): boolean {
-	return judgment.yesProbability > patdownYesThreshold
+/** Applies a cutoff to a validated probability. Equality is not yes. */
+export function patdownJudgmentIsYes(
+	judgment: PatdownJudgment,
+	yesThreshold: PatdownYesThreshold = defaultPatdownYesThreshold,
+): boolean {
+	return comparePatdownYesProbability(judgment.yesProbability, yesThreshold)
 }
 
 /** Validates custom judge responses at the service boundary before applying policy or printing. */

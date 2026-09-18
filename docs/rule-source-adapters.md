@@ -25,11 +25,12 @@ type PatdownRulesDocument = {
 		readonly patdownRuleTitle: string
 		readonly patdownRuleBody: string
 		readonly patdownRuleGlobs: ReadonlyArray<string>
+		readonly patdownRuleYesThreshold?: number
 	}>
 }
 ```
 
-`patdownRulesFilePath` is currently a display label for the whole source. Use the directory for a multi-file source. There is not yet per-rule provenance. Globs always match target files relative to the process cwd, not relative to that label or the adapter. An empty glob list means `**/*`.
+`patdownRulesFilePath` is currently a display label for the whole source. Use the directory for a multi-file source. There is not yet per-rule provenance. Globs always match target files relative to the process cwd, not relative to that label or the adapter. An empty glob list means `**/*`. Omit `patdownRuleYesThreshold` to use the run-level cutoff (`--yes-threshold`, package.json `patdown.yesThreshold`, or 0.85). If present, it must be a finite number in `[0, 1)`.
 
 Layer acquisition may require Effect FileSystem and Path. Patdown supplies both. Provide any additional services inside your layer. Acquisition errors should use `PatdownRulesLoadFailed`. Loading can use the existing missing/read errors or `PatdownRulesLoadFailed` with a parser-specific message.
 
@@ -47,7 +48,8 @@ Or configure a project:
 ```json
 {
 	"patdown": {
-		"adapter": "./rules-adapter.mjs"
+		"adapter": "./rules-adapter.mjs",
+		"yesThreshold": 0.9
 	}
 }
 ```

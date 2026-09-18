@@ -19,6 +19,8 @@ describe('provider-neutral judgments', () => {
 		expect(patdownJudgmentIsYes({ yesProbability: patdownYesThreshold })).toBe(false)
 		expect(patdownJudgmentIsYes({ yesProbability: 0.851 })).toBe(true)
 		expect(patdownJudgmentIsYes({ yesProbability: 0.02 })).toBe(false)
+		expect(patdownJudgmentIsYes({ yesProbability: 0.81 }, 0.8)).toBe(true)
+		expect(patdownJudgmentIsYes({ yesProbability: 0.81 }, 0.81)).toBe(false)
 	})
 
 	it.effect('accepts a custom judge without TypeSafe or HTTP services', () =>
@@ -97,6 +99,7 @@ describe('human-readable judgments', () => {
 					filePath: 'README.md',
 					ruleTitle: 'Sentence case',
 					violationProbability: 0.91,
+					yesThreshold: 0.85,
 				},
 				false,
 			)

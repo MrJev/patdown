@@ -7,6 +7,15 @@ export {
 } from '#/patdown-rule'
 
 export {
+	defaultPatdownYesThreshold,
+	decodePatdownYesThreshold,
+	decodePatdownYesThresholdText,
+	patdownJudgmentIsYes,
+	PatdownYesThresholdInvalid,
+	type PatdownYesThreshold,
+} from '#/patdown-yes-threshold'
+
+export {
 	findPatdownRulesFilePath,
 	MarkdownPatdownRuleSourceLive,
 	PatdownRuleSource,

@@ -3,6 +3,7 @@ import {
 	PatdownRulesFileMissing,
 	PatdownRulesReadFailed,
 	PatdownRulesLoadFailed,
+	PatdownYesThresholdInvalid,
 } from '@patdown/rules'
 import { Effect, FileSystem, Path, Stdio } from 'effect'
 import { Argument, Command, Flag } from 'effect/unstable/cli'
@@ -12,6 +13,7 @@ import { runPatdownLint } from '#/patdown-lint'
 import { PatdownOutput } from '#/patdown-output'
 import { readPatdownQuestionInput } from '#/patdown-question-input'
 import { loadConfiguredPatdownRules } from '#/patdown-rule-source-adapter'
+import { resolvePatdownYesThreshold } from '#/patdown-yes-threshold-config'
 
 const failPatdown = (message: string): Effect.Effect<void> =>
 	Effect.sync(() => {
@@ -29,7 +31,11 @@ const verboseFlag = Flag.boolean('verbose').pipe(
 )
 
 const adapterFlag = Flag.optional(Flag.string('adapter')).pipe(
-	Flag.withDescription('Module exporting PatdownRuleSourceLive, replacing markdown rule parsing'),
+	Flag.withDescription('Module exporting PatdownRuleSourceLive, replacingkdown rule parsing'),
+)
+
+const yesThresholdFlag = Flag.optional(Flag.float('yes-threshold')).pipe(
+	Flag.withDescription('Minimum exclusive P(yes) for yes; default 0.85, overridable per rule'),
 )
 
 type PatdownLintServices =
@@ -86,6 +92,8 @@ export function makePatdownCommand(
 					PatdownRulesFileMissing: (error: PatdownRulesFileMissing) => failPatdown(error.message),
 					PatdownRulesReadFailed: (error: PatdownRulesReadFailed) => failPatdown(error.message),
 					PatdownRulesLoadFailed: (error: PatdownRulesLoadFailed) => failPatdown(error.message),
+					PatdownYesThresholdInvalid: (error: PatdownYesThresholdInvalid) =>
+						failPatdown(error.message),
 				}),
 			),
 	).pipe(Command.withDescription('Load and print patdown rules'))
@@ -95,6 +103,7 @@ export function makePatdownCommand(
 		{
 			question: Argument.string('question'),
 			verbose: verboseFlag,
+			yesThreshold: yesThresholdFlag,
 			inputText: Flag.optional(Flag.string('input-text')).pipe(
 				Flag.withDescription('Text to evaluate'),
 			),
@@ -108,16 +117,24 @@ export function makePatdownCommand(
 			inputText,
 			stdin,
 			verbose,
-		}): Effect.Effect<void, never, PatdownJudge | PatdownOutput | Stdio.Stdio> =>
+			yesThreshold,
+		}): Effect.Effect<
+			void,
+			never,
+			PatdownJudge | PatdownOutput | Stdio.Stdio | FileSystem.FileSystem
+		> =>
 			Effect.gen(function* () {
 				const output = yield* PatdownOutput
 				const text = yield* readPatdownQuestionInput(inputText, stdin)
+				const cutoff = yield* resolvePatdownYesThreshold(yesThreshold)
 				const answer = yield* askPatdownJudge(question, text)
 
-				yield* output.writeAnswer(answer, verbose)
+				yield* output.writeAnswer(answer, verbose, cutoff)
 			}).pipe(
 				Effect.catchTags({
 					PatdownJudgeFailed: (error: PatdownJudgeFailed) => failPatdown(error.message),
+					PatdownYesThresholdInvalid: (error: PatdownYesThresholdInvalid) =>
+						failPatdown(error.message),
 				}),
 			),
 	).pipe(Command.withDescription('Ask a yes/no question about text'))
@@ -125,28 +142,36 @@ export function makePatdownCommand(
 	/** Root Effect CLI command for patdown. Default action lints files against AGENTS.PATDOWN.md. */
 	return Command.make(
 		'patdown',
-		{ adapter: adapterFlag, rules: rulesFileFlag, verbose: verboseFlag },
-		({ rules, adapter, verbose }): Effect.Effect<void, never, PatdownLintServices> =>
+		{
+			adapter: adapterFlag,
+			rules: rulesFileFlag,
+			verbose: verboseFlag,
+			yesThreshold: yesThresholdFlag,
+		},
+		({ rules, adapter, verbose, yesThreshold }): Effect.Effect<void, never, PatdownLintServices> =>
 			Effect.gen(function* () {
 				const patdownRuleSource = yield* PatdownRuleSource
+				const cutoff = yield* resolvePatdownYesThreshold(yesThreshold)
 
 				const document = yield* discoverAdapters
 					? loadConfiguredPatdownRules(adapter, rules)
 					: patdownRuleSource.loadPatdownRules(rules)
 
-				const failed = yield* runPatdownLint(document, verbose)
+				const failed = yield* runPatdownLint(document, verbose, cutoff)
 
 				yield* finishPatdownLint(failed)
 			}).pipe(
 				Effect.catchTags({
 					PatdownRulesLoadFailed: (error: PatdownRulesLoadFailed) => failPatdown(error.message),
 					PatdownJudgeFailed: (error: PatdownJudgeFailed) => failPatdown(error.message),
+					PatdownYesThresholdInvalid: (error: PatdownYesThresholdInvalid) =>
+						failPatdown(error.message),
 					PatdownRulesFileMissing: (error: PatdownRulesFileMissing) => failPatdown(error.message),
 					PatdownRulesReadFailed: (error: PatdownRulesReadFailed) => failPatdown(error.message),
 				}),
 			),
 	).pipe(
-		Command.withDescription('Lint a tree against fuzzy markdown rules'),
+		Command.withDescription('Lint a tree against fuzzykdown rules'),
 		Command.withShortDescription('Patdown CLI'),
 		Command.withSubcommands([askCommand, rulesCommand]),
 	)

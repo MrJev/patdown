@@ -6,6 +6,7 @@ export type PatdownRule = {
 	readonly patdownRuleBody: string
 	readonly patdownRuleGlobs: ReadonlyArray<string>
 	readonly patdownRuleTitle: string
+	readonly patdownRuleYesThreshold?: number
 }
 
 /**

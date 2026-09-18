@@ -1,4 +1,4 @@
-import { dirname, isAbsolute, join, resolve } from 'node:path'
+import { isAbsolute, join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
 import {
@@ -9,13 +9,7 @@ import {
 import { Cause, Context, Effect, FileSystem, Layer, Option, Path, Schema } from 'effect'
 import { resolve as resolveModule } from 'import-meta-resolve'
 
-const AdapterConfigSchema = Schema.fromJsonString(
-	Schema.Struct({
-		patdown: Schema.optionalKey(
-			Schema.Struct({ adapter: Schema.optionalKey(Schema.NonEmptyString) }),
-		),
-	}),
-)
+import { discoverPatdownPackageConfig } from '#/patdown-package-config'
 
 const AdapterModuleSchema = Schema.Struct({ PatdownRuleSourceLive: Schema.Unknown })
 
@@ -26,6 +20,7 @@ const RulesDocumentSchema = Schema.Struct({
 			patdownRuleTitle: Schema.String,
 			patdownRuleBody: Schema.String,
 			patdownRuleGlobs: Schema.Array(Schema.String),
+			patdownRuleYesThreshold: Schema.optionalKey(Schema.Finite),
 		}),
 	),
 })
@@ -39,46 +34,6 @@ export type PatdownRuleSourceLayer = Layer.Layer<
 	PatdownRulesLoadFailed,
 	FileSystem.FileSystem | Path.Path
 >
-
-type AdapterLocation = { readonly moduleSpecifier: string; readonly fromDirectory: string }
-
-function discoverPatdownAdapter(
-	startDirectory: string,
-): Effect.Effect<AdapterLocation | null, PatdownRulesLoadFailed, FileSystem.FileSystem> {
-	return Effect.gen(function* () {
-		const fs = yield* FileSystem.FileSystem
-		let directory = resolve(startDirectory)
-
-		while (true) {
-			const filename = join(directory, 'package.json')
-
-			const config = yield* Effect.gen(function* () {
-				if (!(yield* fs.exists(filename))) return null
-
-				const text = yield* fs.readFileString(filename)
-
-				return yield* Schema.decodeEffect(AdapterConfigSchema)(text)
-			}).pipe(
-				Effect.mapError(
-					(cause) =>
-						new PatdownRulesLoadFailed({
-							message: `patdown: invalid adapter config ${filename}: ${String(cause)}`,
-						}),
-				),
-			)
-
-			if (config?.patdown?.adapter !== undefined) {
-				return { moduleSpecifier: config.patdown.adapter, fromDirectory: directory }
-			}
-
-			const parent = dirname(directory)
-
-			if (parent === directory) return null
-
-			directory = parent
-		}
-	})
-}
 
 function importPatdownAdapter(
 	moduleSpecifier: string,
@@ -150,7 +105,13 @@ export function loadConfiguredPatdownRules(
 		Effect.gen(function* () {
 			const selected = Option.isSome(adapter)
 				? { moduleSpecifier: adapter.value, fromDirectory: process.cwd() }
-				: yield* discoverPatdownAdapter(process.cwd())
+				: yield* discoverPatdownPackageConfig().pipe(
+						Effect.map((config) =>
+							config?.adapter === undefined
+								? null
+								: { moduleSpecifier: config.adapter, fromDirectory: config.fromDirectory },
+						),
+					)
 
 			if (selected === null) {
 				const source = yield* PatdownRuleSource

@@ -12,6 +12,7 @@ pnpm -w patdown -- --rules ./rules.md
 pnpm -w patdown -- rules
 pnpm -w patdown -- ask "Is this markdown heading title case?" --input-text "# Hello World"
 pnpm -w patdown -- ask "Is this urgent?" --input-text "ASAP" --verbose
+pnpm -w patdown -- --yes-threshold 0.9
 ```
 
 Default command lints from the current directory. `rules` prints what it loaded. `ask` answers a yes/no question, no files involved. It prints `yes` or `no`; `--verbose` also shows the estimated probability of yes and the cutoff. The old `--noul` and `--state` flags have been replaced by a positional question and `--input-text`.
@@ -40,7 +41,8 @@ Or in the nearest `package.json` walking up from cwd:
 ```
 {
   "patdown": {
-    "adapter": "./patdown-yaml-rules.js"
+    "adapter": "./patdown-yaml-rules.js",
+    "yesThreshold": 0.9
   }
 }
 ```
@@ -81,11 +83,12 @@ See [the adapter guide](docs/rule-source-adapters.md) for the interface, a multi
 
 ## Rules
 
-One `# heading` per rule. Optional `globs:` lines sit immediately under the heading. Commas or spaces, extra `globs:` lines stack. Text above the first heading is ignored. Headings inside fenced code are ignored. Only `#` headings start rules; `##` and deeper headings stay in the rule body, so sections like `## Not allowed` and `## Exceptions` are fine.
+One `# heading` per rule. Optional `globs:` and `yes-threshold:` lines sit immediately under the heading, in either order. Commas or spaces, extra `globs:` lines stack. A second `yes-threshold:` line is an error. Text above the first heading is ignored. Headings inside fenced code are ignored. Only `#` headings start rules; `##` and deeper headings stay in the rule body, so sections like `## Not allowed` and `## Exceptions` are fine.
 
 ```
 # No title case
 globs: **/*.md
+yes-threshold: 0.9
 
 Markdown headings must use sentence case, not title case.
 ```
@@ -103,7 +106,7 @@ FAIL README.md: No title case
 patdown: failed
 ```
 
-Exit 1 on a violation, a missing rules file, a read error, or a judge error. Add `--verbose` to show probabilities. Patdown counts estimated P(yes) strictly above 0.85 as yes; for lint, yes means violation. This cutoff belongs to patdown, not the provider.
+Exit 1 on a violation, a missing rules file, a read error, an invalid cutoff, or a judge error. Add `--verbose` to show probabilities. Patdown counts estimated P(yes) strictly above the cutoff as yes; for lint, yes means violation. Default cutoff is 0.85. Override it with `--yes-threshold`, package.json `patdown.yesThreshold`, or a per-rule `yes-threshold:` line. The flag wins over package.json; a per-rule value wins for that rule only. `1` is rejected because nothing can exceed it. This cutoff belongs to patdown, not the provider.
 
 See [judge providers](docs/judge-providers.md) for custom layers and the planned Effect Decision integration.
 

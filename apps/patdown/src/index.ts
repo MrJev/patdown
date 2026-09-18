@@ -16,4 +16,11 @@ export {
 	type PatdownJudgment,
 } from '#/patdown-judge'
 
+export {
+	defaultPatdownYesThreshold,
+	decodePatdownYesThreshold,
+	PatdownYesThresholdInvalid,
+	type PatdownYesThreshold,
+} from '@patdown/rules'
+
 export { TypeSafeJudgeLive } from '#/typesafe-judge'
