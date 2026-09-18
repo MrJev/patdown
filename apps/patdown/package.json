@@ -3,7 +3,7 @@
 	"version": "0.1.0",
 	"private": true,
 	"description": "Standalone CLI that lints a tree against fuzzy markdown rules",
-	"license": "MIT",
+	"license": "0BSD",
 	"bin": {
 		"patdown": "./dist/patdown-cli-bin.js"
 	},

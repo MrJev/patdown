@@ -3,7 +3,7 @@
 	"version": "0.0.0",
 	"private": true,
 	"description": "Effect HttpClient for TypeSafe System One (Jev)",
-	"license": "MIT",
+	"license": "0BSD",
 	"files": [
 		"dist",
 		"src"
