@@ -1,12 +1,9 @@
 {
-	"name": "@squint/cli",
+	"name": "@squint/rules",
 	"version": "0.0.0",
 	"private": true,
-	"description": "Standalone CLI that lints a tree against fuzzy markdown rules",
+	"description": "Fuzzy squint rule types and markdown rule loading",
 	"license": "MIT",
-	"bin": {
-		"squint": "./dist/index.js"
-	},
 	"files": [
 		"dist",
 		"src"
@@ -36,24 +33,16 @@
 		"build": "node ../../scripts/warn-direct-package-task.mjs build && tsc -p tsconfig.build.json",
 		"check": "node ../../scripts/warn-direct-package-task.mjs check && pnpm run lint && pnpm run format:check && pnpm run typecheck && pnpm run test",
 		"clean": "rm -rf dist coverage",
-		"dev": "tsc -p tsconfig.build.json --watch --preserveWatchOutput",
 		"format": "oxfmt --write .",
 		"format:check": "node ../../scripts/warn-direct-package-task.mjs format:check && oxfmt --check .",
 		"lint": "node ../../scripts/warn-direct-package-task.mjs lint && oxlint --disable-nested-config -c ./oxlint.config.ts --tsconfig ./tsconfig.app.json .",
-		"run": "node dist/index.js",
 		"test": "node ../../scripts/warn-direct-package-task.mjs test && vitest run",
-		"test:coverage": "node ../../scripts/warn-direct-package-task.mjs test:coverage && vitest run --coverage",
 		"typecheck": "node ../../scripts/warn-direct-package-task.mjs typecheck && tsc -p tsconfig.app.json --incremental --tsBuildInfoFile typecheck.app.tsbuildinfo && tsc -p tsconfig.vitest.json --incremental --tsBuildInfoFile typecheck.vitest.tsbuildinfo"
 	},
 	"dependencies": {
-		"@effect/platform-node": "catalog:effect",
-		"@squint/jev": "workspace:*",
-		"@squint/rules": "workspace:*",
 		"effect": "catalog:effect"
 	},
 	"devDependencies": {
-		"@effect/language-service": "catalog:effect",
-		"@effect/vitest": "catalog:effect",
 		"@squint/oxlint-config": "workspace:*",
 		"@squint/tsconfig": "workspace:*",
 		"@types/node": "catalog:",
@@ -63,8 +52,5 @@
 		"oxlint-tsgolint": "catalog:",
 		"typescript": "catalog:",
 		"vitest": "catalog:"
-	},
-	"engines": {
-		"node": ">=24.18.0"
 	}
 }

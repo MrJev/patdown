@@ -17,7 +17,7 @@
 		"hooks:pre-push": "pnpm -w format:root",
 		"lint": "turbo run lint",
 		"prepare": "effect-tsgo patch",
-		"squint": "turbo run run -F @squint/cli",
+		"squint": "turbo run run -F @squint/cli --ui stream --output-logs=full",
 		"test": "turbo run test",
 		"typecheck": "turbo run typecheck"
 	},

@@ -90,6 +90,12 @@ importers:
       '@effect/platform-node':
         specifier: catalog:effect
         version: 4.0.0-rc.112(effect@4.0.0-rc.112)(redis@6.2.1)
+      '@squint/jev':
+        specifier: workspace:*
+        version: link:../../packages/squint-jev
+      '@squint/rules':
+        specifier: workspace:*
+        version: link:../../packages/squint-rules
       effect:
         specifier: catalog:effect
         version: 4.0.0-rc.112
@@ -154,6 +160,74 @@ importers:
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
+
+  packages/squint-jev:
+    dependencies:
+      effect:
+        specifier: catalog:effect
+        version: 4.0.0-rc.112
+    devDependencies:
+      '@squint/oxlint-config':
+        specifier: workspace:*
+        version: link:../oxlint-config
+      '@squint/tsconfig':
+        specifier: workspace:*
+        version: link:../tsconfig
+      '@types/node':
+        specifier: 'catalog:'
+        version: 25.9.7
+      '@vitest/coverage-v8':
+        specifier: 'catalog:'
+        version: 4.1.11(vitest@4.1.11)
+      oxfmt:
+        specifier: 'catalog:'
+        version: 0.65.0
+      oxlint:
+        specifier: 'catalog:'
+        version: 1.80.0(oxlint-tsgolint@7.0.2001)
+      oxlint-tsgolint:
+        specifier: 'catalog:'
+        version: 7.0.2001
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.11(@types/node@25.9.7)(@vitest/coverage-v8@4.1.11)(vite@8.3.0(@types/node@25.9.7)(yaml@2.9.1))
+
+  packages/squint-rules:
+    dependencies:
+      effect:
+        specifier: catalog:effect
+        version: 4.0.0-rc.112
+    devDependencies:
+      '@squint/oxlint-config':
+        specifier: workspace:*
+        version: link:../oxlint-config
+      '@squint/tsconfig':
+        specifier: workspace:*
+        version: link:../tsconfig
+      '@types/node':
+        specifier: 'catalog:'
+        version: 25.9.7
+      '@vitest/coverage-v8':
+        specifier: 'catalog:'
+        version: 4.1.11(vitest@4.1.11)
+      oxfmt:
+        specifier: 'catalog:'
+        version: 0.65.0
+      oxlint:
+        specifier: 'catalog:'
+        version: 1.80.0(oxlint-tsgolint@7.0.2001)
+      oxlint-tsgolint:
+        specifier: 'catalog:'
+        version: 7.0.2001
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.11(@types/node@25.9.7)(@vitest/coverage-v8@4.1.11)(vite@8.3.0(@types/node@25.9.7)(yaml@2.9.1))
 
   packages/tsconfig:
     devDependencies:
