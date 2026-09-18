@@ -1,28 +1,7 @@
-#!/usr/bin/env node
+export { patdownCommand, makePatdownCommand } from '#/cli'
 
-import { NodeRuntime, NodeServices } from '@effect/platform-node'
-import { JevSystemOneLive } from '@patdown/jev'
-import { MarkdownPatdownRuleSourceLive } from '@patdown/rules'
-import { Effect, Layer } from 'effect'
-import { Command } from 'effect/unstable/cli'
-import { FetchHttpClient } from 'effect/unstable/http'
+export { PatdownOutput, PatdownOutputLive } from '#/patdown-output'
 
-import { patdownCommand } from '#/cli'
-import { patdownCliVersion } from '#/patdown-cli-version'
-import { PatdownOutputLive } from '#/patdown-output'
+export type { PatdownRuleSourceLayer } from '#/patdown-rule-source-adapter'
 
-patdownCommand.pipe(
-	Command.run({
-		version: patdownCliVersion,
-	}),
-	Effect.provide(
-		Layer.mergeAll(
-			JevSystemOneLive,
-			MarkdownPatdownRuleSourceLive,
-			PatdownOutputLive,
-			FetchHttpClient.layer,
-			NodeServices.layer,
-		),
-	),
-	NodeRuntime.runMain,
-)
+export { runPatdownCli } from '#/run-patdown-cli'

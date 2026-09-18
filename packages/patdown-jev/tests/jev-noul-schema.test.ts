@@ -5,7 +5,7 @@ import { JevNoulResultSchema } from '#/jev-noul-schema'
 
 describe('JevNoulResultSchema', () => {
 	it('decodes a System One noul response', () => {
-		const decoded = Schema.decodeUnknownSync(JevNoulResultSchema)({
+		const decoded = Schema.decodeSync(JevNoulResultSchema)({
 			answers: {
 				noul: {
 					noul: 0.92,

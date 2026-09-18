@@ -41,14 +41,14 @@ function formatPatdownRulesDocument(document: PatdownRulesDocument): string {
 export class PatdownOutput extends Context.Service<
 	PatdownOutput,
 	{
-		readonly writeLintFailed: () => Effect.Effect<void>
+		readonly writeLintFailed: Effect.Effect<void>
 		readonly writeLintLine: (
 			failed: boolean,
 			ruleTitle: string,
 			relativePath: string,
 			noul: number,
 		) => Effect.Effect<void>
-		readonly writeLintOk: () => Effect.Effect<void>
+		readonly writeLintOk: Effect.Effect<void>
 		readonly writeNoFilesMatched: (ruleTitle: string) => Effect.Effect<void>
 		readonly writeNoulDecision: (noul: number) => Effect.Effect<void>
 		readonly writeRulesDocument: (document: PatdownRulesDocument) => Effect.Effect<void>
@@ -57,7 +57,7 @@ export class PatdownOutput extends Context.Service<
 
 /** Human line-oriented patdown output. */
 export const PatdownOutputLive = Layer.succeed(PatdownOutput, {
-	writeLintFailed: (): Effect.Effect<void> => Console.log('patdown: failed'),
+	writeLintFailed: Console.log('patdown: failed'),
 	writeLintLine: (
 		failed: boolean,
 		ruleTitle: string,
@@ -65,7 +65,7 @@ export const PatdownOutputLive = Layer.succeed(PatdownOutput, {
 		noul: number,
 	): Effect.Effect<void> =>
 		Console.log(formatPatdownLintLine(failed, ruleTitle, relativePath, noul)),
-	writeLintOk: (): Effect.Effect<void> => Console.log('patdown: ok'),
+	writeLintOk: Console.log('patdown: ok'),
 	writeNoFilesMatched: (ruleTitle: string): Effect.Effect<void> =>
 		Console.log(`patdown: no files matched ${ruleTitle}`),
 	writeNoulDecision: (noul: number): Effect.Effect<void> =>

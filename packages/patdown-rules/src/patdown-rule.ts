@@ -8,7 +8,10 @@ export type PatdownRule = {
 	readonly patdownRuleTitle: string
 }
 
-/** Parsed patdown rules plus the file they were loaded from. */
+/**
+ * Parsed patdown rules plus an origin path for output. Adapters may use a file, a directory, or
+ * another source label.
+ */
 export type PatdownRulesDocument = {
 	readonly patdownRules: ReadonlyArray<PatdownRule>
 	readonly patdownRulesFilePath: string

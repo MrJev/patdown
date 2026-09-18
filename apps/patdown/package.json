@@ -5,7 +5,7 @@
 	"description": "Standalone CLI that lints a tree against fuzzy markdown rules",
 	"license": "MIT",
 	"bin": {
-		"patdown": "./dist/index.js"
+		"patdown": "./dist/patdown-cli-bin.js"
 	},
 	"files": [
 		"dist",
@@ -40,7 +40,7 @@
 		"format": "oxfmt --write .",
 		"format:check": "node ../../scripts/warn-direct-package-task.mjs format:check && oxfmt --check .",
 		"lint": "node ../../scripts/warn-direct-package-task.mjs lint && oxlint --disable-nested-config -c ./oxlint.config.ts --tsconfig ./tsconfig.app.json .",
-		"run": "node dist/index.js",
+		"run": "node dist/patdown-cli-bin.js",
 		"test": "node ../../scripts/warn-direct-package-task.mjs test && vitest run",
 		"test:coverage": "node ../../scripts/warn-direct-package-task.mjs test:coverage && vitest run --coverage",
 		"typecheck": "node ../../scripts/warn-direct-package-task.mjs typecheck && tsc -p tsconfig.app.json --incremental --tsBuildInfoFile typecheck.app.tsbuildinfo && tsc -p tsconfig.vitest.json --incremental --tsBuildInfoFile typecheck.vitest.tsbuildinfo"
@@ -49,7 +49,8 @@
 		"@effect/platform-node": "catalog:effect",
 		"@patdown/jev": "workspace:*",
 		"@patdown/rules": "workspace:*",
-		"effect": "catalog:effect"
+		"effect": "catalog:effect",
+		"import-meta-resolve": "catalog:"
 	},
 	"devDependencies": {
 		"@effect/language-service": "catalog:effect",

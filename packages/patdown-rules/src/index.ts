@@ -7,8 +7,11 @@ export {
 } from '#/patdown-rule'
 
 export {
+	findPatdownRulesFilePath,
 	MarkdownPatdownRuleSourceLive,
 	PatdownRuleSource,
 	PatdownRulesFileMissing,
 	PatdownRulesReadFailed,
+	PatdownRulesLoadFailed,
+	resolvePatdownRulesFilePath,
 } from '#/patdown-rule-source'

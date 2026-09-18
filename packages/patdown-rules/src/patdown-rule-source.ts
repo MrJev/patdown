@@ -23,8 +23,16 @@ export class PatdownRulesReadFailed extends Data.TaggedError('PatdownRulesReadFa
 }
 
 /**
- * Loads fuzzy patdown rules for a run. Swap the live layer to change file format without touching
- * the CLI command.
+ * Adapter discovery, parsing, or loading failed. Preserve the source-specific diagnostic in
+ * message.
+ */
+export class PatdownRulesLoadFailed extends Data.TaggedError('PatdownRulesLoadFailed')<{
+	readonly message: string
+}> {}
+
+/**
+ * Loads fuzzy patdown rules for a run. Provide a live layer to parse markdown, YAML, frontmatter
+ * files, or any other source. The shipped CLI defaults to MarkdownPatdownRuleSourceLive.
  */
 export class PatdownRuleSource extends Context.Service<
 	PatdownRuleSource,
@@ -33,7 +41,7 @@ export class PatdownRuleSource extends Context.Service<
 			rulesFilePathOverride: Option.Option<string>,
 		) => Effect.Effect<
 			PatdownRulesDocument,
-			PatdownRulesFileMissing | PatdownRulesReadFailed,
+			PatdownRulesFileMissing | PatdownRulesReadFailed | PatdownRulesLoadFailed,
 			FileSystem.FileSystem | Path.Path
 		>
 	}
@@ -49,7 +57,8 @@ function pathExists(
 	)
 }
 
-function findPatdownRulesFilePath(
+/** Walks up from startDirectory until fileName exists. Adapters can reuse this for other filenames. */
+export function findPatdownRulesFilePath(
 	startDirectory: string,
 	fileName: string,
 ): Effect.Effect<
@@ -80,8 +89,13 @@ function findPatdownRulesFilePath(
 	})
 }
 
-function resolvePatdownRulesFilePath(
+/**
+ * Resolves --rules to an existing path, or walks up for rulesFileName (AGENTS.PATDOWN.md by
+ * default).
+ */
+export function resolvePatdownRulesFilePath(
 	rulesFilePathOverride: Option.Option<string>,
+	rulesFileName: string = defaultPatdownRulesFileName,
 ): Effect.Effect<
 	string,
 	PatdownRulesFileMissing | PatdownRulesReadFailed,
@@ -92,7 +106,7 @@ function resolvePatdownRulesFilePath(
 		const startDirectory = path.resolve('.')
 
 		if (Option.isNone(rulesFilePathOverride)) {
-			return yield* findPatdownRulesFilePath(startDirectory, defaultPatdownRulesFileName)
+			return yield* findPatdownRulesFilePath(startDirectory, rulesFileName)
 		}
 
 		const candidate = path.resolve(startDirectory, rulesFilePathOverride.value)

@@ -1,3 +1,7 @@
+import { mkdtempSync, writeFileSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+
 import { NodeServices } from '@effect/platform-node'
 import { describe, expect, it } from '@effect/vitest'
 import { JevSystemOne } from '@patdown/jev'
@@ -78,11 +82,21 @@ describe('patdown CLI', () => {
 	})
 
 	it.layer(Layer.mergeAll(succeedingSource, jevSource, cliHarnessLayer))((layeredIt) => {
-		layeredIt.effect('prints a yes/no decision from ask', () =>
+		layeredIt.effect('ask ignores a broken adapter and prints a yes/no decision', () =>
 			Effect.gen(function* () {
-				yield* runPatdown(['ask', '--noul', 'Is this urgent?', '--state', 'ASAP'])
-				const lines = yield* TestConsole.logLines
-				expect(lines.at(-1)).toBe('patdown: no (0.81, thresh 0.85)')
+				const cwd = process.cwd()
+				const directory = mkdtempSync(join(tmpdir(), 'patdown-ask-'))
+				writeFileSync(join(directory, 'package.json'), '{broken')
+				process.chdir(directory)
+
+				try {
+					yield* runPatdown(['ask', '--noul', 'Is this urgent?', '--state', 'ASAP'])
+					const lines = yield* TestConsole.logLines
+					expect(lines.at(-1)).toBe('patdown: no (0.81, thresh 0.85)')
+				} finally {
+					process.chdir(cwd)
+					rmSync(directory, { recursive: true, force: true })
+				}
 			}),
 		)
 	})

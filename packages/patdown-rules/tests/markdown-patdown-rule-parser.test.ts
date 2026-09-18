@@ -57,6 +57,28 @@ describe('parseMarkdownPatdownRules', () => {
 		expect(rules[0]?.patdownRuleBody).toContain('# Fake heading')
 	})
 
+	it('preserves h2 and deeper headings in the rule body', () => {
+		const body = [
+			'Use sentence case.',
+			'',
+			'## Not allowed',
+			'Title case headings.',
+			'',
+			'## Exceptions',
+			'### Proper nouns',
+			'Keep their spelling.',
+		].join('\n')
+
+		const rules = parseMarkdownPatdownRules(
+			`# First rule\nglobs: **/*.md\n\n${body}\n\n# Second rule\n\nAnother rule.`,
+		)
+
+		expect(rules).toEqual([
+			{ patdownRuleTitle: 'First rule', patdownRuleBody: body, patdownRuleGlobs: ['**/*.md'] },
+			{ patdownRuleTitle: 'Second rule', patdownRuleBody: 'Another rule.', patdownRuleGlobs: [] },
+		])
+	})
+
 	it('splits multiple heading rules', () => {
 		const rules = parseMarkdownPatdownRules('# One\n\nFirst.\n\n# Two\n\nSecond.\n')
 
