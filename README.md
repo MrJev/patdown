@@ -49,4 +49,11 @@ Exit 1 on a violation, a missing rules file, a read error, or a Jev error.
 
 `pnpm -w patdown` forwards `TYPESAFE_*` through Turbo.
 
+## Related
+
 Inspired by [pi-warden](https://github.com/DevMortimer/pi-warden). Same idea, inside pi.
+
+
+Name inspired by It's Always Sunny in Philadelphia
+
+<img width="511" height="415" alt="image" src="https://github.com/user-attachments/assets/f7c73138-3914-4fbd-9e6b-7a37d161334a" />
