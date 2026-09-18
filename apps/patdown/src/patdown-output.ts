@@ -1,7 +1,8 @@
 import type { PatdownRulesDocument } from '@patdown/rules'
+import { defaultPatdownYesThreshold, type PatdownYesThreshold } from '@patdown/rules'
 import { Console, Context, Effect, Layer } from 'effect'
 
-import { patdownJudgmentIsYes, patdownYesThreshold, type PatdownJudgment } from '#src/patdown-judge'
+import { patdownJudgmentIsYes, type PatdownJudgment } from '#src/patdown-judge'
 
 /** One file/rule result; probability estimates a violation, not correctness of the verdict. */
 export type PatdownLintResult = {
@@ -9,23 +10,32 @@ export type PatdownLintResult = {
 	readonly ruleTitle: string
 	readonly filePath: string
 	readonly violationProbability: number
+	readonly yesThreshold: PatdownYesThreshold
 }
 
-function formatPatdownProbability(probability: number): string {
-	return `estimated P(yes): ${String(probability)}; cutoff: >${String(patdownYesThreshold)}`
+function formatPatdownProbability(probability: number, yesThreshold: PatdownYesThreshold): string {
+	return `estimated P(yes): ${String(probability)}; cutoff: >${String(yesThreshold)}`
 }
 
-function formatPatdownAnswer(judgment: PatdownJudgment, verbose: boolean): string {
-	const answer = patdownJudgmentIsYes(judgment) ? 'yes' : 'no'
+function formatPatdownAnswer(
+	judgment: PatdownJudgment,
+	verbose: boolean,
+	yesThreshold: PatdownYesThreshold,
+): string {
+	const answer = patdownJudgmentIsYes(judgment, yesThreshold) ? 'yes' : 'no'
 
-	return verbose ? `${answer} (${formatPatdownProbability(judgment.yesProbability)})` : answer
+	return verbose
+		? `${answer} (${formatPatdownProbability(judgment.yesProbability, yesThreshold)})`
+		: answer
 }
 
 function formatPatdownLintResult(result: PatdownLintResult, verbose: boolean): string {
 	const verdict = result.violated ? 'FAIL' : 'PASS'
 	const line = `${verdict} ${result.filePath}: ${result.ruleTitle}`
 
-	return verbose ? `${line} (${formatPatdownProbability(result.violationProbability)})` : line
+	return verbose
+		? `${line} (${formatPatdownProbability(result.violationProbability, result.yesThreshold)})`
+		: line
 }
 
 function formatPatdownRulesDocument(document: PatdownRulesDocument): string {
@@ -39,6 +49,10 @@ function formatPatdownRulesDocument(document: PatdownRulesDocument): string {
 		lines.push(
 			`globs: ${rule.patdownRuleGlobs.length === 0 ? '*' : rule.patdownRuleGlobs.join(' ')}`,
 		)
+
+		if (rule.patdownRuleYesThreshold !== undefined) {
+			lines.push(`yes-threshold: ${String(rule.patdownRuleYesThreshold)}`)
+		}
 	}
 
 	return lines.join('\n')
@@ -52,7 +66,11 @@ export class PatdownOutput extends Context.Service<
 		readonly writeLintOk: Effect.Effect<void>
 		readonly writeLintResult: (result: PatdownLintResult, verbose: boolean) => Effect.Effect<void>
 		readonly writeNoFilesMatched: (ruleTitle: string) => Effect.Effect<void>
-		readonly writeAnswer: (judgment: PatdownJudgment, verbose: boolean) => Effect.Effect<void>
+		readonly writeAnswer: (
+			judgment: PatdownJudgment,
+			verbose: boolean,
+			yesThreshold?: PatdownYesThreshold,
+		) => Effect.Effect<void>
 		readonly writeRulesDocument: (document: PatdownRulesDocument) => Effect.Effect<void>
 	}
 >()('@patdown/cli/PatdownOutput') {}
@@ -63,6 +81,7 @@ export const PatdownOutputLive = Layer.succeed(PatdownOutput, {
 	writeLintOk: Console.log('patdown: ok'),
 	writeLintResult: (result, verbose) => Console.log(formatPatdownLintResult(result, verbose)),
 	writeNoFilesMatched: (title) => Console.log(`patdown: no files matched ${title}`),
-	writeAnswer: (judgment, verbose) => Console.log(formatPatdownAnswer(judgment, verbose)),
+	writeAnswer: (judgment, verbose, yesThreshold = defaultPatdownYesThreshold) =>
+		Console.log(formatPatdownAnswer(judgment, verbose, yesThreshold)),
 	writeRulesDocument: (document) => Console.log(formatPatdownRulesDocument(document)),
 })

@@ -1,8 +1,11 @@
 import type { PatdownRule } from '#src/patdown-rule'
+import { decodePatdownYesThresholdText, PatdownYesThresholdInvalid } from '#src/patdown-yes-threshold'
 
 const atxHeadingPattern = /^#\s+(.*)$/u
 
 const globLinePattern = /^globs:\s*(.*)$/u
+
+const yesThresholdLinePattern = /^yes-threshold:\s*(.*)$/u
 
 function isFenceToggleLine(line: string): boolean {
 	return line.startsWith('```')
@@ -33,40 +36,106 @@ function globValuesFromLine(line: string): ReadonlyArray<string> | undefined {
 type PatdownRuleBodyParts = {
 	readonly patdownRuleBody: string
 	readonly patdownRuleGlobs: ReadonlyArray<string>
+	readonly patdownRuleYesThreshold?: number
 }
 
-function splitGlobsFromRuleBody(lines: readonly string[]): PatdownRuleBodyParts {
+function yesThresholdFromLine(line: string): string | undefined {
+	const match = yesThresholdLinePattern.exec(line)
+
+	return match === null ? undefined : (match[1] ?? '')
+}
+
+function skipBlankPrefix(lines: readonly string[]): number {
 	let index = 0
 
 	while (index < lines.length && lines[index]?.trim() === '') {
 		index += 1
 	}
 
+	return index
+}
+
+function decodeRuleYesThreshold(title: string, rawThreshold: string): number {
+	const decoded = decodePatdownYesThresholdText(
+		rawThreshold,
+		`rule ${JSON.stringify(title)} yes-threshold`,
+	)
+
+	if (decoded instanceof PatdownYesThresholdInvalid) throw decoded
+
+	return decoded
+}
+
+type PatdownRuleMetadataLine = {
+	readonly consumed: boolean
+	readonly yesThreshold: number | undefined
+}
+
+function applyRuleMetadataLine(
+	title: string,
+	line: string,
+	globs: string[],
+	yesThreshold: number | undefined,
+): PatdownRuleMetadataLine {
+	const globValues = globValuesFromLine(line)
+
+	if (globValues !== undefined) {
+		globs.push(...globValues)
+
+		return { consumed: true, yesThreshold }
+	}
+
+	const rawThreshold = yesThresholdFromLine(line)
+
+	if (rawThreshold === undefined) return { consumed: false, yesThreshold }
+
+	if (yesThreshold !== undefined) {
+		throw new Error(`patdown: rule ${JSON.stringify(title)} has more than one yes-threshold line`)
+	}
+
+	return { consumed: true, yesThreshold: decodeRuleYesThreshold(title, rawThreshold) }
+}
+
+function splitMetadataFromRuleBody(title: string, lines: readonly string[]): PatdownRuleBodyParts {
+	let index = skipBlankPrefix(lines)
 	const globs: string[] = []
+	let yesThreshold: number | undefined
 
 	while (index < lines.length) {
-		const globValues = globValuesFromLine(lines[index] ?? '')
+		const applied = applyRuleMetadataLine(title, lines[index] ?? '', globs, yesThreshold)
 
-		if (globValues === undefined) break
+		if (!applied.consumed) break
 
-		globs.push(...globValues)
+		yesThreshold = applied.yesThreshold
 		index += 1
 	}
 
-	return {
+	const bodyParts: PatdownRuleBodyParts = {
 		patdownRuleBody: lines.slice(index).join('\n').trim(),
 		patdownRuleGlobs: globs,
 	}
+
+	if (yesThreshold !== undefined) {
+		return { ...bodyParts, patdownRuleYesThreshold: yesThreshold }
+	}
+
+	return bodyParts
 }
 
 function finishPatdownRule(title: string, lines: readonly string[]): PatdownRule {
-	const bodyParts = splitGlobsFromRuleBody(lines)
+	const bodyParts = splitMetadataFromRuleBody(title, lines)
 
-	return {
+	const rule: PatdownRule = {
 		patdownRuleBody: bodyParts.patdownRuleBody,
 		patdownRuleGlobs: bodyParts.patdownRuleGlobs,
 		patdownRuleTitle: title,
 	}
+
+	if (bodyParts.patdownRuleYesThreshold !== undefined) {
+		return { ...rule, patdownRuleYesThreshold: bodyParts.patdownRuleYesThreshold }
+	}
+
+	return rule
 }
 
 type MarkdownParseState = {

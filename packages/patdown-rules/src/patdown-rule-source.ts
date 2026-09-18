@@ -2,6 +2,7 @@ import { Context, Data, Effect, FileSystem, Layer, Option, Path } from 'effect'
 
 import { parseMarkdownPatdownRules } from '#src/markdown-patdown-rule-parser'
 import { defaultPatdownRulesFileName, type PatdownRulesDocument } from '#src/patdown-rule'
+import { PatdownYesThresholdInvalid } from '#src/patdown-yes-threshold'
 
 /** No AGENTS.PATDOWN.md (or override path) existed walking up from the start directory. */
 export class PatdownRulesFileMissing extends Data.TaggedError('PatdownRulesFileMissing')<{
@@ -41,7 +42,10 @@ export class PatdownRuleSource extends Context.Service<
 			rulesFilePathOverride: Option.Option<string>,
 		) => Effect.Effect<
 			PatdownRulesDocument,
-			PatdownRulesFileMissing | PatdownRulesReadFailed | PatdownRulesLoadFailed,
+			| PatdownRulesFileMissing
+			| PatdownRulesReadFailed
+			| PatdownRulesLoadFailed
+			| PatdownYesThresholdInvalid,
 			FileSystem.FileSystem | Path.Path
 		>
 	}
@@ -124,7 +128,10 @@ function loadMarkdownPatdownRules(
 	rulesFilePathOverride: Option.Option<string>,
 ): Effect.Effect<
 	PatdownRulesDocument,
-	PatdownRulesFileMissing | PatdownRulesReadFailed,
+	| PatdownRulesFileMissing
+	| PatdownRulesReadFailed
+	| PatdownRulesLoadFailed
+	| PatdownYesThresholdInvalid,
 	FileSystem.FileSystem | Path.Path
 > {
 	return Effect.gen(function* () {
@@ -135,8 +142,18 @@ function loadMarkdownPatdownRules(
 			.readFileString(patdownRulesFilePath)
 			.pipe(Effect.mapError(() => new PatdownRulesReadFailed({ patdownRulesFilePath })))
 
+		const parsed = yield* Effect.try({
+			try: () => parseMarkdownPatdownRules(markdown),
+			catch: (cause) =>
+				cause instanceof PatdownYesThresholdInvalid
+					? cause
+					: new PatdownRulesLoadFailed({
+							message: cause instanceof Error ? cause.message : String(cause),
+						}),
+		})
+
 		return {
-			patdownRules: parseMarkdownPatdownRules(markdown),
+			patdownRules: parsed,
 			patdownRulesFilePath,
 		}
 	})
