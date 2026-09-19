@@ -2,10 +2,11 @@
 
 Effect **v4** production defaults for services, schemas, errors, time, HTTP, and tests.
 
-Sources (v4-oriented; do not copy Effect v3 blog patterns):
+Sources (Effect **v4** only; do not copy Effect v2/v3 blog patterns):
 
-- [effect.solutions](https://www.effect.solutions/) Basics / Services & Layers / Error Handling (field manual)
-- [Kit Langton's Effect skill](https://github.com/kitlangton/skills/tree/main/skills/effect) and its branch references
+- [effect.solutions](https://www.effect.solutions/) — field manual (Basics, Services & Layers, Error Handling, …)
+- [Kit Langton's Effect skill](https://github.com/kitlangton/skills/tree/main/skills/effect) — branch references (schema, services, config, schedule, cache, stream, HTTP, tests)
+- [OpenCode Effect skill (`beta`)](https://github.com/anomalyco/opencode/blob/beta/.opencode/skills/effect/SKILL.md) — short v4 house style from an actively developed Effect-heavy agent codebase ([repo](https://github.com/anomalyco/opencode/tree/beta); their docs also treat `v2` as the default integration branch)
 - Optional Oxlint [anti-slop-effect](https://github.com/dmmulroy/anti-slop) group for `_tag` / Match / service-constructor policy
 
 **Modeling default here:** `Schema.Struct` + same-name `interface`, and `Schema.TaggedErrorClass` for errors. Prefer that over `Schema.Class` / `TaggedClass` as the everyday record style (effect.solutions demos Class in places; treat that as optional when you need instance methods, not the pack default).
