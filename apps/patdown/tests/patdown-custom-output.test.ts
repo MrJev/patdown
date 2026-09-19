@@ -27,8 +27,8 @@ describe('custom output', () => {
 					}),
 				writeRulesDocument: () => Effect.void,
 				writeNoFilesMatched: () => Effect.void,
-				writeLintOk: Effect.void,
-				writeLintFailed: Effect.void,
+				writeLintOk: () => Effect.void,
+				writeLintFailed: () => Effect.void,
 			})
 
 			yield* runPatdownCli(

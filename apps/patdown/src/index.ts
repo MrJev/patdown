@@ -14,6 +14,7 @@ export {
 	patdownJudgmentIsYes,
 	patdownYesThreshold,
 	type PatdownJudgment,
+	type PatdownTimedJudgment,
 } from '#src/patdown-judge'
 
 export {

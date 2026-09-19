@@ -35,7 +35,8 @@ describe('provider-neutral judgments', () => {
 			})
 
 			const result = yield* askPatdownJudge('Urgent?', 'ASAP').pipe(Effect.provide(judge))
-			expect(result.yesProbability).toBe(0.9)
+			expect(result.judgment.yesProbability).toBe(0.9)
+			expect(result.elapsedMs).toBeGreaterThanOrEqual(0)
 		}),
 	)
 
@@ -92,7 +93,7 @@ describe('human-readable judgments', () => {
 		Effect.gen(function* () {
 			const output = yield* PatdownOutput
 			yield* output.writeAnswer({ yesProbability: 0.86 }, false)
-			yield* output.writeAnswer({ yesProbability: 0.02 }, true)
+			yield* output.writeAnswer({ yesProbability: 0.02 }, true, 0.85, 12)
 			yield* output.writeLintResult(
 				{
 					violated: true,
@@ -100,14 +101,15 @@ describe('human-readable judgments', () => {
 					ruleTitle: 'Sentence case',
 					violationProbability: 0.91,
 					yesThreshold: 0.85,
+					elapsedMs: 40,
 				},
-				false,
+				true,
 			)
 			const lines = yield* TestConsole.logLines
 			expect(lines).toEqual([
 				'yes',
-				'no (estimated P(yes): 0.02; cutoff: >0.85)',
-				'FAIL README.md: Sentence case',
+				'no (estimated P(yes): 0.02; cutoff: >0.85; elapsed: 12ms)',
+				'FAIL README.md: Sentence case (estimated P(yes): 0.91; cutoff: >0.85; elapsed: 40ms)',
 			])
 		}).pipe(Effect.provide(outputHarness)),
 	)

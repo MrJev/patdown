@@ -27,7 +27,9 @@ const rulesFileFlag = Flag.optional(Flag.string('rules')).pipe(
 
 const verboseFlag = Flag.boolean('verbose').pipe(
 	Flag.withDefault(false),
-	Flag.withDescription('Show estimated yes probabilities and the decision cutoff'),
+	Flag.withDescription(
+		'Show estimated yes probabilities, the decision cutoff, and elapsed judge time',
+	),
 )
 
 const adapterFlag = Flag.optional(Flag.string('adapter')).pipe(
@@ -46,12 +48,16 @@ type PatdownLintServices =
 	| PatdownOutput
 	| PatdownRuleSource
 
-function finishPatdownLint(failed: boolean): Effect.Effect<void, never, PatdownOutput> {
+function finishPatdownLint(
+	failed: boolean,
+	verbose: boolean,
+	elapsedMs: number,
+): Effect.Effect<void, never, PatdownOutput> {
 	return Effect.gen(function* () {
 		const output = yield* PatdownOutput
 
 		if (failed) {
-			yield* output.writeLintFailed
+			yield* output.writeLintFailed(verbose ? elapsedMs : undefined)
 			yield* Effect.sync(() => {
 				process.exitCode = 1
 			})
@@ -59,7 +65,7 @@ function finishPatdownLint(failed: boolean): Effect.Effect<void, never, PatdownO
 			return
 		}
 
-		yield* output.writeLintOk
+		yield* output.writeLintOk(verbose ? elapsedMs : undefined)
 	})
 }
 
@@ -127,9 +133,9 @@ export function makePatdownCommand(
 				const output = yield* PatdownOutput
 				const text = yield* readPatdownQuestionInput(inputText, stdin)
 				const cutoff = yield* resolvePatdownYesThreshold(yesThreshold)
-				const answer = yield* askPatdownJudge(question, text)
+				const timed = yield* askPatdownJudge(question, text)
 
-				yield* output.writeAnswer(answer, verbose, cutoff)
+				yield* output.writeAnswer(timed.judgment, verbose, cutoff, timed.elapsedMs)
 			}).pipe(
 				Effect.catchTags({
 					PatdownJudgeFailed: (error: PatdownJudgeFailed) => failPatdown(error.message),
@@ -157,9 +163,9 @@ export function makePatdownCommand(
 					? loadConfiguredPatdownRules(adapter, rules)
 					: patdownRuleSource.loadPatdownRules(rules)
 
-				const failed = yield* runPatdownLint(document, verbose, cutoff)
+				const linted = yield* runPatdownLint(document, verbose, cutoff)
 
-				yield* finishPatdownLint(failed)
+				yield* finishPatdownLint(linted.failed, verbose, linted.elapsedMs)
 			}).pipe(
 				Effect.catchTags({
 					PatdownRulesLoadFailed: (error: PatdownRulesLoadFailed) => failPatdown(error.message),

@@ -3,7 +3,7 @@ import {
 	patdownJudgmentIsYes as comparePatdownYesProbability,
 	type PatdownYesThreshold,
 } from '@patdown/rules'
-import { Context, Data, Effect, Schema } from 'effect'
+import { Clock, Context, Data, Effect, Schema } from 'effect'
 
 /** Provider-neutral estimate. This is P(yes), not confidence in whichever answer wins. */
 export const PatdownJudgmentSchema = Schema.Struct({
@@ -12,6 +12,12 @@ export const PatdownJudgmentSchema = Schema.Struct({
 
 /** A judge estimates the probability that the question is true of the supplied text. */
 export type PatdownJudgment = typeof PatdownJudgmentSchema.Type
+
+/** A validated judgment plus how long the judge call took. */
+export type PatdownTimedJudgment = {
+	readonly judgment: PatdownJudgment
+	readonly elapsedMs: number
+}
 
 /** Provider or response validation failure, independent of the backend. */
 export class PatdownJudgeFailed extends Data.TaggedError('PatdownJudgeFailed')<{
@@ -44,16 +50,23 @@ export function patdownJudgmentIsYes(
 export function askPatdownJudge(
 	question: string,
 	inputText: string,
-): Effect.Effect<PatdownJudgment, PatdownJudgeFailed, PatdownJudge> {
+): Effect.Effect<PatdownTimedJudgment, PatdownJudgeFailed, PatdownJudge> {
 	return Effect.gen(function* () {
 		const judge = yield* PatdownJudge
+		const startedAt = yield* Clock.currentTimeMillis
 		const answer = yield* judge.ask(question, inputText)
+		const finishedAt = yield* Clock.currentTimeMillis
 
-		return yield* Schema.decodeEffect(PatdownJudgmentSchema)(answer).pipe(
+		const judgment = yield* Schema.decodeEffect(PatdownJudgmentSchema)(answer).pipe(
 			Effect.mapError(
 				() =>
 					new PatdownJudgeFailed({ message: 'patdown: judge returned an invalid yes probability' }),
 			),
 		)
+
+		return {
+			judgment,
+			elapsedMs: Math.max(0, finishedAt - startedAt),
+		}
 	})
 }

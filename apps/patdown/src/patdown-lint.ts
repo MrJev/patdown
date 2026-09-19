@@ -5,7 +5,7 @@ import {
 	type PatdownRulesDocument,
 	type PatdownYesThreshold,
 } from '@patdown/rules'
-import { Effect, FileSystem, Path } from 'effect'
+import { Clock, Effect, FileSystem, Path } from 'effect'
 
 import {
 	PatdownJudge,
@@ -94,20 +94,21 @@ function lintPatdownRuleFile(
 			),
 		)
 
-		const answer = yield* askPatdownJudge(
+		const timed = yield* askPatdownJudge(
 			patdownViolationInstructions(rule),
 			patdownFileState(relativePath, contents),
 		)
 
-		const failed = patdownJudgmentIsYes(answer, options.yesThreshold)
+		const failed = patdownJudgmentIsYes(timed.judgment, options.yesThreshold)
 
 		yield* output.writeLintResult(
 			{
 				violated: failed,
 				ruleTitle: rule.patdownRuleTitle,
 				filePath: relativePath,
-				violationProbability: answer.yesProbability,
+				violationProbability: timed.judgment.yesProbability,
 				yesThreshold: options.yesThreshold,
+				elapsedMs: timed.elapsedMs,
 			},
 			options.verbose,
 		)
@@ -157,13 +158,14 @@ export function runPatdownLint(
 	verbose: boolean = false,
 	yesThreshold: PatdownYesThreshold = defaultPatdownYesThreshold,
 ): Effect.Effect<
-	boolean,
+	{ readonly failed: boolean; readonly elapsedMs: number },
 	PatdownJudgeFailed | PatdownYesThresholdInvalid,
 	FileSystem.FileSystem | PatdownJudge | Path.Path | PatdownOutput
 > {
 	return Effect.gen(function* () {
 		const path = yield* Path.Path
 		const cwd = path.resolve('.')
+		const startedAt = yield* Clock.currentTimeMillis
 
 		const failures = yield* Effect.forEach(
 			document.patdownRules,
@@ -171,6 +173,11 @@ export function runPatdownLint(
 			{ concurrency: 1 },
 		)
 
-		return failures.some((failed) => failed)
+		const finishedAt = yield* Clock.currentTimeMillis
+
+		return {
+			failed: failures.some((failed) => failed),
+			elapsedMs: Math.max(0, finishedAt - startedAt),
+		}
 	})
 }
