@@ -19,9 +19,12 @@ Node.js **>=22.22.2** and pnpm **11.8.0**. CI runs checks and built-CLI smoke te
 
 ## Commands
 
+From this repo, prefer the workspace script. It builds `patdown` through Turborepo (`dependsOn: build`) and then runs the CLI from your current directory:
+
 ```
 pnpm -w patdown
 pnpm -w patdown -- --rules ./rules.md
+pnpm -w patdown -- --rules ./packs/typescript --verbose
 pnpm -w patdown -- rules
 pnpm -w patdown -- ask "Is this markdown heading title case?" --input-text "# Hello World"
 pnpm -w patdown -- ask "Is this urgent?" --input-text "ASAP" --verbose
@@ -30,13 +33,15 @@ pnpm -w patdown -- --files src/cli.ts --files README.md
 pnpm -w patdown -- --files-from changed.txt --verbose
 ```
 
+Do not run `pnpm build` by hand just to exercise the CLI, and do not use bare `npx patdown` against an unpublished branch (that installs the last registry version). After a release, consumers use `npx patdown` / `pnpm add -D patdown` as usual.
+
 Default command lints from the current directory. `rules` prints what it loaded. `ask` answers a yes/no question, no files involved. It prints `yes` or `no`; `--verbose` also shows a P(yes) shade bar, the cutoff, and how long the judge call took. The old `--noul` and `--state` flags have been replaced by a positional question and `--input-text`.
 
-To judge piped output, use `--stdin`. For example, after building with `pnpm -w build` or running any `pnpm -w patdown` command:
+To judge piped output, use `--stdin`:
 
 ```sh
-git diff --cached | node apps/patdown/dist/patdown-cli-bin.js ask "Does this diff introduce debugging statements?" --stdin
-printf 'ASAP: production is down\n' | node apps/patdown/dist/patdown-cli-bin.js ask "Is this urgent?" --stdin
+git diff --cached | pnpm -w patdown -- ask "Does this diff introduce debugging statements?" --stdin
+printf 'ASAP: production is down\n' | pnpm -w patdown -- ask "Is this urgent?" --stdin
 ```
 
 These send the piped content to the configured judge. Do not pipe secrets. `--stdin` reads UTF-8 text through EOF, preserving newlines; it cannot be combined with `--input-text`. Without either option, the input is an empty string. `ask` reports yes/no without treating yes as a failing exit status.
@@ -95,6 +100,22 @@ await Effect.runPromise(runPatdownCli(PatdownRuleSourceLive))
 ```
 
 See [the adapter guide](docs/rule-source-adapters.md) for the interface, a multi-file parser, resolution rules, resource lifetimes, and local development setup. Adapters execute trusted local code. Install the CLI from npm as `patdown`; adapters import `@patdown/rules` and may import `patdown` for types.
+
+## Packs
+
+Optional rule bundles live under [`packs/`](packs/README.md). The CLI only runs rules; packs are content you can take all of, some of, or skip:
+
+- [`packs/typescript`](packs/typescript/) — type-safety crimes and type laundering
+- [`packs/effect`](packs/effect/) — Effect v4 services, schemas, errors, time, HTTP, tests
+- [`packs/anti-slop`](packs/anti-slop/) — fuzzy counterpart to [Dillon Mulroy's anti-slop](https://github.com/dmmulroy/anti-slop)
+
+```sh
+# whole pack, or a single rule file from a pack
+patdown --rules ./packs/effect --files-from changed.txt --verbose
+patdown --rules ./packs/typescript/do-not-launder-types-with-casts.md
+```
+
+`--rules` accepts a markdown file or a directory of rule files (every `*.md` except `README.md`). Prefer stacked, backtick-wrapped `globs:` lines; commas inside one `globs:` value are separators.
 
 ## Rules
 
@@ -183,7 +204,7 @@ This is an embedding API, not a `--format` flag or dynamically discovered output
 
 With the default TypeSafe backend, `TYPESAFE_API_KEY` is required for lint and `ask`. Optional `TYPESAFE_BASE_URL` (default `https://api.typesafe.ai`) and `TYPESAFE_DEFAULT_MODEL` (default `jev-latest`).
 
-`pnpm -w patdown` forwards `TYPESAFE_*` through Turbo.
+`pnpm -w patdown` inherits `TYPESAFE_*` from your environment.
 
 ## Release
 
@@ -208,6 +229,8 @@ Inspired by [pi-warden](https://github.com/DevMortimer/pi-warden). Same idea, in
 [Abide](https://github.com/coldteadotai/abide) is a similar Jev-backed checker. It hooks into coding agents, reads project instruction files, and asks Jev whether each edit or turn broke a rule.
 
 [Jev Review](https://github.com/devagrawal09/jev-review) is a Jev-backed diff/codebase reviewer with a local dashboard of those judgments. Patdown stays in the terminal; `--verbose` draws a P(yes) shade bar instead of a GUI.
+
+[Dillon Mulroy's anti-slop](https://github.com/dmmulroy/anti-slop) is the Oxlint ruleset that [`packs/anti-slop`](packs/anti-slop/) rephrases for fuzzy judging. Keep the static rules for exact AST hits; use the pack for paraphrases and type-laundering that still looks clean to a linter.
 
 Name inspired by It's Always Sunny in Philadelphia
 
