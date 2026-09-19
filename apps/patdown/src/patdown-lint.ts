@@ -11,7 +11,7 @@ import {
 	formatPatdownEvidenceChoiceState,
 	patdownEvidenceChoiceCriteria,
 	patdownEvidenceChoiceInstructions,
-	splitPatdownEvidenceRegions,
+	splitPatdownEvidenceCandidates,
 } from '#src/patdown-evidence-regions'
 import { patdownGlobExcludes, patdownGlobPatterns } from '#src/patdown-glob'
 import {
@@ -102,25 +102,27 @@ function lintPatdownRuleFile(
 
 		if (failed) {
 			const evidenceStartedAt = yield* Clock.currentTimeMillis
-			const regions = splitPatdownEvidenceRegions(contents)
+			const candidates = splitPatdownEvidenceCandidates(contents)
 
-			const regionsById = new Map(
-				regions.map((region) => [
-					region.id,
-					{ startLine: region.startLine, endLine: region.endLine },
+			const candidatesById = new Map(
+				candidates.map((candidate) => [
+					candidate.id,
+					{ startLine: candidate.startLine, endLine: candidate.endLine },
 				]),
 			)
 
 			const located = yield* locatePatdownEvidence(
 				patdownEvidenceChoiceInstructions(),
-				formatPatdownEvidenceChoiceState(
+				formatPatdownEvidenceChoiceState({
 					relativePath,
-					rule.patdownRuleTitle,
-					rule.patdownRuleBody,
-					regions,
-				),
-				patdownEvidenceChoiceCriteria(regions),
-				regionsById,
+					ruleTitle: rule.patdownRuleTitle,
+					ruleBody: rule.patdownRuleBody,
+					violationProbability: timed.judgment.yesProbability,
+					contents,
+					candidates,
+				}),
+				patdownEvidenceChoiceCriteria(candidates),
+				candidatesById,
 			).pipe(Effect.catchTag('PatdownJudgeFailed', () => Effect.succeed(null)))
 
 			const evidenceFinishedAt = yield* Clock.currentTimeMillis

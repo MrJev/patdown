@@ -30,7 +30,7 @@ When `GITHUB_ACTIONS=true` and `GITHUB_STEP_SUMMARY` are set, the default CLI al
 1. Prints `::error` annotations for failing file/rule pairs (hottest first, capped at 10)
 2. Appends a markdown heatmap to the step summary
 
-PASS stays one noul judgment. On FAIL, the default TypeSafe judge makes a second Choice call over ~80-line regions so the annotation can use a real `line=` / `endLine=` span when the model picks a region with enough confidence. If that Choice is unavailable, returns `noMatch`, or fails, the annotation still lands on the file at `line=1`.
+PASS stays one noul judgment. On FAIL, the default TypeSafe judge makes a second Choice call whose candidates are individual lines (full file + original P(yes) in state). Files larger than the per-line cap fall back to chunks. Later we may offer smarter units (functions, headings, hunks) the same way. If that Choice is unavailable, returns `noMatch`, or fails, the annotation still lands on the file at `line=1`.
 
 The summary leads with `patdown passed` or `patdown failed`, then `N passed · M failed · elapsed`. Each heatmap row has a `status` column with ✅ or ❌. Any failed rule marks the whole file row ❌. Judged cells show the shade bar and score; failures append ❌ after the score.
 

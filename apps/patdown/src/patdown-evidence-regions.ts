@@ -1,47 +1,63 @@
-/** One numbered slice of a file used as a Choice candidate. */
-export type PatdownEvidenceRegion = {
+/** One Choice candidate with a known 1-based line span. */
+export type PatdownEvidenceCandidate = {
 	readonly id: string
 	readonly startLine: number
 	readonly endLine: number
 	readonly content: string
 }
 
-/** Default region height for FAIL-only evidence Choice. */
-export const patdownEvidenceRegionLineCount = 80
+/** Prefer one Choice label per source line while the file stays under this size. */
+export const patdownEvidencePerLineMaxCount = 500
 
-/** Cap Choice options so the second pass stays bounded. */
-export const patdownEvidenceRegionMaxCount = 24
+/** Chunk height when the file is too large for per-line Choice. */
+export const patdownEvidenceChunkLineCount = 80
+
+/** Cap chunked candidates so the second pass stays bounded. */
+export const patdownEvidenceChunkMaxCount = 24
+
+/** Truncate long line text used as Choice descriptions. */
+export const patdownEvidenceDescriptionMaxChars = 160
 
 const patdownEvidenceNoMatchLabel = 'noMatch'
 
-/** Label returned when no region is strong enough. */
+/** Label returned when no candidate is strong enough. */
 export function patdownEvidenceNoMatchChoice(): string {
 	return patdownEvidenceNoMatchLabel
 }
 
-/**
- * Split file text into contiguous regions with known 1-based line ranges. Empty files yield one
- * empty region at line 1.
- */
-export function splitPatdownEvidenceRegions(
-	contents: string,
-	lineCount: number = patdownEvidenceRegionLineCount,
-	maxRegions: number = patdownEvidenceRegionMaxCount,
-): ReadonlyArray<PatdownEvidenceRegion> {
+function normalizePatdownEvidenceLines(contents: string): string[] {
 	const normalized = contents.replace(/\r\n/gu, '\n')
-	const lines = normalized.length === 0 ? [''] : normalized.split('\n')
-	const regions: PatdownEvidenceRegion[] = []
+
+	return normalized.length === 0 ? [''] : normalized.split('\n')
+}
+
+function truncatePatdownEvidenceDescription(text: string): string {
+	const collapsed = text.replace(/\s+/gu, ' ').trim()
+
+	if (collapsed.length === 0) return '(empty line)'
+
+	if (collapsed.length <= patdownEvidenceDescriptionMaxChars) return collapsed
+
+	return `${collapsed.slice(0, patdownEvidenceDescriptionMaxChars - 1)}…`
+}
+
+function splitPatdownEvidenceChunks(
+	lines: ReadonlyArray<string>,
+	lineCount: number,
+	maxChunks: number,
+): ReadonlyArray<PatdownEvidenceCandidate> {
+	const candidates: PatdownEvidenceCandidate[] = []
 	const step = Math.max(1, lineCount)
 
 	for (let startIndex = 0; startIndex < lines.length; startIndex += step) {
-		if (regions.length >= maxRegions) break
+		if (candidates.length >= maxChunks) break
 
 		const endIndex = Math.min(lines.length, startIndex + step)
 		const startLine = startIndex + 1
 		const endLine = endIndex
-		const id = `r${String(regions.length + 1)}`
+		const id = `c${String(candidates.length + 1)}`
 
-		regions.push({
+		candidates.push({
 			id,
 			startLine,
 			endLine,
@@ -49,62 +65,121 @@ export function splitPatdownEvidenceRegions(
 		})
 	}
 
-	return regions
+	return candidates
 }
 
-/** Choice criteria: region ids plus noMatch. Descriptions stay short. */
+function splitPatdownEvidenceLines(
+	lines: ReadonlyArray<string>,
+): ReadonlyArray<PatdownEvidenceCandidate> {
+	return lines.map((content, index) => {
+		const startLine = index + 1
+
+		return {
+			id: `L${String(startLine)}`,
+			startLine,
+			endLine: startLine,
+			content,
+		}
+	})
+}
+
+/**
+ * Build FAIL-only Choice candidates. Prefer one label per line. Past
+ * {@link patdownEvidencePerLineMaxCount}, fall back to chunks. Smarter units (functions, headings,
+ * hunks) can replace this later without changing the Choice pass.
+ */
+export function splitPatdownEvidenceCandidates(
+	contents: string,
+	perLineMaxCount: number = patdownEvidencePerLineMaxCount,
+	chunkLineCount: number = patdownEvidenceChunkLineCount,
+	chunkMaxCount: number = patdownEvidenceChunkMaxCount,
+): ReadonlyArray<PatdownEvidenceCandidate> {
+	const lines = normalizePatdownEvidenceLines(contents)
+
+	if (lines.length <= perLineMaxCount) {
+		return splitPatdownEvidenceLines(lines)
+	}
+
+	return splitPatdownEvidenceChunks(lines, chunkLineCount, chunkMaxCount)
+}
+
+/** Choice criteria: candidate ids plus noMatch. Descriptions stay short. */
 export type PatdownEvidenceChoiceCriteria = {
 	readonly [label: string]: string
 }
 
 export function patdownEvidenceChoiceCriteria(
-	regions: ReadonlyArray<PatdownEvidenceRegion>,
+	candidates: ReadonlyArray<PatdownEvidenceCandidate>,
 ): PatdownEvidenceChoiceCriteria {
 	const entries: Array<readonly [string, string]> = [
-		[patdownEvidenceNoMatchLabel, 'No region provides clear, direct evidence of the violation'],
+		[patdownEvidenceNoMatchLabel, 'No candidate provides clear, direct evidence of the violation'],
 	]
 
-	for (const region of regions) {
+	for (const candidate of candidates) {
+		const span =
+			candidate.startLine === candidate.endLine
+				? `Line ${String(candidate.startLine)}`
+				: `Lines ${String(candidate.startLine)}-${String(candidate.endLine)}`
+
 		entries.push([
-			region.id,
-			`Lines ${String(region.startLine)}-${String(region.endLine)} of the file`,
+			candidate.id,
+			`${span}: ${truncatePatdownEvidenceDescription(candidate.content)}`,
 		])
 	}
 
 	return Object.fromEntries(entries) satisfies PatdownEvidenceChoiceCriteria
 }
 
-/** State text for the evidence Choice: rule plus numbered region bodies. */
-export function formatPatdownEvidenceChoiceState(
-	relativePath: string,
-	ruleTitle: string,
-	ruleBody: string,
-	regions: ReadonlyArray<PatdownEvidenceRegion>,
-): string {
+/** Inputs for FAIL-only evidence Choice state. */
+export type PatdownEvidenceChoiceStateInput = {
+	readonly relativePath: string
+	readonly ruleTitle: string
+	readonly ruleBody: string
+	readonly violationProbability: number
+	readonly contents: string
+	readonly candidates: ReadonlyArray<PatdownEvidenceCandidate>
+}
+
+/** State for the evidence Choice: original FAIL, full file, and candidate index. */
+export function formatPatdownEvidenceChoiceState(input: PatdownEvidenceChoiceStateInput): string {
+	const mode =
+		input.candidates.length > 0 && input.candidates[0]?.startLine === input.candidates[0]?.endLine
+			? 'per-line'
+			: 'chunked'
+
 	const parts = [
-		`path: ${relativePath}`,
+		`path: ${input.relativePath}`,
+		`noul P(yes): ${String(input.violationProbability)}`,
+		`candidate mode: ${mode}`,
 		'',
-		`# ${ruleTitle}`,
+		`# ${input.ruleTitle}`,
 		'',
-		ruleBody,
+		input.ruleBody,
 		'',
-		'Candidate regions:',
+		'Full file:',
+		input.contents,
+		'',
+		'Candidates (choose the strongest direct evidence of the violation):',
 	]
 
-	for (const region of regions) {
-		parts.push('')
-		parts.push(`## ${region.id} (lines ${String(region.startLine)}-${String(region.endLine)})`)
-		parts.push(region.content)
+	for (const candidate of input.candidates) {
+		const span =
+			candidate.startLine === candidate.endLine
+				? `line ${String(candidate.startLine)}`
+				: `lines ${String(candidate.startLine)}-${String(candidate.endLine)}`
+
+		parts.push(`- ${candidate.id}: ${span}`)
 	}
 
 	return parts.join('\n')
 }
 
-/** Instructions for selecting the strongest violating region. */
+/** Instructions for selecting the strongest violating candidate. */
 export function patdownEvidenceChoiceInstructions(): string {
 	return [
-		'Which candidate region provides the strongest direct evidence that this file violates the rule?',
-		'Select noMatch when no region provides sufficient evidence.',
-		'Prefer the region that contains the clearest violation, not merely related text.',
+		'Which candidate provides the strongest direct evidence that this file violates the rule?',
+		'When candidates are single lines, pick the specific line that contains the violation.',
+		'Select noMatch when no candidate provides sufficient evidence.',
+		'Prefer the clearest violation, not merely related text.',
 	].join(' ')
 }
