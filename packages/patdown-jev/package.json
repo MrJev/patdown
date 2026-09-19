@@ -1,6 +1,6 @@
 {
 	"name": "@patdown/jev",
-	"version": "0.3.0",
+	"version": "0.3.1",
 	"description": "Effect HttpClient for TypeSafe System One (Jev)",
 	"homepage": "https://github.com/tyler-dot-earth/patdown",
 	"bugs": {
