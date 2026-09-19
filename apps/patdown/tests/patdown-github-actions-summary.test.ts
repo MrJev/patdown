@@ -1,0 +1,87 @@
+import { describe, expect, it } from 'vitest'
+
+import {
+	formatPatdownGitHubActionsAnnotations,
+	formatPatdownGitHubActionsSummary,
+	patdownLintResultIsNearMiss,
+} from '#src/patdown-github-actions-summary'
+import type { PatdownLintResult } from '#src/patdown-output'
+
+function result(
+	partial: Omit<PatdownLintResult, 'elapsedMs' | 'yesThreshold'> & {
+		readonly elapsedMs?: number
+		readonly yesThreshold?: number
+	},
+): PatdownLintResult {
+	return {
+		elapsedMs: partial.elapsedMs ?? 10,
+		yesThreshold: partial.yesThreshold ?? 0.85,
+		...partial,
+	}
+}
+
+describe('GitHub Actions summary', () => {
+	it('marks near misses below the cutoff', () => {
+		expect(
+			patdownLintResultIsNearMiss(
+				result({
+					violated: false,
+					filePath: 'a.ts',
+					ruleTitle: 'rule',
+					violationProbability: 0.7,
+				}),
+			),
+		).toBe(true)
+		expect(
+			patdownLintResultIsNearMiss(
+				result({
+					violated: false,
+					filePath: 'a.ts',
+					ruleTitle: 'rule',
+					violationProbability: 0.2,
+				}),
+			),
+		).toBe(false)
+	})
+
+	it('formats annotations and a heatmap summary', () => {
+		const results = [
+			result({
+				violated: true,
+				filePath: 'src/cli.ts',
+				ruleTitle: 'explicit-actor',
+				violationProbability: 0.86,
+				elapsedMs: 312,
+			}),
+			result({
+				violated: false,
+				filePath: 'README.md',
+				ruleTitle: 'sentence-case',
+				violationProbability: 0.04,
+			}),
+			result({
+				violated: true,
+				filePath: 'README.md',
+				ruleTitle: 'sentence-case',
+				violationProbability: 0.91,
+			}),
+		]
+
+		expect(formatPatdownGitHubActionsAnnotations(results)).toEqual([
+			'::error file=README.md,title=patdown%3A sentence-case::▓▓▓▓▓▓▓▓▓░ P(yes) 0.91 exceeds cutoff >0.85',
+			'::error file=src/cli.ts,title=patdown%3A explicit-actor::▓▓▓▓▓▓▓▓▒░ P(yes) 0.86 exceeds cutoff >0.85',
+		])
+
+		const summary = formatPatdownGitHubActionsSummary({
+			failed: true,
+			elapsedMs: 1840,
+			results,
+		})
+
+		expect(summary).toContain('# patdown  failed')
+		expect(summary).toContain('2 / 3 over cutoff · 1840ms')
+		expect(summary).toContain('| file | explicit-actor | sentence-case |')
+		expect(summary).toContain('`src/cli.ts`')
+		expect(summary).toContain('### `README.md` · sentence-case')
+	})
+})

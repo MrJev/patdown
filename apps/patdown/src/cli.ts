@@ -5,11 +5,12 @@ import {
 	PatdownRulesLoadFailed,
 	PatdownYesThresholdInvalid,
 } from '@patdown/rules'
-import { Effect, FileSystem, Path, Stdio } from 'effect'
+import { Effect, FileSystem, Option, Path, Stdio } from 'effect'
 import { Argument, Command, Flag } from 'effect/unstable/cli'
 
 import { PatdownJudge, PatdownJudgeFailed, askPatdownJudge } from '#src/patdown-judge'
 import { runPatdownLint } from '#src/patdown-lint'
+import { resolvePatdownLintFileSelection } from '#src/patdown-lint-files'
 import { PatdownOutput } from '#src/patdown-output'
 import { readPatdownQuestionInput } from '#src/patdown-question-input'
 import { loadConfiguredPatdownRules } from '#src/patdown-rule-source-adapter'
@@ -33,11 +34,25 @@ const verboseFlag = Flag.boolean('verbose').pipe(
 )
 
 const adapterFlag = Flag.optional(Flag.string('adapter')).pipe(
-	Flag.withDescription('Module exporting PatdownRuleSourceLive, replacingkdown rule parsing'),
+	Flag.withDescription('Module exporting PatdownRuleSourceLive, replacing markdown rule parsing'),
 )
 
 const yesThresholdFlag = Flag.optional(Flag.float('yes-threshold')).pipe(
 	Flag.withDescription('Minimum exclusive P(yes) for yes; default 0.85, overridable per rule'),
+)
+
+const filesFlag = Flag.string('files').pipe(
+	Flag.between(0, 10_000),
+	Flag.withDescription('Restrict lint to these paths; intersects each rule glob'),
+)
+
+const filesFromFlag = Flag.optional(Flag.string('files-from')).pipe(
+	Flag.withDescription('Newline-separated paths to lint; intersects each rule glob'),
+)
+
+const noGitHubFlag = Flag.boolean('no-github').pipe(
+	Flag.withDefault(false),
+	Flag.withDescription('Disable GitHub Actions summary and annotations'),
 )
 
 type PatdownLintServices =
@@ -69,11 +84,10 @@ function finishPatdownLint(
 	})
 }
 
-/** Builds commands with optional adapter discovery for embedded callers. */
-export function makePatdownCommand(
-	discoverAdapters: boolean = true,
-): Command.Command<'patdown', never, object, never, PatdownLintServices> {
-	const rulesCommand = Command.make(
+function makePatdownRulesCommand(
+	discoverAdapters: boolean,
+): Command.Command<'rules', never, object, never, PatdownLintServices> {
+	return Command.make(
 		'rules',
 		{ adapter: adapterFlag, rules: rulesFileFlag },
 		({
@@ -103,8 +117,16 @@ export function makePatdownCommand(
 				}),
 			),
 	).pipe(Command.withDescription('Load and print patdown rules'))
+}
 
-	const askCommand = Command.make(
+function makePatdownAskCommand(): Command.Command<
+	'ask',
+	never,
+	object,
+	never,
+	PatdownLintServices
+> {
+	return Command.make(
 		'ask',
 		{
 			question: Argument.string('question'),
@@ -144,40 +166,73 @@ export function makePatdownCommand(
 				}),
 			),
 	).pipe(Command.withDescription('Ask a yes/no question about text'))
+}
 
-	/** Root Effect CLI command for patdown. Default action lints files against AGENTS.PATDOWN.md. */
+function runPatdownRootLint(
+	discoverAdapters: boolean,
+	options: {
+		readonly rules: Option.Option<string>
+		readonly adapter: Option.Option<string>
+		readonly verbose: boolean
+		readonly yesThreshold: Option.Option<number>
+		readonly files: ReadonlyArray<string>
+		readonly filesFrom: Option.Option<string>
+	},
+): Effect.Effect<void, never, PatdownLintServices> {
+	return Effect.gen(function* () {
+		const patdownRuleSource = yield* PatdownRuleSource
+		const path = yield* Path.Path
+		const cutoff = yield* resolvePatdownYesThreshold(options.yesThreshold)
+		const cwd = path.resolve('.')
+		const selection = yield* resolvePatdownLintFileSelection(cwd, options.files, options.filesFrom)
+
+		const document = yield* discoverAdapters
+			? loadConfiguredPatdownRules(options.adapter, options.rules)
+			: patdownRuleSource.loadPatdownRules(options.rules)
+
+		const linted = yield* runPatdownLint(document, options.verbose, cutoff, selection)
+
+		yield* finishPatdownLint(linted.failed, options.verbose, linted.elapsedMs)
+	}).pipe(
+		Effect.catchTags({
+			PatdownRulesLoadFailed: (error: PatdownRulesLoadFailed) => failPatdown(error.message),
+			PatdownJudgeFailed: (error: PatdownJudgeFailed) => failPatdown(error.message),
+			PatdownYesThresholdInvalid: (error: PatdownYesThresholdInvalid) => failPatdown(error.message),
+			PatdownRulesFileMissing: (error: PatdownRulesFileMissing) => failPatdown(error.message),
+			PatdownRulesReadFailed: (error: PatdownRulesReadFailed) => failPatdown(error.message),
+		}),
+	)
+}
+
+/** Builds commands with optional adapter discovery for embedded callers. */
+export function makePatdownCommand(
+	discoverAdapters: boolean = true,
+): Command.Command<'patdown', never, object, never, PatdownLintServices> {
+	const rulesCommand = makePatdownRulesCommand(discoverAdapters)
+	const askCommand = makePatdownAskCommand()
+
 	return Command.make(
 		'patdown',
 		{
 			adapter: adapterFlag,
+			files: filesFlag,
+			filesFrom: filesFromFlag,
+			noGitHub: noGitHubFlag,
 			rules: rulesFileFlag,
 			verbose: verboseFlag,
 			yesThreshold: yesThresholdFlag,
 		},
-		({ rules, adapter, verbose, yesThreshold }): Effect.Effect<void, never, PatdownLintServices> =>
-			Effect.gen(function* () {
-				const patdownRuleSource = yield* PatdownRuleSource
-				const cutoff = yield* resolvePatdownYesThreshold(yesThreshold)
-
-				const document = yield* discoverAdapters
-					? loadConfiguredPatdownRules(adapter, rules)
-					: patdownRuleSource.loadPatdownRules(rules)
-
-				const linted = yield* runPatdownLint(document, verbose, cutoff)
-
-				yield* finishPatdownLint(linted.failed, verbose, linted.elapsedMs)
-			}).pipe(
-				Effect.catchTags({
-					PatdownRulesLoadFailed: (error: PatdownRulesLoadFailed) => failPatdown(error.message),
-					PatdownJudgeFailed: (error: PatdownJudgeFailed) => failPatdown(error.message),
-					PatdownYesThresholdInvalid: (error: PatdownYesThresholdInvalid) =>
-						failPatdown(error.message),
-					PatdownRulesFileMissing: (error: PatdownRulesFileMissing) => failPatdown(error.message),
-					PatdownRulesReadFailed: (error: PatdownRulesReadFailed) => failPatdown(error.message),
-				}),
-			),
+		({ rules, adapter, verbose, yesThreshold, files, filesFrom, noGitHub: _noGitHub }) =>
+			runPatdownRootLint(discoverAdapters, {
+				rules,
+				adapter,
+				verbose,
+				yesThreshold,
+				files,
+				filesFrom,
+			}),
 	).pipe(
-		Command.withDescription('Lint a tree against fuzzykdown rules'),
+		Command.withDescription('Lint a tree against fuzzy markdown rules'),
 		Command.withShortDescription('Patdown CLI'),
 		Command.withSubcommands([askCommand, rulesCommand]),
 	)
