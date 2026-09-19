@@ -98,17 +98,17 @@ See [the adapter guide](docs/rule-source-adapters.md) for the interface, a multi
 
 ## Packs
 
-Ready-made rule files live in [`packs/`](packs/README.md):
+Ready-made **packs** are directories under [`packs/`](packs/README.md). Each pack is a folder of one-rule markdown files:
 
-- [`packs/typescript.md`](packs/typescript.md) — type-safety crimes and type laundering
-- [`packs/effect.md`](packs/effect.md) — Effect v4 services, schemas, config, diagnostics
-- [`packs/anti-slop.md`](packs/anti-slop.md) — fuzzy companion to oxlint anti-slop (widen-then-assert, cast chains, empty-object spreads)
+- [`packs/typescript`](packs/typescript/) — type-safety crimes and type laundering
+- [`packs/effect`](packs/effect/) — Effect v4 services, schemas, config, diagnostics
+- [`packs/anti-slop`](packs/anti-slop/) — fuzzy companion to oxlint anti-slop
 
 ```sh
-npx patdown --rules ./packs/effect.md --files-from changed.txt --verbose
+npx patdown --rules ./packs/effect --files-from changed.txt --verbose
 ```
 
-Until packs ship on npm, copy the directory or run from a checkout. Use stacked `globs:` lines (`**/*.ts` then `**/*.tsx`); commas inside a single `globs:` line are treated as separators.
+`--rules` accepts a pack directory (loads every `*.md` except `README.md`) or a single markdown file. Prefer stacked `globs:` lines (`**/*.ts` then `**/*.tsx`); commas inside one `globs:` value are separators.
 
 ## Rules
 

@@ -1,7 +1,11 @@
 import { Context, Data, Effect, FileSystem, Layer, Option, Path } from 'effect'
 
 import { parseMarkdownPatdownRules } from '#src/markdown-patdown-rule-parser'
-import { defaultPatdownRulesFileName, type PatdownRulesDocument } from '#src/patdown-rule'
+import {
+	defaultPatdownRulesFileName,
+	type PatdownRule,
+	type PatdownRulesDocument,
+} from '#src/patdown-rule'
 import { PatdownYesThresholdInvalid } from '#src/patdown-yes-threshold'
 
 /** No AGENTS.PATDOWN.md (or override path) existed walking up from the start directory. */
@@ -124,6 +128,96 @@ export function resolvePatdownRulesFilePath(
 	})
 }
 
+function parseMarkdownPatdownRulesFile(
+	markdown: string,
+): Effect.Effect<ReadonlyArray<PatdownRule>, PatdownRulesLoadFailed | PatdownYesThresholdInvalid> {
+	return Effect.try({
+		try: () => parseMarkdownPatdownRules(markdown),
+		catch: (cause) =>
+			cause instanceof PatdownYesThresholdInvalid
+				? cause
+				: new PatdownRulesLoadFailed({
+						message: cause instanceof Error ? cause.message : String(cause),
+					}),
+	})
+}
+
+function loadMarkdownPatdownRulesFromFile(
+	patdownRulesFilePath: string,
+): Effect.Effect<
+	PatdownRulesDocument,
+	PatdownRulesReadFailed | PatdownRulesLoadFailed | PatdownYesThresholdInvalid,
+	FileSystem.FileSystem
+> {
+	return Effect.gen(function* () {
+		const fileSystem = yield* FileSystem.FileSystem
+
+		const markdown = yield* fileSystem
+			.readFileString(patdownRulesFilePath)
+			.pipe(Effect.mapError(() => new PatdownRulesReadFailed({ patdownRulesFilePath })))
+
+		const parsed = yield* parseMarkdownPatdownRulesFile(markdown)
+
+		return {
+			patdownRules: parsed,
+			patdownRulesFilePath,
+		}
+	})
+}
+
+/** Loads every `*.md` rule file in a pack directory, skipping README.md. */
+function loadMarkdownPatdownRulesFromDirectory(
+	patdownRulesDirectoryPath: string,
+): Effect.Effect<
+	PatdownRulesDocument,
+	PatdownRulesReadFailed | PatdownRulesLoadFailed | PatdownYesThresholdInvalid,
+	FileSystem.FileSystem | Path.Path
+> {
+	return Effect.gen(function* () {
+		const fileSystem = yield* FileSystem.FileSystem
+		const path = yield* Path.Path
+
+		const entries = yield* fileSystem
+			.readDirectory(patdownRulesDirectoryPath)
+			.pipe(
+				Effect.mapError(
+					() => new PatdownRulesReadFailed({ patdownRulesFilePath: patdownRulesDirectoryPath }),
+				),
+			)
+
+		const ruleFiles = entries
+			.filter((entry) => entry.toLowerCase().endsWith('.md'))
+			.filter((entry) => entry.toLowerCase() !== 'readme.md')
+			.toSorted((left, right) => left.localeCompare(right))
+
+		if (ruleFiles.length === 0) {
+			return yield* new PatdownRulesLoadFailed({
+				message: `patdown: pack directory ${patdownRulesDirectoryPath} has no rule markdown files`,
+			})
+		}
+
+		const rules = []
+
+		for (const ruleFile of ruleFiles) {
+			const rulePath = path.join(patdownRulesDirectoryPath, ruleFile)
+			const document = yield* loadMarkdownPatdownRulesFromFile(rulePath)
+
+			if (document.patdownRules.length === 0) {
+				return yield* new PatdownRulesLoadFailed({
+					message: `patdown: pack rule ${rulePath} has no # headings`,
+				})
+			}
+
+			rules.push(...document.patdownRules)
+		}
+
+		return {
+			patdownRules: rules,
+			patdownRulesFilePath: patdownRulesDirectoryPath,
+		}
+	})
+}
+
 function loadMarkdownPatdownRules(
 	rulesFilePathOverride: Option.Option<string>,
 ): Effect.Effect<
@@ -138,24 +232,15 @@ function loadMarkdownPatdownRules(
 		const patdownRulesFilePath = yield* resolvePatdownRulesFilePath(rulesFilePathOverride)
 		const fileSystem = yield* FileSystem.FileSystem
 
-		const markdown = yield* fileSystem
-			.readFileString(patdownRulesFilePath)
+		const info = yield* fileSystem
+			.stat(patdownRulesFilePath)
 			.pipe(Effect.mapError(() => new PatdownRulesReadFailed({ patdownRulesFilePath })))
 
-		const parsed = yield* Effect.try({
-			try: () => parseMarkdownPatdownRules(markdown),
-			catch: (cause) =>
-				cause instanceof PatdownYesThresholdInvalid
-					? cause
-					: new PatdownRulesLoadFailed({
-							message: cause instanceof Error ? cause.message : String(cause),
-						}),
-		})
-
-		return {
-			patdownRules: parsed,
-			patdownRulesFilePath,
+		if (info.type === 'Directory') {
+			return yield* loadMarkdownPatdownRulesFromDirectory(patdownRulesFilePath)
 		}
+
+		return yield* loadMarkdownPatdownRulesFromFile(patdownRulesFilePath)
 	})
 }
 

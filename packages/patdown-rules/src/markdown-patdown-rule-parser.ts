@@ -24,8 +24,21 @@ function atxHeadingTitle(line: string): string | undefined {
 	return title.length === 0 ? undefined : title
 }
 
+function unwrapGlobToken(token: string): string {
+	const trimmed = token.trim()
+
+	if (trimmed.length >= 2 && trimmed.startsWith('`') && trimmed.endsWith('`')) {
+		return trimmed.slice(1, -1)
+	}
+
+	return trimmed
+}
+
 function splitGlobList(raw: string): ReadonlyArray<string> {
-	return raw.split(/[,\s]+/u).filter((part) => part.length > 0)
+	return raw
+		.split(/[,\s]+/u)
+		.map(unwrapGlobToken)
+		.filter((part) => part.length > 0)
 }
 
 function globValuesFromLine(line: string): ReadonlyArray<string> | undefined {

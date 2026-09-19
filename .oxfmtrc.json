@@ -21,6 +21,7 @@
 		"**/coverage/**",
 		"packages/oxlint-config/anti-slop/**",
 		"anti-slop/**",
+		"packs/**",
 		"pnpm-lock.yaml",
 		"flake.lock"
 	]

@@ -37,6 +37,14 @@ describe('parseMarkdownPatdownRules', () => {
 		expect(rules[0]?.patdownRuleGlobs).toEqual(['**/*.ts', '**/*.tsx'])
 	})
 
+	it('accepts backtick-wrapped globs so formatters do not eat stars', () => {
+		const rules = parseMarkdownPatdownRules(
+			['# Paths', 'globs: `**/*.ts`', 'globs: `**/*.tsx`', '', 'Keep it typed.', ''].join('\n'),
+		)
+
+		expect(rules[0]?.patdownRuleGlobs).toEqual(['**/*.ts', '**/*.tsx'])
+	})
+
 	it('does not treat headings inside fences as rules', () => {
 		const rules = parseMarkdownPatdownRules(
 			[
