@@ -42,6 +42,13 @@ function formatPatdownProbabilityCell(result: PatdownLintResult): string {
 	return `${bar} ${score}`
 }
 
+/** Rule definition text for annotations and failure details. */
+export function formatPatdownRuleGuidance(result: PatdownLintResult): string {
+	const globs = result.ruleGlobs.length === 0 ? '*' : result.ruleGlobs.join(' ')
+
+	return [`# ${result.ruleTitle}`, `globs: ${globs}`, '', result.ruleBody].join('\n')
+}
+
 /** Near misses are below the cutoff but close enough to show in the heatmap. */
 export function patdownLintResultIsNearMiss(result: PatdownLintResult): boolean {
 	if (result.violated) return false
@@ -98,7 +105,8 @@ export function formatPatdownGitHubActionsAnnotations(
 				? ''
 				: ` lines ${String(result.evidence.startLine)}-${String(result.evidence.endLine)}`
 
-		const message = `${bar} P(yes) ${String(result.violationProbability)} exceeds cutoff >${String(result.yesThreshold)}${span}`
+		const headline = `${bar} P(yes) ${String(result.violationProbability)} exceeds cutoff >${String(result.yesThreshold)}${span}`
+		const message = `${headline}\n\n${formatPatdownRuleGuidance(result)}`
 		const file = escapePatdownGitHubActionsProperty(result.filePath)
 		const title = escapePatdownGitHubActionsProperty(`patdown: ${result.ruleTitle}`)
 
@@ -202,6 +210,8 @@ function formatPatdownFailureDetails(results: ReadonlyArray<PatdownLintResult>):
 			`### \`${result.filePath}\` · ${result.ruleTitle}`,
 			'',
 			`${bar} estimated P(yes) **${String(result.violationProbability)}** exceeds cutoff \`>${String(result.yesThreshold)}\` · ${formatPatdownElapsedLabel(result.elapsedMs)}`,
+			'',
+			formatPatdownRuleGuidance(result),
 			'',
 		)
 	}

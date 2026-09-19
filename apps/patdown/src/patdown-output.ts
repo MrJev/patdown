@@ -16,6 +16,8 @@ export type PatdownLintEvidenceSpan = {
 export type PatdownLintResult = {
 	readonly violated: boolean
 	readonly ruleTitle: string
+	readonly ruleBody: string
+	readonly ruleGlobs: ReadonlyArray<string>
 	readonly filePath: string
 	readonly violationProbability: number
 	readonly yesThreshold: PatdownYesThreshold

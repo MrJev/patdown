@@ -141,6 +141,8 @@ function lintPatdownRuleFile(
 		const lintResult = {
 			violated: failed,
 			ruleTitle: rule.patdownRuleTitle,
+			ruleBody: rule.patdownRuleBody,
+			ruleGlobs: rule.patdownRuleGlobs,
 			filePath: relativePath,
 			violationProbability: timed.judgment.yesProbability,
 			yesThreshold: options.yesThreshold,

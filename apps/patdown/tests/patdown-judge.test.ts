@@ -99,6 +99,8 @@ describe('human-readable judgments', () => {
 					violated: true,
 					filePath: 'README.md',
 					ruleTitle: 'Sentence case',
+					ruleBody: 'Use sentence case.',
+					ruleGlobs: ['**/*.md'],
 					violationProbability: 0.91,
 					yesThreshold: 0.85,
 					elapsedMs: 40,

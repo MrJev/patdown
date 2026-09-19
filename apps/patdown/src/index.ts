@@ -7,6 +7,7 @@ export { PatdownGitHubActionsOutputLive } from '#src/patdown-github-actions-outp
 export {
 	formatPatdownGitHubActionsAnnotations,
 	formatPatdownGitHubActionsSummary,
+	formatPatdownRuleGuidance,
 	patdownLintResultIsNearMiss,
 } from '#src/patdown-github-actions-summary'
 

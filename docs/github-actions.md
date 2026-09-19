@@ -27,7 +27,7 @@ When a path list is set, rules whose globs miss every listed file stay quiet. Wi
 
 When `GITHUB_ACTIONS=true` and `GITHUB_STEP_SUMMARY` are set, the default CLI also:
 
-1. Prints `::error` annotations for failing file/rule pairs (hottest first, capped at 10)
+1. Prints `::error` annotations for failing file/rule pairs (hottest first, capped at 10), including the rule title, globs, and full rule body under the probability line
 2. Appends a markdown heatmap to the step summary
 
 PASS stays one noul judgment. On FAIL, the default TypeSafe judge makes a second Choice call whose candidates are individual lines (full file + original P(yes) in state). Files larger than the per-line cap fall back to chunks. Later we may offer smarter units (functions, headings, hunks) the same way. If that Choice is unavailable, returns `noMatch`, or fails, the annotation still lands on the file at `line=1`.
