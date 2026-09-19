@@ -4,11 +4,13 @@ Use patdown on pull requests as a fuzzy check over **changed files**, not the wh
 
 ## Workflow
 
-Copy [examples/github-actions/patdown.yml](../examples/github-actions/patdown.yml). Required:
+Copy [examples/github-actions/patdown.yml](../examples/github-actions/patdown.yml) into a consumer repo. This repository dogfoods the same flow from [`.github/workflows/patdown.yml`](../.github/workflows/patdown.yml) against the built CLI in `apps/patdown/dist`.
+
+Required:
 
 - Secret `TYPESAFE_API_KEY` for the default judge
 - `fetch-depth: 0` so the base commit exists
-- Run from the repository root with `npx patdown` (not `pnpm -w patdown`, which changes cwd into `apps/patdown`)
+- Run from the repository root (`npx patdown` in consumers; local `node apps/patdown/dist/patdown-cli-bin.js` here). Do not use `pnpm -w patdown`, which changes cwd into `apps/patdown`
 
 Fork pull requests do not receive repository secrets. The example skips those events.
 

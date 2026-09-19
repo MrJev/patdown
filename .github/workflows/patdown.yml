@@ -1,5 +1,3 @@
-# Consumer copy-paste. This repo's live workflow is .github/workflows/patdown.yml
-# (builds local dist until --files-from ships on npm).
 name: patdown
 
 on:
@@ -20,9 +18,17 @@ jobs:
         with:
           fetch-depth: 0
 
+      - uses: pnpm/action-setup@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: '22.22.2'
+          cache: pnpm
+
+      - name: Install and build CLI
+        run: |
+          pnpm install
+          pnpm build
 
       - name: List changed files
         shell: bash
@@ -45,4 +51,10 @@ jobs:
       - name: Run patdown
         env:
           TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
-        run: npx --yes patdown@0.4.0 --verbose --files-from changed.txt
+        run: |
+          set -euo pipefail
+          if [ -z "${TYPESAFE_API_KEY:-}" ]; then
+            echo "patdown: set repository secret TYPESAFE_API_KEY to run fuzzy lint"
+            exit 1
+          fi
+          node apps/patdown/dist/patdown-cli-bin.js --verbose --files-from changed.txt
