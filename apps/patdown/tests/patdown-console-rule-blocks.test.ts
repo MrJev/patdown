@@ -16,7 +16,7 @@ function result(
 }
 
 describe('console rule blocks', () => {
-	it('formats a per-rule box with only judged files', () => {
+	it('formats aligned columns for judged files', () => {
 		const block = formatPatdownRuleBlock('Follow Effect diagnostics', [
 			result({
 				filePath: 'apps/patdown/src/cli.ts',
@@ -25,10 +25,10 @@ describe('console rule blocks', () => {
 				elapsedMs: 131,
 			}),
 			result({
-				filePath: 'apps/patdown/src/index.ts',
+				filePath: 'apps/patdown/oxlint.config.ts',
 				violated: false,
 				violationProbability: 0.06,
-				elapsedMs: 127,
+				elapsedMs: 9,
 			}),
 			result({
 				filePath: 'apps/patdown/src/broken.ts',
@@ -38,13 +38,14 @@ describe('console rule blocks', () => {
 			}),
 		])
 
+		const rows = block.split('\n').slice(1, -1)
+
 		expect(block).toContain('┌ Follow Effect diagnostics')
 		expect(block).toContain('1✗ / 3')
-		expect(block).toContain('│  · apps/patdown/src/cli.ts')
-		expect(block).toContain('▓▓░░░░░░░░ 0.22')
-		expect(block).toContain('131ms')
-		expect(block).toContain('│  ✗ apps/patdown/src/broken.ts')
-		expect(block).toContain('└')
+		expect(rows[0]).toBe('│  · apps/patdown/src/cli.ts        ▓▓░░░░░░░░  0.22  131ms')
+		expect(rows[1]).toBe('│  · apps/patdown/oxlint.config.ts  ▒░░░░░░░░░  0.06    9ms')
+		expect(rows[2]).toBe('│  ✗ apps/patdown/src/broken.ts     ▓▓▓▓▓▓▓▓▓░  0.91   90ms')
+		expect(block.endsWith('└')).toBe(true)
 	})
 
 	it('shows an empty rule block when no files matched', () => {

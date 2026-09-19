@@ -15,13 +15,18 @@ function padPatdownRuleBlockTitle(title: string, failCount: number, judgedCount:
 	return `${prefix}${'─'.repeat(fill)}${suffix}`
 }
 
-function formatPatdownRuleBlockRow(result: PatdownLintResult): string {
+function formatPatdownRuleBlockRow(
+	result: PatdownLintResult,
+	pathWidth: number,
+	timeWidth: number,
+): string {
 	const mark = result.violated ? '✗' : '·'
+	const path = result.filePath.padEnd(pathWidth, ' ')
 	const bar = formatPatdownProbabilityBar(result.violationProbability)
-	const score = result.violationProbability.toFixed(2)
-	const time = formatPatdownConsoleElapsed(result.elapsedMs)
+	const score = result.violationProbability.toFixed(2).padStart(4, ' ')
+	const time = formatPatdownConsoleElapsed(result.elapsedMs).padStart(timeWidth, ' ')
 
-	return `│  ${mark} ${result.filePath}  ${bar} ${score}  ${time}`
+	return `│  ${mark} ${path}  ${bar}  ${score}  ${time}`
 }
 
 /** Quiet one-line lint result. */
@@ -33,7 +38,7 @@ export function formatPatdownLintResultLine(result: PatdownLintResult): string {
 
 /**
  * Verbose local console: one box per rule, only files that were judged. Empty results mean the rule
- * matched no files.
+ * matched no files. Paths, bars, scores, and times share columns within a block.
  */
 export function formatPatdownRuleBlock(
 	ruleTitle: string,
@@ -45,8 +50,14 @@ export function formatPatdownRuleBlock(
 	if (results.length === 0) {
 		lines.push('│  (no files matched)')
 	} else {
+		const pathWidth = Math.max(...results.map((result) => result.filePath.length))
+
+		const timeWidth = Math.max(
+			...results.map((result) => formatPatdownConsoleElapsed(result.elapsedMs).length),
+		)
+
 		for (const result of results) {
-			lines.push(formatPatdownRuleBlockRow(result))
+			lines.push(formatPatdownRuleBlockRow(result, pathWidth, timeWidth))
 		}
 	}
 
