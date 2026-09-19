@@ -30,7 +30,7 @@ When `GITHUB_ACTIONS=true` and `GITHUB_STEP_SUMMARY` are set, the default CLI al
 1. Prints `::error` annotations for failing file/rule pairs (hottest first, capped at 10)
 2. Appends a markdown heatmap to the step summary
 
-The summary leads with `patdown ✅ passed` or `patdown ❌ failed`, then `✅ N passed · ❌ M failed · elapsed`. Each heatmap row has a `status` column. Any failed rule marks the whole file row ❌. Every judged cell starts with ✅ or ❌ before the shade bar.
+The summary leads with `patdown passed` or `patdown failed`, then `N passed · M failed · elapsed`. Each heatmap row has a `status` column with ✅ or ❌. Any failed rule marks the whole file row ❌. Judged cells show the shade bar and score; failures append ❌ after the score.
 
 Stdout stays the normal PASS/FAIL lines and ends with `patdown: passed` or `patdown: failed`. `--verbose` still adds the shade bar, cutoff, and elapsed time. Opt out with `--no-github`.
 
