@@ -16,7 +16,7 @@ function result(
 }
 
 describe('console rule blocks', () => {
-	it('keeps bar score and time in fixed columns before the path', () => {
+	it('groups files under directory headers with fixed metric columns', () => {
 		const block = formatPatdownRuleBlock('Follow Effect diagnostics', [
 			result({
 				filePath: 'apps/patdown/src/cli.ts',
@@ -31,21 +31,25 @@ describe('console rule blocks', () => {
 				elapsedMs: 9,
 			}),
 			result({
-				filePath: 'apps/patdown/src/broken.ts',
+				filePath: 'packages/patdown-jev/src/index.ts',
 				violated: true,
 				violationProbability: 0.91,
 				elapsedMs: 90,
 			}),
 		])
 
-		const rows = block.split('\n').slice(1, -1)
+		const lines = block.split('\n')
 
-		expect(block).toContain('┌ Follow Effect diagnostics')
-		expect(block).toContain('1✗ / 3')
-		expect(rows[0]).toBe('│  ·  ▓▓░░░░░░░░  0.22  131ms  apps/patdown/src/cli.ts')
-		expect(rows[1]).toBe('│  ·  ▒░░░░░░░░░  0.06    9ms  apps/patdown/oxlint.config.ts')
-		expect(rows[2]).toBe('│  ✗  ▓▓▓▓▓▓▓▓▓░  0.91   90ms  apps/patdown/src/broken.ts')
-		expect(block.endsWith('└')).toBe(true)
+		expect(lines[0]).toMatch(/^┌ Follow Effect diagnostics ─+ 1✗ \/ 3$/u)
+		expect(lines.slice(1)).toEqual([
+			'├─ apps/patdown',
+			'│  ·  ▒░░░░░░░░░  0.06    9ms  oxlint.config.ts',
+			'├─ apps/patdown/src',
+			'│  ·  ▓▓░░░░░░░░  0.22  131ms  cli.ts',
+			'├─ packages/patdown-jev/src',
+			'│  ✗  ▓▓▓▓▓▓▓▓▓░  0.91   90ms  index.ts',
+			'└',
+		])
 	})
 
 	it('truncates long paths from the left', () => {

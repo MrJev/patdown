@@ -1,9 +1,11 @@
+import { dirname, basename } from 'node:path'
+
 import type { PatdownLintResult } from '#src/patdown-output'
 import { formatPatdownProbabilityBar } from '#src/patdown-probability-bar'
 
 const patdownRuleBlockWidth = 64
 
-/** Soft cap so extreme paths do not dominate the line; prefer the right-hand segments. */
+/** Soft cap so extreme directory labels do not dominate the header line. */
 export const patdownConsolePathMaxWidth = 48
 
 function formatPatdownConsoleElapsed(elapsedMs: number): string {
@@ -37,19 +39,28 @@ export function formatPatdownConsolePath(
 	return `${ellipsis}${tail}`
 }
 
+function patdownConsoleDirectoryLabel(filePath: string): string {
+	const directory = dirname(filePath)
+
+	return directory === '.' ? '.' : directory
+}
+
+function formatPatdownDirectoryHeader(directory: string): string {
+	return `├─ ${formatPatdownConsolePath(directory)}`
+}
+
 function formatPatdownRuleBlockRow(
 	result: PatdownLintResult,
 	timeWidth: number,
-	pathWidth: number,
+	nameWidth: number,
 ): string {
 	const mark = result.violated ? '✗' : '·'
 	const bar = formatPatdownProbabilityBar(result.violationProbability)
 	const score = result.violationProbability.toFixed(2).padStart(4, ' ')
 	const time = formatPatdownConsoleElapsed(result.elapsedMs).padStart(timeWidth, ' ')
-	const path = formatPatdownConsolePath(result.filePath).padEnd(pathWidth, ' ')
+	const name = formatPatdownConsolePath(basename(result.filePath)).padEnd(nameWidth, ' ')
 
-	// Fixed columns first so long paths cannot shove the bar/score/time around.
-	return `│  ${mark}  ${bar}  ${score}  ${time}  ${path}`.trimEnd()
+	return `│  ${mark}  ${bar}  ${score}  ${time}  ${name}`.trimEnd()
 }
 
 /** Quiet one-line lint result. */
@@ -60,8 +71,8 @@ export function formatPatdownLintResultLine(result: PatdownLintResult): string {
 }
 
 /**
- * Verbose local console: one box per rule, only files that were judged. Empty results mean the rule
- * matched no files. Mark, bar, score, and time share fixed columns; path comes last.
+ * Verbose local console: one box per rule, files grouped by directory with ├─ headers. Empty
+ * results mean the rule matched no files.
  */
 export function formatPatdownRuleBlock(
 	ruleTitle: string,
@@ -73,15 +84,29 @@ export function formatPatdownRuleBlock(
 	if (results.length === 0) {
 		lines.push('│  (no files matched)')
 	} else {
-		const displayPaths = results.map((result) => formatPatdownConsolePath(result.filePath))
-		const pathWidth = Math.max(...displayPaths.map((path) => path.length))
-
-		const timeWidth = Math.max(
-			...results.map((result) => formatPatdownConsoleElapsed(result.elapsedMs).length),
+		const ordered = [...results].toSorted((left, right) =>
+			left.filePath.localeCompare(right.filePath),
 		)
 
-		for (const result of results) {
-			lines.push(formatPatdownRuleBlockRow(result, timeWidth, pathWidth))
+		const timeWidth = Math.max(
+			...ordered.map((result) => formatPatdownConsoleElapsed(result.elapsedMs).length),
+		)
+
+		const nameWidth = Math.max(
+			...ordered.map((result) => formatPatdownConsolePath(basename(result.filePath)).length),
+		)
+
+		let currentDirectory: string | null = null
+
+		for (const result of ordered) {
+			const directory = patdownConsoleDirectoryLabel(result.filePath)
+
+			if (directory !== currentDirectory) {
+				lines.push(formatPatdownDirectoryHeader(directory))
+				currentDirectory = directory
+			}
+
+			lines.push(formatPatdownRuleBlockRow(result, timeWidth, nameWidth))
 		}
 	}
 
