@@ -112,7 +112,7 @@ describe('human-readable judgments', () => {
 			expect(lines[0]).toBe('yes')
 			expect(lines[1]).toBe('no (░░░░░░░░░░ estimated P(yes): 0.02; cutoff: >0.85; elapsed: 12ms)')
 			expect(lines.slice(2, -1).join('\n')).toContain('┌ Sentence case')
-			expect(lines.slice(2, -1).join('\n')).toContain('│  ✗ README.md')
+			expect(lines.slice(2, -1).join('\n')).toContain('README.md')
 			expect(lines.slice(2, -1).join('\n')).toContain('▓▓▓▓▓▓▓▓▓░  0.91')
 			expect(lines.at(-1)).toBe('patdown: failed (elapsed: 40ms)')
 		}).pipe(Effect.provide(outputHarness)),

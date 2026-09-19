@@ -3,6 +3,9 @@ import { formatPatdownProbabilityBar } from '#src/patdown-probability-bar'
 
 const patdownRuleBlockWidth = 64
 
+/** Soft cap so extreme paths do not dominate the line; prefer the right-hand segments. */
+export const patdownConsolePathMaxWidth = 48
+
 function formatPatdownConsoleElapsed(elapsedMs: number): string {
 	return `${String(elapsedMs)}ms`
 }
@@ -15,18 +18,38 @@ function padPatdownRuleBlockTitle(title: string, failCount: number, judgedCount:
 	return `${prefix}${'─'.repeat(fill)}${suffix}`
 }
 
+/** Keep the basename side of long paths: `…/src/patdown-github-actions-summary.ts`. */
+export function formatPatdownConsolePath(
+	filePath: string,
+	maxWidth: number = patdownConsolePathMaxWidth,
+): string {
+	if (filePath.length <= maxWidth) return filePath
+
+	const ellipsis = '…'
+	const keep = Math.max(1, maxWidth - ellipsis.length)
+	const tail = filePath.slice(-keep)
+	const slash = tail.indexOf('/')
+
+	if (slash > 0 && slash < tail.length - 1) {
+		return `${ellipsis}${tail.slice(slash)}`
+	}
+
+	return `${ellipsis}${tail}`
+}
+
 function formatPatdownRuleBlockRow(
 	result: PatdownLintResult,
-	pathWidth: number,
 	timeWidth: number,
+	pathWidth: number,
 ): string {
 	const mark = result.violated ? '✗' : '·'
-	const path = result.filePath.padEnd(pathWidth, ' ')
 	const bar = formatPatdownProbabilityBar(result.violationProbability)
 	const score = result.violationProbability.toFixed(2).padStart(4, ' ')
 	const time = formatPatdownConsoleElapsed(result.elapsedMs).padStart(timeWidth, ' ')
+	const path = formatPatdownConsolePath(result.filePath).padEnd(pathWidth, ' ')
 
-	return `│  ${mark} ${path}  ${bar}  ${score}  ${time}`
+	// Fixed columns first so long paths cannot shove the bar/score/time around.
+	return `│  ${mark}  ${bar}  ${score}  ${time}  ${path}`.trimEnd()
 }
 
 /** Quiet one-line lint result. */
@@ -38,7 +61,7 @@ export function formatPatdownLintResultLine(result: PatdownLintResult): string {
 
 /**
  * Verbose local console: one box per rule, only files that were judged. Empty results mean the rule
- * matched no files. Paths, bars, scores, and times share columns within a block.
+ * matched no files. Mark, bar, score, and time share fixed columns; path comes last.
  */
 export function formatPatdownRuleBlock(
 	ruleTitle: string,
@@ -50,14 +73,15 @@ export function formatPatdownRuleBlock(
 	if (results.length === 0) {
 		lines.push('│  (no files matched)')
 	} else {
-		const pathWidth = Math.max(...results.map((result) => result.filePath.length))
+		const displayPaths = results.map((result) => formatPatdownConsolePath(result.filePath))
+		const pathWidth = Math.max(...displayPaths.map((path) => path.length))
 
 		const timeWidth = Math.max(
 			...results.map((result) => formatPatdownConsoleElapsed(result.elapsedMs).length),
 		)
 
 		for (const result of results) {
-			lines.push(formatPatdownRuleBlockRow(result, pathWidth, timeWidth))
+			lines.push(formatPatdownRuleBlockRow(result, timeWidth, pathWidth))
 		}
 	}
 

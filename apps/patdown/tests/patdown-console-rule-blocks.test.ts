@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { formatPatdownRuleBlock } from '#src/patdown-console-rule-blocks'
+import { formatPatdownConsolePath, formatPatdownRuleBlock } from '#src/patdown-console-rule-blocks'
 import type { PatdownLintResult } from '#src/patdown-output'
 
 function result(
@@ -16,7 +16,7 @@ function result(
 }
 
 describe('console rule blocks', () => {
-	it('formats aligned columns for judged files', () => {
+	it('keeps bar score and time in fixed columns before the path', () => {
 		const block = formatPatdownRuleBlock('Follow Effect diagnostics', [
 			result({
 				filePath: 'apps/patdown/src/cli.ts',
@@ -42,10 +42,20 @@ describe('console rule blocks', () => {
 
 		expect(block).toContain('┌ Follow Effect diagnostics')
 		expect(block).toContain('1✗ / 3')
-		expect(rows[0]).toBe('│  · apps/patdown/src/cli.ts        ▓▓░░░░░░░░  0.22  131ms')
-		expect(rows[1]).toBe('│  · apps/patdown/oxlint.config.ts  ▒░░░░░░░░░  0.06    9ms')
-		expect(rows[2]).toBe('│  ✗ apps/patdown/src/broken.ts     ▓▓▓▓▓▓▓▓▓░  0.91   90ms')
+		expect(rows[0]).toBe('│  ·  ▓▓░░░░░░░░  0.22  131ms  apps/patdown/src/cli.ts')
+		expect(rows[1]).toBe('│  ·  ▒░░░░░░░░░  0.06    9ms  apps/patdown/oxlint.config.ts')
+		expect(rows[2]).toBe('│  ✗  ▓▓▓▓▓▓▓▓▓░  0.91   90ms  apps/patdown/src/broken.ts')
 		expect(block.endsWith('└')).toBe(true)
+	})
+
+	it('truncates long paths from the left', () => {
+		expect(formatPatdownConsolePath('apps/patdown/src/cli.ts', 48)).toBe('apps/patdown/src/cli.ts')
+		expect(
+			formatPatdownConsolePath(
+				'apps/patdown/src/really/deeply/nested/patdown-github-actions-summary.ts',
+				40,
+			),
+		).toBe('…/patdown-github-actions-summary.ts')
 	})
 
 	it('shows an empty rule block when no files matched', () => {

@@ -90,7 +90,7 @@ describe('configurable yes thresholds', () => {
 			const text = lines.join('\n')
 
 			expect(text).toContain('┌ Strict headings')
-			expect(text).toContain('│  ✗ README.md')
+			expect(text).toContain('README.md')
 			expect(text).toContain('0.81')
 			expect(process.exitCode).toBe(1)
 			process.exitCode = previousExitCode
