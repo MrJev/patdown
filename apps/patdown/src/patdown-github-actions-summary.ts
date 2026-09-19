@@ -1,3 +1,4 @@
+import { patdownEvidenceMinConfidence } from '#src/patdown-evidence-regions'
 import type { PatdownLintResult } from '#src/patdown-output'
 import { formatPatdownProbabilityBar } from '#src/patdown-probability-bar'
 
@@ -100,10 +101,15 @@ export function formatPatdownGitHubActionsAnnotations(
 	return failures.map((result) => {
 		const bar = formatPatdownProbabilityBar(result.violationProbability)
 
+		const evidence =
+			result.evidence !== undefined && result.evidence.confidence >= patdownEvidenceMinConfidence
+				? result.evidence
+				: undefined
+
 		const span =
-			result.evidence === undefined
+			evidence === undefined
 				? ''
-				: ` lines ${String(result.evidence.startLine)}-${String(result.evidence.endLine)}`
+				: ` lines ${String(evidence.startLine)}-${String(evidence.endLine)}`
 
 		const headline = `${bar} P(yes) ${String(result.violationProbability)} exceeds cutoff >${String(result.yesThreshold)}${span}`
 		const message = `${headline}\n\n${formatPatdownRuleGuidance(result)}`
@@ -111,9 +117,9 @@ export function formatPatdownGitHubActionsAnnotations(
 		const title = escapePatdownGitHubActionsProperty(`patdown: ${result.ruleTitle}`)
 
 		const line =
-			result.evidence === undefined
+			evidence === undefined
 				? 'line=1'
-				: `line=${String(result.evidence.startLine)},endLine=${String(result.evidence.endLine)}`
+				: `line=${String(evidence.startLine)},endLine=${String(evidence.endLine)}`
 
 		return `::error file=${file},${line},title=${title}::${escapePatdownGitHubActionsData(message)}`
 	})

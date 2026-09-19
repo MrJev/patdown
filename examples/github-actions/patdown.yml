@@ -1,5 +1,6 @@
 # Consumer copy-paste. This repo's live workflow is .github/workflows/patdown.yml
-# (builds local dist until --files-from ships on npm).
+# (builds local dist). Needs a patdown release that includes --files-from
+# (not yet in 0.4.0). Until then, install from this branch or use local dist.
 name: patdown
 
 on:
@@ -45,4 +46,4 @@ jobs:
       - name: Run patdown
         env:
           TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
-        run: npx --yes patdown@0.4.0 --verbose --files-from changed.txt
+        run: npx --yes patdown --verbose --files-from changed.txt

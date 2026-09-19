@@ -2,7 +2,10 @@ import { JevSystemOne, JevSystemOneLive } from '@patdown/jev'
 import { Effect, Layer } from 'effect'
 import { FetchHttpClient } from 'effect/unstable/http'
 
-import { patdownEvidenceNoMatchChoice } from '#src/patdown-evidence-regions'
+import {
+	patdownEvidenceMinConfidence,
+	patdownEvidenceNoMatchChoice,
+} from '#src/patdown-evidence-regions'
 import {
 	PatdownJudge,
 	PatdownJudgeFailed,
@@ -10,8 +13,7 @@ import {
 	type PatdownJudgment,
 } from '#src/patdown-judge'
 
-/** Minimum Choice confidence before a FAIL annotation uses the selected region. */
-export const patdownEvidenceMinConfidence = 0.55
+export { patdownEvidenceMinConfidence } from '#src/patdown-evidence-regions'
 
 /**
  * Temporary TypeSafe backend. Replace this layer with Effect Decision/DecisionModel when available;

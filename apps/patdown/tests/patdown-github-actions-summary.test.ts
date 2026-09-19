@@ -24,7 +24,17 @@ function result(
 	}
 }
 
-describe('GitHub Actions summary', () => {
+const titleCaseGuidance = [
+	'Markdown headings must use sentence case, not title case.',
+	'',
+	'## Not allowed',
+	'',
+	'```',
+	'# The Complete Guide To Fuzzy Rules',
+	'```',
+].join('\n')
+
+describe('near-miss policy', () => {
 	it('marks near misses below the cutoff', () => {
 		expect(
 			patdownLintResultIsNearMiss(
@@ -47,8 +57,67 @@ describe('GitHub Actions summary', () => {
 			),
 		).toBe(false)
 	})
+})
 
-	it('formats annotations and a heatmap summary', () => {
+describe('GitHub Actions annotations', () => {
+	it('includes rule guidance and confidence-gated spans', () => {
+		const results = [
+			result({
+				violated: true,
+				filePath: 'src/cli.ts',
+				ruleTitle: 'explicit-actor',
+				violationProbability: 0.86,
+				elapsedMs: 312,
+			}),
+			result({
+				violated: true,
+				filePath: 'README.md',
+				ruleTitle: 'sentence-case',
+				violationProbability: 0.91,
+			}),
+		]
+
+		expect(formatPatdownGitHubActionsAnnotations(results)).toEqual([
+			'::error file=README.md,line=1,title=patdown%3A sentence-case::▓▓▓▓▓▓▓▓▓░ P(yes) 0.91 exceeds cutoff >0.85%0A%0A# sentence-case%0Aglobs: **/*%0A%0ARule guidance body.',
+			'::error file=src/cli.ts,line=1,title=patdown%3A explicit-actor::▓▓▓▓▓▓▓▓▒░ P(yes) 0.86 exceeds cutoff >0.85%0A%0A# explicit-actor%0Aglobs: **/*%0A%0ARule guidance body.',
+		])
+
+		expect(
+			formatPatdownGitHubActionsAnnotations([
+				result({
+					violated: true,
+					filePath: 'docs/example.md',
+					ruleTitle: 'No title case',
+					ruleBody: titleCaseGuidance,
+					ruleGlobs: ['**/*.md'],
+					violationProbability: 0.93,
+					evidence: { startLine: 3, endLine: 3, confidence: 0.81 },
+				}),
+			]),
+		).toEqual([
+			'::error file=docs/example.md,line=3,endLine=3,title=patdown%3A No title case::▓▓▓▓▓▓▓▓▓░ P(yes) 0.93 exceeds cutoff >0.85 lines 3-3%0A%0A# No title case%0Aglobs: **/*.md%0A%0AMarkdown headings must use sentence case, not title case.%0A%0A## Not allowed%0A%0A```%0A# The Complete Guide To Fuzzy Rules%0A```',
+		])
+
+		expect(
+			formatPatdownGitHubActionsAnnotations([
+				result({
+					violated: true,
+					filePath: 'docs/example.md',
+					ruleTitle: 'No title case',
+					ruleBody: titleCaseGuidance,
+					ruleGlobs: ['**/*.md'],
+					violationProbability: 0.93,
+					evidence: { startLine: 3, endLine: 3, confidence: 0.4 },
+				}),
+			]),
+		).toEqual([
+			'::error file=docs/example.md,line=1,title=patdown%3A No title case::▓▓▓▓▓▓▓▓▓░ P(yes) 0.93 exceeds cutoff >0.85%0A%0A# No title case%0Aglobs: **/*.md%0A%0AMarkdown headings must use sentence case, not title case.%0A%0A## Not allowed%0A%0A```%0A# The Complete Guide To Fuzzy Rules%0A```',
+		])
+	})
+})
+
+describe('GitHub Actions heatmap', () => {
+	it('formats pass/fail status and rule guidance in failure details', () => {
 		const results = [
 			result({
 				violated: true,
@@ -70,37 +139,6 @@ describe('GitHub Actions summary', () => {
 				violationProbability: 0.91,
 			}),
 		]
-
-		expect(formatPatdownGitHubActionsAnnotations(results)).toEqual([
-			'::error file=README.md,line=1,title=patdown%3A sentence-case::▓▓▓▓▓▓▓▓▓░ P(yes) 0.91 exceeds cutoff >0.85%0A%0A# sentence-case%0Aglobs: **/*%0A%0ARule guidance body.',
-			'::error file=src/cli.ts,line=1,title=patdown%3A explicit-actor::▓▓▓▓▓▓▓▓▒░ P(yes) 0.86 exceeds cutoff >0.85%0A%0A# explicit-actor%0Aglobs: **/*%0A%0ARule guidance body.',
-		])
-
-		const titleCaseGuidance = [
-			'Markdown headings must use sentence case, not title case.',
-			'',
-			'## Not allowed',
-			'',
-			'```',
-			'# The Complete Guide To Fuzzy Rules',
-			'```',
-		].join('\n')
-
-		expect(
-			formatPatdownGitHubActionsAnnotations([
-				result({
-					violated: true,
-					filePath: 'fixtures/ci/intentional-title-case-fail.md',
-					ruleTitle: 'No title case',
-					ruleBody: titleCaseGuidance,
-					ruleGlobs: ['**/*.md'],
-					violationProbability: 0.93,
-					evidence: { startLine: 3, endLine: 3, confidence: 0.81 },
-				}),
-			]),
-		).toEqual([
-			'::error file=fixtures/ci/intentional-title-case-fail.md,line=3,endLine=3,title=patdown%3A No title case::▓▓▓▓▓▓▓▓▓░ P(yes) 0.93 exceeds cutoff >0.85 lines 3-3%0A%0A# No title case%0Aglobs: **/*.md%0A%0AMarkdown headings must use sentence case, not title case.%0A%0A## Not allowed%0A%0A```%0A# The Complete Guide To Fuzzy Rules%0A```',
-		])
 
 		const summary = formatPatdownGitHubActionsSummary({
 			failed: true,

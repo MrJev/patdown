@@ -17,6 +17,12 @@ describe('evidence candidates', () => {
 			{ id: 'L2', startLine: 2, endLine: 2, content: '# The Complete Guide To Fuzzy Rules' },
 			{ id: 'L3', startLine: 3, endLine: 3, content: 'omega' },
 		])
+		expect(splitPatdownEvidenceCandidates('one line\n')).toEqual([
+			{ id: 'L1', startLine: 1, endLine: 1, content: 'one line' },
+		])
+		expect(splitPatdownEvidenceCandidates('')).toEqual([
+			{ id: 'L1', startLine: 1, endLine: 1, content: '' },
+		])
 
 		const criteria = patdownEvidenceChoiceCriteria(candidates)
 

@@ -18,6 +18,9 @@ export const patdownEvidenceChunkMaxCount = 24
 /** Truncate long line text used as Choice descriptions. */
 export const patdownEvidenceDescriptionMaxChars = 160
 
+/** Minimum Choice confidence before a FAIL annotation uses the selected span. */
+export const patdownEvidenceMinConfidence = 0.55
+
 const patdownEvidenceNoMatchLabel = 'noMatch'
 
 /** Label returned when no candidate is strong enough. */
@@ -28,7 +31,12 @@ export function patdownEvidenceNoMatchChoice(): string {
 function normalizePatdownEvidenceLines(contents: string): string[] {
 	const normalized = contents.replace(/\r\n/gu, '\n')
 
-	return normalized.length === 0 ? [''] : normalized.split('\n')
+	if (normalized.length === 0) return ['']
+
+	// Trailing newline must not create a phantom empty line / endLine past EOF.
+	const withoutTrailingNewline = normalized.endsWith('\n') ? normalized.slice(0, -1) : normalized
+
+	return withoutTrailingNewline.length === 0 ? [''] : withoutTrailingNewline.split('\n')
 }
 
 function truncatePatdownEvidenceDescription(text: string): string {
