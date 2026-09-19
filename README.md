@@ -107,7 +107,7 @@ Optional rule bundles live under [`packs/`](packs/README.md). The CLI only runs 
 
 - [`packs/typescript`](packs/typescript/) — type-safety crimes and type laundering
 - [`packs/effect`](packs/effect/) — Effect v4 services, schemas, config, diagnostics
-- [`packs/anti-slop`](packs/anti-slop/) — fuzzy companion to oxlint anti-slop
+- [`packs/anti-slop`](packs/anti-slop/) — fuzzy counterpart to [Dillon Mulroy's anti-slop](https://github.com/dmmulroy/anti-slop)
 
 ```sh
 # whole pack, or a single rule file from a pack

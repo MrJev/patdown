@@ -2,7 +2,7 @@
 globs: `**/*.ts`
 globs: `**/*.tsx`
 
-Do not use conditional empty-object spreads to pretend a property was always part of the object when the honest model is "property present or absent". Prefer building the object in branches or using optional fields explicitly.
+Do not use conditional empty-object spreads to pretend a property was always part of the object when the honest model is “property present or absent”. Prefer building the object in branches or using optional fields explicitly. Omission is not the same as assigning `undefined`.
 
 ## Not allowed
 
