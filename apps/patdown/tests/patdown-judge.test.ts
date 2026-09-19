@@ -8,9 +8,9 @@ import {
 	askPatdownJudge,
 	patdownJudgmentIsYes,
 	patdownYesThreshold,
-} from '#/patdown-judge'
-import { PatdownOutput, PatdownOutputLive } from '#/patdown-output'
-import { runPatdownCli } from '#/run-patdown-cli'
+} from '#src/patdown-judge'
+import { PatdownOutput, PatdownOutputLive } from '#src/patdown-output'
+import { runPatdownCli } from '#src/run-patdown-cli'
 
 const outputHarness = Layer.mergeAll(PatdownOutputLive, TestConsole.layer)
 

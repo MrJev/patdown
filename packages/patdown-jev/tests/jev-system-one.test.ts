@@ -2,8 +2,8 @@ import { describe, expect, it } from '@effect/vitest'
 import { ConfigProvider, Effect } from 'effect'
 import { HttpClient, HttpClientError, HttpClientResponse } from 'effect/unstable/http'
 
-import type { JevNoulAnswer } from '#/jev-noul-schema'
-import { JevSystemOne, JevSystemOneLive, type JevRequestFailed } from '#/jev-system-one'
+import type { JevNoulAnswer } from '#src/jev-noul-schema'
+import { JevSystemOne, JevSystemOneLive, type JevRequestFailed } from '#src/jev-system-one'
 
 const testConfig = ConfigProvider.fromUnknown({ TYPESAFE_API_KEY: 'test-key-not-a-secret' })
 

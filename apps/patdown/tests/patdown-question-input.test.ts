@@ -1,7 +1,7 @@
 import { describe, expect, it } from '@effect/vitest'
 import { Effect, Option, Stdio, Stream } from 'effect'
 
-import { readPatdownQuestionInput } from '#/patdown-question-input'
+import { readPatdownQuestionInput } from '#src/patdown-question-input'
 
 const pipedInput = Stdio.layerTest({
 	stdin: Stream.make(

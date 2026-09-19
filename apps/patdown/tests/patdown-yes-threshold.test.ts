@@ -8,10 +8,10 @@ import { MarkdownPatdownRuleSourceLive } from '@patdown/rules'
 import { Effect, Layer, Option } from 'effect'
 import { TestConsole } from 'effect/testing'
 
-import { PatdownJudge } from '#/patdown-judge'
-import { PatdownOutputLive } from '#/patdown-output'
-import { resolvePatdownYesThreshold } from '#/patdown-yes-threshold-config'
-import { runPatdownCli } from '#/run-patdown-cli'
+import { PatdownJudge } from '#src/patdown-judge'
+import { PatdownOutputLive } from '#src/patdown-output'
+import { resolvePatdownYesThreshold } from '#src/patdown-yes-threshold-config'
+import { runPatdownCli } from '#src/run-patdown-cli'
 
 const directories: string[] = []
 

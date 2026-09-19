@@ -9,7 +9,7 @@ function lintVitestResolutionForPackage(overrides = {}): string[] {
 		hasVitestConfig: true,
 		manifest: {
 			imports: {
-				'#/*': {
+				'#src/*': {
 					source: './src/*.ts',
 					types: './dist/*.d.ts',
 					test: './src/*.ts',
@@ -54,7 +54,7 @@ void test('requires test conditions in package imports', () => {
 	const diagnostics = lintVitestResolutionForPackage({
 		manifest: {
 			imports: {
-				'#/*': {
+				'#src/*': {
 					source: './src/*.ts',
 					types: './dist/*.d.ts',
 					default: './dist/*.js',

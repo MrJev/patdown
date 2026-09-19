@@ -193,16 +193,17 @@ export const baseConfig = {
 const subpathImportPatterns = [
 	{
 		group: ['./**', '../**'],
-		message: 'Use the package subpath import form (`#/...`) instead of relative imports.',
+		message: 'Use the package subpath import form (`#src/...`) instead of relative imports.',
 	},
 	{
 		group: ['*.js', '**/*.js'],
-		message: 'Do not include `.js` in TypeScript source imports; use `#/...` without an extension.',
+		message:
+			'Do not include `.js` in TypeScript source imports; use `#src/...` without an extension.',
 	},
 ]
 
 /**
- * Override that enforces subpath imports (`#/...`) over relative imports in source files. Add to
+ * Override that enforces subpath imports (`#src/...`) over relative imports in source files. Add to
  * your package's `overrides` array.
  */
 export const subpathImportOverride = {

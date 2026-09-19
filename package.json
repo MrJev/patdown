@@ -35,7 +35,7 @@
 		"*.{cts,js,json,jsonc,mjs,mts,ts,yaml,yml}": "oxfmt --write"
 	},
 	"engines": {
-		"node": ">=24.18.0"
+		"node": ">=22.22.2"
 	},
 	"packageManager": "pnpm@11.8.0"
 }

@@ -13,9 +13,9 @@ import { Effect, Layer } from 'effect'
 import { TestConsole } from 'effect/testing'
 import { CliOutput, Command } from 'effect/unstable/cli'
 
-import { patdownCommand } from '#/cli'
-import { PatdownJudge } from '#/patdown-judge'
-import { PatdownOutputLive } from '#/patdown-output'
+import { patdownCommand } from '#src/cli'
+import { PatdownJudge } from '#src/patdown-judge'
+import { PatdownOutputLive } from '#src/patdown-output'
 
 const sampleDocument: PatdownRulesDocument = {
 	patdownRules: [

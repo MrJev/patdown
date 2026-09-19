@@ -9,7 +9,7 @@
 	"useTabs": true,
 	"trailingComma": "all",
 	"sortImports": {
-		"internalPattern": ["#/*"],
+		"internalPattern": ["#src/*"],
 		"newlinesBetween": true
 	},
 	"sortPackageJson": {

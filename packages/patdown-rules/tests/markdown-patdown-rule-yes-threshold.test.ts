@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
-import { parseMarkdownPatdownRules } from '#/markdown-patdown-rule-parser'
-import { PatdownYesThresholdInvalid } from '#/patdown-yes-threshold'
+import { parseMarkdownPatdownRules } from '#src/markdown-patdown-rule-parser'
+import { PatdownYesThresholdInvalid } from '#src/patdown-yes-threshold'
 
 describe('markdown per-rule yes thresholds', () => {
 	it('reads a cutoff from consecutive metadata lines', () => {

@@ -1,10 +1,10 @@
-export { patdownCommand, makePatdownCommand } from '#/cli'
+export { patdownCommand, makePatdownCommand } from '#src/cli'
 
-export { PatdownOutput, PatdownOutputLive, type PatdownLintResult } from '#/patdown-output'
+export { PatdownOutput, PatdownOutputLive, type PatdownLintResult } from '#src/patdown-output'
 
-export type { PatdownRuleSourceLayer } from '#/patdown-rule-source-adapter'
+export type { PatdownRuleSourceLayer } from '#src/patdown-rule-source-adapter'
 
-export { runPatdownCli } from '#/run-patdown-cli'
+export { runPatdownCli } from '#src/run-patdown-cli'
 
 export {
 	PatdownJudge,
@@ -14,7 +14,7 @@ export {
 	patdownJudgmentIsYes,
 	patdownYesThreshold,
 	type PatdownJudgment,
-} from '#/patdown-judge'
+} from '#src/patdown-judge'
 
 export {
 	defaultPatdownYesThreshold,
@@ -23,4 +23,4 @@ export {
 	type PatdownYesThreshold,
 } from '@patdown/rules'
 
-export { TypeSafeJudgeLive } from '#/typesafe-judge'
+export { TypeSafeJudgeLive } from '#src/typesafe-judge'

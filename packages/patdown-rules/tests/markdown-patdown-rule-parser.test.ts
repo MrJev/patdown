@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { parseMarkdownPatdownRules } from '#/markdown-patdown-rule-parser'
+import { parseMarkdownPatdownRules } from '#src/markdown-patdown-rule-parser'
 
 describe('parseMarkdownPatdownRules', () => {
 	it('ignores text above the first heading', () => {

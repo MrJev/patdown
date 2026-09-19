@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url'
 
 import { describe, expect, it } from '@effect/vitest'
 
-import { patdownCliVersion } from '#/patdown-cli-version'
+import { patdownCliVersion } from '#src/patdown-cli-version'
 
 describe('patdown CLI version', () => {
 	it('matches apps/patdown/package.json', () => {

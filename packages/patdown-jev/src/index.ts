@@ -5,6 +5,6 @@ export {
 	JevUsageSchema,
 	type JevNoulAnswer,
 	type JevNoulResult,
-} from '#/jev-noul-schema'
+} from '#src/jev-noul-schema'
 
-export { JevRequestFailed, JevSystemOne, JevSystemOneLive } from '#/jev-system-one'
+export { JevRequestFailed, JevSystemOne, JevSystemOneLive } from '#src/jev-system-one'

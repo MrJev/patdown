@@ -12,8 +12,8 @@ import {
 } from '@patdown/rules'
 import { Effect, Layer, Option } from 'effect'
 
-import { loadConfiguredPatdownRules } from '#/patdown-rule-source-adapter'
-import { runPatdownCli } from '#/run-patdown-cli'
+import { loadConfiguredPatdownRules } from '#src/patdown-rule-source-adapter'
+import { runPatdownCli } from '#src/run-patdown-cli'
 
 const fixture = fileURLToPath(
 	new URL('./fixtures/fixed-patdown-rule-source-adapter.js', import.meta.url),

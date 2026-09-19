@@ -9,7 +9,7 @@ import {
 import { Cause, Context, Effect, FileSystem, Layer, Option, Path, Schema } from 'effect'
 import { resolve as resolveModule } from 'import-meta-resolve'
 
-import { discoverPatdownPackageConfig } from '#/patdown-package-config'
+import { discoverPatdownPackageConfig } from '#src/patdown-package-config'
 
 const AdapterModuleSchema = Schema.Struct({ PatdownRuleSourceLive: Schema.Unknown })
 

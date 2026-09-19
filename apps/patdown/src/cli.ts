@@ -8,12 +8,12 @@ import {
 import { Effect, FileSystem, Path, Stdio } from 'effect'
 import { Argument, Command, Flag } from 'effect/unstable/cli'
 
-import { PatdownJudge, PatdownJudgeFailed, askPatdownJudge } from '#/patdown-judge'
-import { runPatdownLint } from '#/patdown-lint'
-import { PatdownOutput } from '#/patdown-output'
-import { readPatdownQuestionInput } from '#/patdown-question-input'
-import { loadConfiguredPatdownRules } from '#/patdown-rule-source-adapter'
-import { resolvePatdownYesThreshold } from '#/patdown-yes-threshold-config'
+import { PatdownJudge, PatdownJudgeFailed, askPatdownJudge } from '#src/patdown-judge'
+import { runPatdownLint } from '#src/patdown-lint'
+import { PatdownOutput } from '#src/patdown-output'
+import { readPatdownQuestionInput } from '#src/patdown-question-input'
+import { loadConfiguredPatdownRules } from '#src/patdown-rule-source-adapter'
+import { resolvePatdownYesThreshold } from '#src/patdown-yes-threshold-config'
 
 const failPatdown = (message: string): Effect.Effect<void> =>
 	Effect.sync(() => {

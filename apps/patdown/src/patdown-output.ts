@@ -2,7 +2,7 @@ import type { PatdownRulesDocument } from '@patdown/rules'
 import { defaultPatdownYesThreshold, type PatdownYesThreshold } from '@patdown/rules'
 import { Console, Context, Effect, Layer } from 'effect'
 
-import { patdownJudgmentIsYes, type PatdownJudgment } from '#/patdown-judge'
+import { patdownJudgmentIsYes, type PatdownJudgment } from '#src/patdown-judge'
 
 /** One file/rule result; probability estimates a violation, not correctness of the verdict. */
 export type PatdownLintResult = {

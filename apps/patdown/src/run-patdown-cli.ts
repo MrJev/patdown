@@ -4,12 +4,12 @@ import { Effect, Layer } from 'effect'
 import { Command } from 'effect/unstable/cli'
 import type { CliError } from 'effect/unstable/cli/CliError'
 
-import { makePatdownCommand } from '#/cli'
-import { patdownCliVersion } from '#/patdown-cli-version'
-import type { PatdownJudge, PatdownJudgeFailed } from '#/patdown-judge'
-import { PatdownOutputLive, type PatdownOutput } from '#/patdown-output'
-import type { PatdownRuleSourceLayer } from '#/patdown-rule-source-adapter'
-import { TypeSafeJudgeLive } from '#/typesafe-judge'
+import { makePatdownCommand } from '#src/cli'
+import { patdownCliVersion } from '#src/patdown-cli-version'
+import type { PatdownJudge, PatdownJudgeFailed } from '#src/patdown-judge'
+import { PatdownOutputLive, type PatdownOutput } from '#src/patdown-output'
+import type { PatdownRuleSourceLayer } from '#src/patdown-rule-source-adapter'
+import { TypeSafeJudgeLive } from '#src/typesafe-judge'
 
 /**
  * Returns a runnable CLI Effect. A supplied rule source disables discovery; argv excludes node and

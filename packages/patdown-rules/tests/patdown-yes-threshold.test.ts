@@ -6,7 +6,7 @@ import {
 	defaultPatdownYesThreshold,
 	patdownJudgmentIsYes,
 	PatdownYesThresholdInvalid,
-} from '#/patdown-yes-threshold'
+} from '#src/patdown-yes-threshold'
 
 describe('yes threshold policy', () => {
 	it('keeps equality below the cutoff', () => {

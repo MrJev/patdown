@@ -6,7 +6,7 @@ import {
 } from '@patdown/rules'
 import { Effect, FileSystem, Option } from 'effect'
 
-import { discoverPatdownYesThresholdConfig } from '#/patdown-package-config'
+import { discoverPatdownYesThresholdConfig } from '#src/patdown-package-config'
 
 /** CLI flag wins, then package.json, then the default 0.85 cutoff. */
 export function resolvePatdownYesThreshold(

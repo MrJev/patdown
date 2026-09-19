@@ -12,9 +12,9 @@ import {
 	PatdownJudgeFailed,
 	askPatdownJudge,
 	patdownJudgmentIsYes,
-} from '#/patdown-judge'
-import { PatdownOutput } from '#/patdown-output'
-import { decodePatdownRuleYesThreshold } from '#/patdown-yes-threshold-config'
+} from '#src/patdown-judge'
+import { PatdownOutput } from '#src/patdown-output'
+import { decodePatdownRuleYesThreshold } from '#src/patdown-yes-threshold-config'
 
 const patdownGlobExcludes = [
 	'**/.git/**',

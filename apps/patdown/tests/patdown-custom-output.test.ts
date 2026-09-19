@@ -2,9 +2,9 @@ import { describe, expect, it } from '@effect/vitest'
 import { MarkdownPatdownRuleSourceLive } from '@patdown/rules'
 import { Effect, Layer } from 'effect'
 
-import { PatdownJudge, type PatdownJudgment } from '#/patdown-judge'
-import { PatdownOutput, type PatdownLintResult } from '#/patdown-output'
-import { runPatdownCli } from '#/run-patdown-cli'
+import { PatdownJudge, type PatdownJudgment } from '#src/patdown-judge'
+import { PatdownOutput, type PatdownLintResult } from '#src/patdown-output'
+import { runPatdownCli } from '#src/run-patdown-cli'
 
 const fixedJudge = Layer.succeed(PatdownJudge, {
 	ask: () => Effect.succeed({ yesProbability: 0.9 }),

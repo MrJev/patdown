@@ -2,7 +2,7 @@ import { JevSystemOne, JevSystemOneLive } from '@patdown/jev'
 import { Effect, Layer } from 'effect'
 import { FetchHttpClient } from 'effect/unstable/http'
 
-import { PatdownJudge, PatdownJudgeFailed, type PatdownJudgment } from '#/patdown-judge'
+import { PatdownJudge, PatdownJudgeFailed, type PatdownJudgment } from '#src/patdown-judge'
 
 /**
  * Temporary TypeSafe backend. Replace this layer with Effect Decision/DecisionModel when available;

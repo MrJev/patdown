@@ -4,10 +4,16 @@ on:
   push:
     branches:
       - main
+      - node22-compat
   pull_request:
 
 jobs:
   check:
+    name: Check (Node ${{ matrix.node }})
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22.22.2', '24']
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -18,10 +24,17 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '24'
+          node-version: ${{ matrix.node }}
           cache: pnpm
 
       - name: Check
         run: |
           pnpm install
           pnpm check
+          pnpm build
+
+      - name: Smoke-test built CLI
+        run: |
+          node apps/patdown/dist/patdown-cli-bin.js --version
+          node apps/patdown/dist/patdown-cli-bin.js --help
+          node apps/patdown/dist/patdown-cli-bin.js rules --rules AGENTS.PATDOWN.md
