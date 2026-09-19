@@ -142,10 +142,12 @@ FAIL README.md: No title case
 patdown: failed
 ```
 
-Exit 1 on a violation, a missing rules file, a read error, an invalid cutoff, or a judge error. Add `--verbose` to show a P(yes) shade bar, the numeric probability, the cutoff, and elapsed judge time. Lint totals that time across every rule/file pair.
+Exit 1 on a violation, a missing rules file, a read error, an invalid cutoff, or a judge error. Add `--verbose` to group local lint output into per-rule console blocks (file, shade bar, P(yes), elapsed). Quiet mode stays one `PASS`/`FAIL` line per judgment. Lint totals elapsed time across every rule/file pair.
 
 ```
-FAIL service.ts: explicit-actor (▓▓▓▓▓▓▓▓▒░ estimated P(yes): 0.86; cutoff: >0.85; elapsed: 312ms)
+┌ explicit-actor ────────────────────────────────────────── 1✗ / 1
+│  ✗ service.ts  ▓▓▓▓▓▓▓▓▒░ 0.86  312ms
+└
 patdown: failed (elapsed: 1840ms)
 ```
 

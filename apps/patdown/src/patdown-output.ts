@@ -1,7 +1,11 @@
 import type { PatdownRulesDocument } from '@patdown/rules'
 import { defaultPatdownYesThreshold, type PatdownYesThreshold } from '@patdown/rules'
-import { Console, Context, Effect, Layer } from 'effect'
+import { Console, Context, Effect, Layer, Ref } from 'effect'
 
+import {
+	formatPatdownLintResultLine,
+	formatPatdownRuleBlock,
+} from '#src/patdown-console-rule-blocks'
 import { patdownJudgmentIsYes, type PatdownJudgment } from '#src/patdown-judge'
 import { formatPatdownProbabilityBar } from '#src/patdown-probability-bar'
 
@@ -23,6 +27,11 @@ export type PatdownLintResult = {
 	readonly yesThreshold: PatdownYesThreshold
 	readonly elapsedMs: number
 	readonly evidence?: PatdownLintEvidenceSpan
+}
+
+type PatdownConsoleLintBuffer = {
+	readonly ruleTitle: string | null
+	readonly results: ReadonlyArray<PatdownLintResult>
 }
 
 function formatPatdownElapsedMs(elapsedMs: number): string {
@@ -48,15 +57,6 @@ function formatPatdownAnswer(
 	return verbose
 		? `${answer} (${formatPatdownProbability(judgment.yesProbability, yesThreshold, elapsedMs)})`
 		: answer
-}
-
-function formatPatdownLintResult(result: PatdownLintResult, verbose: boolean): string {
-	const verdict = result.violated ? 'FAIL' : 'PASS'
-	const line = `${verdict} ${result.filePath}: ${result.ruleTitle}`
-
-	return verbose
-		? `${line} (${formatPatdownProbability(result.violationProbability, result.yesThreshold, result.elapsedMs)})`
-		: line
 }
 
 function formatPatdownRulesDocument(document: PatdownRulesDocument): string {
@@ -99,8 +99,14 @@ export class PatdownOutput extends Context.Service<PatdownOutput, PatdownOutputW
 	'@patdown/cli/PatdownOutput',
 ) {}
 
-/** Default human-readable writers, without provider-specific vocabulary. */
-export const patdownHumanOutput: PatdownOutputWriters = {
+function flushPatdownConsoleRuleBlock(buffer: PatdownConsoleLintBuffer): Effect.Effect<void> {
+	if (buffer.ruleTitle === null) return Effect.void
+
+	return Console.log(formatPatdownRuleBlock(buffer.ruleTitle, buffer.results))
+}
+
+/** One-line writers shared with GitHub Actions job logs. */
+export const patdownStreamingHumanOutput: PatdownOutputWriters = {
 	writeLintFailed: (elapsedMs?: number): Effect.Effect<void> =>
 		Console.log(
 			elapsedMs === undefined
@@ -114,7 +120,11 @@ export const patdownHumanOutput: PatdownOutputWriters = {
 				: `patdown: passed (elapsed: ${formatPatdownElapsedMs(elapsedMs)})`,
 		),
 	writeLintResult: (result: PatdownLintResult, verbose: boolean): Effect.Effect<void> =>
-		Console.log(formatPatdownLintResult(result, verbose)),
+		Console.log(
+			verbose
+				? `${formatPatdownLintResultLine(result)} (${formatPatdownProbability(result.violationProbability, result.yesThreshold, result.elapsedMs)})`
+				: formatPatdownLintResultLine(result),
+		),
 	writeNoFilesMatched: (title: string): Effect.Effect<void> =>
 		Console.log(`patdown: no files matched ${title}`),
 	writeAnswer: (
@@ -128,5 +138,73 @@ export const patdownHumanOutput: PatdownOutputWriters = {
 		Console.log(formatPatdownRulesDocument(document)),
 }
 
-/** Default human-readable output layer. */
-export const PatdownOutputLive = Layer.succeed(PatdownOutput, patdownHumanOutput)
+/**
+ * Local human output. Quiet mode streams one PASS/FAIL line per judgment. Verbose mode groups
+ * judgments into per-rule console blocks.
+ */
+export const PatdownOutputLive: Layer.Layer<PatdownOutput> = Layer.effect(
+	PatdownOutput,
+	Effect.gen(function* () {
+		const buffer = yield* Ref.make<PatdownConsoleLintBuffer>({
+			ruleTitle: null,
+			results: [],
+		})
+
+		const flush = (): Effect.Effect<void> =>
+			Effect.gen(function* () {
+				const current = yield* Ref.get(buffer)
+
+				yield* flushPatdownConsoleRuleBlock(current)
+				yield* Ref.set(buffer, { ruleTitle: null, results: [] })
+			})
+
+		const writers: PatdownOutputWriters = {
+			writeAnswer: patdownStreamingHumanOutput.writeAnswer,
+			writeRulesDocument: patdownStreamingHumanOutput.writeRulesDocument,
+			writeLintResult: (result, verbose) => {
+				if (!verbose) {
+					return patdownStreamingHumanOutput.writeLintResult(result, false)
+				}
+
+				return Effect.gen(function* () {
+					const current = yield* Ref.get(buffer)
+
+					if (current.ruleTitle !== null && current.ruleTitle !== result.ruleTitle) {
+						yield* flushPatdownConsoleRuleBlock(current)
+						yield* Ref.set(buffer, {
+							ruleTitle: result.ruleTitle,
+							results: [result],
+						})
+
+						return
+					}
+
+					yield* Ref.set(buffer, {
+						ruleTitle: result.ruleTitle,
+						results: [...current.results, result],
+					})
+				})
+			},
+			writeNoFilesMatched: (title) =>
+				Effect.gen(function* () {
+					yield* flush()
+					yield* Console.log(formatPatdownRuleBlock(title, []))
+				}),
+			writeLintOk: (elapsedMs) =>
+				Effect.gen(function* () {
+					yield* flush()
+					yield* patdownStreamingHumanOutput.writeLintOk(elapsedMs)
+				}),
+			writeLintFailed: (elapsedMs) =>
+				Effect.gen(function* () {
+					yield* flush()
+					yield* patdownStreamingHumanOutput.writeLintFailed(elapsedMs)
+				}),
+		}
+
+		return writers
+	}),
+)
+
+/** @deprecated Use patdownStreamingHumanOutput for one-line logs. */
+export const patdownHumanOutput = patdownStreamingHumanOutput
