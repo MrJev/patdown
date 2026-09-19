@@ -82,7 +82,9 @@ export function formatPatdownRuleBlock(
 	const lines = [padPatdownRuleBlockTitle(ruleTitle, failCount, results.length)]
 
 	if (results.length === 0) {
+		lines.push('│')
 		lines.push('│  (no files matched)')
+		lines.push('│')
 	} else {
 		const ordered = [...results].toSorted((left, right) =>
 			left.filePath.localeCompare(right.filePath),
@@ -100,14 +102,22 @@ export function formatPatdownRuleBlock(
 
 		for (const result of ordered) {
 			const directory = patdownConsoleDirectoryLabel(result.filePath)
+			const startingNewDirectory = directory !== currentDirectory
 
-			if (directory !== currentDirectory) {
+			if (startingNewDirectory && currentDirectory !== null) {
+				lines.push('│')
+			}
+
+			if (startingNewDirectory) {
 				lines.push(formatPatdownDirectoryHeader(directory))
+				lines.push('│')
 				currentDirectory = directory
 			}
 
 			lines.push(formatPatdownRuleBlockRow(result, timeWidth, nameWidth))
 		}
+
+		lines.push('│')
 	}
 
 	lines.push('└')
