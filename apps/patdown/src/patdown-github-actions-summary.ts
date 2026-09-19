@@ -37,9 +37,9 @@ function formatPatdownProbabilityCell(result: PatdownLintResult): string {
 	const bar = formatPatdownProbabilityBar(result.violationProbability)
 	const score = result.violationProbability.toFixed(2)
 
-	if (result.violated) return `FAIL ${bar} **${score}**`
+	if (result.violated) return `❌ ${bar} **${score}**`
 
-	return `PASS ${bar} ${score}`
+	return `✅ ${bar} ${score}`
 }
 
 /** Near misses are below the cutoff but close enough to show in the heatmap. */
@@ -92,7 +92,7 @@ export function formatPatdownGitHubActionsAnnotations(
 
 	return failures.map((result) => {
 		const bar = formatPatdownProbabilityBar(result.violationProbability)
-		const message = `FAIL ${bar} P(yes) ${String(result.violationProbability)} exceeds cutoff >${String(result.yesThreshold)}`
+		const message = `❌ ${bar} P(yes) ${String(result.violationProbability)} exceeds cutoff >${String(result.yesThreshold)}`
 		const file = escapePatdownGitHubActionsProperty(result.filePath)
 		const title = escapePatdownGitHubActionsProperty(`patdown: ${result.ruleTitle}`)
 
@@ -169,7 +169,7 @@ function formatPatdownHeatmapTable(results: ReadonlyArray<PatdownLintResult>): s
 			return formatPatdownProbabilityCell(result)
 		})
 
-		return `| \`${filePath.replace(/\|/gu, '\\|')}\` | **${failed ? 'FAIL' : 'PASS'}** | ${cells.join(' | ')} |`
+		return `| \`${filePath.replace(/\|/gu, '\\|')}\` | ${failed ? '❌' : '✅'} | ${cells.join(' | ')} |`
 	})
 
 	return [header, divider, ...rows].join('\n')
@@ -188,7 +188,7 @@ function formatPatdownFailureDetails(results: ReadonlyArray<PatdownLintResult>):
 		const bar = formatPatdownProbabilityBar(result.violationProbability)
 
 		lines.push(
-			`### FAIL \`${result.filePath}\` · ${result.ruleTitle}`,
+			`### ❌ \`${result.filePath}\` · ${result.ruleTitle}`,
 			'',
 			`${bar} estimated P(yes) **${String(result.violationProbability)}** exceeds cutoff \`>${String(result.yesThreshold)}\` · ${formatPatdownElapsedLabel(result.elapsedMs)}`,
 			'',
@@ -205,9 +205,9 @@ export function formatPatdownGitHubActionsSummary(input: PatdownGitHubActionsSum
 	const status = input.failed || failedCount > 0 ? 'failed' : 'passed'
 
 	const lines = [
-		`# patdown ${status}`,
+		`# patdown ${status === 'passed' ? '✅' : '❌'} ${status}`,
 		'',
-		`${String(passedCount)} passed · ${String(failedCount)} failed · ${formatPatdownElapsedLabel(input.elapsedMs)}`,
+		`✅ ${String(passedCount)} passed · ❌ ${String(failedCount)} failed · ${formatPatdownElapsedLabel(input.elapsedMs)}`,
 		'',
 		'## Heatmap',
 		'',
