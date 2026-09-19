@@ -19,7 +19,7 @@ The third argument to `runPatdownCli` accepts a judge Layer. Provide transport, 
 
 ```ts
 import { Effect, Layer } from 'effect'
-import { PatdownJudge, runPatdownCli } from '@patdown/cli'
+import { PatdownJudge, runPatdownCli } from 'patdown'
 
 // Fixed output for a local test. A real provider calls its own backend here.
 const TestJudgeLive = Layer.succeed(PatdownJudge, {
@@ -37,7 +37,7 @@ await Effect.runPromise(
 
 This custom provider needs no TypeSafe API key. Rule-source adapters and judge providers are separate services. The CLI does not yet discover judge modules through a flag or package.json; use an embedded entrypoint to replace the judge.
 
-The packages remain private and unpublished. As with rule-source adapters, examples assume a built local workspace and matching Effect versions.
+Install `patdown` from npm. Custom providers still need a matching Effect version.
 
 ## Default backend and future migration
 

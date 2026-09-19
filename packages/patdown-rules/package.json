@@ -1,12 +1,21 @@
 {
 	"name": "@patdown/rules",
-	"version": "0.0.0",
-	"private": true,
+	"version": "0.3.0",
 	"description": "Fuzzy patdown rule types and markdown rule loading",
+	"homepage": "https://github.com/tyler-dot-earth/patdown",
+	"bugs": {
+		"url": "https://github.com/tyler-dot-earth/patdown/issues"
+	},
 	"license": "0BSD",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/tyler-dot-earth/patdown.git",
+		"directory": "packages/patdown-rules"
+	},
 	"files": [
-		"dist",
-		"src"
+		"LICENSE",
+		"README.md",
+		"dist"
 	],
 	"type": "module",
 	"main": "./dist/index.js",
@@ -29,6 +38,9 @@
 			"default": "./dist/index.js"
 		}
 	},
+	"publishConfig": {
+		"access": "public"
+	},
 	"scripts": {
 		"build": "node ../../scripts/warn-direct-package-task.mjs build && tsc -p tsconfig.build.json",
 		"check": "node ../../scripts/warn-direct-package-task.mjs check && pnpm run lint && pnpm run format:check && pnpm run typecheck && pnpm run test",
@@ -36,6 +48,7 @@
 		"format": "oxfmt --write .",
 		"format:check": "node ../../scripts/warn-direct-package-task.mjs format:check && oxfmt --check .",
 		"lint": "node ../../scripts/warn-direct-package-task.mjs lint && oxlint --disable-nested-config -c ./oxlint.config.ts --tsconfig ./tsconfig.app.json .",
+		"prepack": "node ../../scripts/copy-package-license.mjs",
 		"test": "node ../../scripts/warn-direct-package-task.mjs test && vitest run",
 		"typecheck": "node ../../scripts/warn-direct-package-task.mjs typecheck && tsc -p tsconfig.app.json --incremental --tsBuildInfoFile typecheck.app.tsbuildinfo && tsc -p tsconfig.vitest.json --incremental --tsBuildInfoFile typecheck.vitest.tsbuildinfo"
 	},
@@ -52,5 +65,8 @@
 		"oxlint-tsgolint": "catalog:",
 		"typescript": "catalog:",
 		"vitest": "catalog:"
+	},
+	"engines": {
+		"node": ">=22.22.2"
 	}
 }

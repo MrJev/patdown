@@ -9,7 +9,12 @@ import { fileURLToPath } from 'node:url'
 import { readPatdownReleaseNotes } from './release-notes.mjs'
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..')
-const patdownCliPackageJsonPath = join(repoRoot, 'apps/patdown/package.json')
+const publishablePackageJsonPaths = [
+	join(repoRoot, 'apps/patdown/package.json'),
+	join(repoRoot, 'packages/patdown-rules/package.json'),
+	join(repoRoot, 'packages/patdown-jev/package.json'),
+]
+const patdownCliPackageJsonPath = publishablePackageJsonPaths[0]
 
 function runReleaseCommand(command, args) {
 	const result = spawnSync(command, args, {
@@ -92,19 +97,25 @@ function readPatdownCliPackageVersion() {
 	return packageJson.version
 }
 
-function writePatdownCliPackageVersion(nextVersion) {
-	const packageJsonText = readFileSync(patdownCliPackageJsonPath, 'utf8')
+function writePublishablePackageVersion(packageJsonPath, nextVersion) {
+	const packageJsonText = readFileSync(packageJsonPath, 'utf8')
 	const nextPackageJsonText = packageJsonText.replace(
 		/("version":\s*")([^"]+)(")/u,
 		`$1${nextVersion}$3`,
 	)
 
 	if (nextPackageJsonText === packageJsonText) {
-		process.stderr.write('patdown: release: failed to write package.json version\n')
+		process.stderr.write(`patdown: release: failed to write ${packageJsonPath} version\n`)
 		process.exit(1)
 	}
 
-	writeFileSync(patdownCliPackageJsonPath, nextPackageJsonText)
+	writeFileSync(packageJsonPath, nextPackageJsonText)
+}
+
+function writePublishablePackageVersions(nextVersion) {
+	for (const packageJsonPath of publishablePackageJsonPaths) {
+		writePublishablePackageVersion(packageJsonPath, nextVersion)
+	}
 }
 
 function pushPatdownReleaseRemotes() {
@@ -190,8 +201,8 @@ if (gitStdout(['tag', '--list', tagName]).trim())
 
 runReleaseCommand('pnpm', ['check'])
 
-writePatdownCliPackageVersion(nextVersion)
-runReleaseCommand('git', ['add', 'apps/patdown/package.json'])
+writePublishablePackageVersions(nextVersion)
+runReleaseCommand('git', ['add', ...publishablePackageJsonPaths])
 runReleaseCommand('git', ['commit', '-m', tagName])
 runReleaseCommand('git', ['tag', '-a', tagName, '-m', tagName])
 pushPatdownReleaseRemotes()

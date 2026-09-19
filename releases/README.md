@@ -21,7 +21,7 @@ breaking: true
 3. Run `pnpm -w release minor` or `pnpm -w release patch`.
 4. The script validates the notes before changing the version, runs checks, commits the version bump, creates an annotated tag, and pushes GitHub and Gitea.
 5. If `gh` is available and authenticated, the script finds the Release workflow by commit and watches that exact run. A watch failure does not undo a successful push. Inspect runs before rerunning the release command, which would otherwise bump again.
-6. The GitHub workflow checks the tag against the CLI version and renders the matching notes into the release body. There is no npm publish or binary packaging step.
+6. The GitHub workflow checks the tag against the CLI version, renders the matching notes into the release body, and publishes `patdown`, `@patdown/rules`, and `@patdown/jev` to npm.
 
 `pnpm -w check` includes release-note validation. The release renderer removes frontmatter:
 

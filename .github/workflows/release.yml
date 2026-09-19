@@ -10,6 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      id-token: write
     steps:
       - uses: actions/checkout@v4
 
@@ -19,11 +20,13 @@ jobs:
         with:
           node-version: '24'
           cache: pnpm
+          registry-url: 'https://registry.npmjs.org'
 
       - name: Check
         run: |
           pnpm install
           pnpm check
+          pnpm build
 
       - name: Create GitHub Release
         env:
@@ -37,3 +40,12 @@ jobs:
             --verify-tag \
             --title="$tag" \
             --notes-file "$RUNNER_TEMP/release-notes.md"
+
+      - name: Publish npm packages
+        if: ${{ secrets.NPM_TOKEN != '' }}
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          pnpm publish --filter @patdown/rules --access public --no-git-checks
+          pnpm publish --filter @patdown/jev --access public --no-git-checks
+          pnpm publish --filter patdown --access public --no-git-checks

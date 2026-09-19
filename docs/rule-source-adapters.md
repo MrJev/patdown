@@ -4,7 +4,7 @@ Adapters own rule discovery and parsing. Patdown owns matching target files, cal
 
 ## Contract
 
-Export a named `PatdownRuleSourceLive` Layer that provides the `PatdownRuleSource` service from `@patdown/rules`. TypeScript adapters can check their layer with `satisfies PatdownRuleSourceLayer`, imported from `@patdown/cli`.
+Export a named `PatdownRuleSourceLive` Layer that provides the `PatdownRuleSource` service from `@patdown/rules`. TypeScript adapters can check their layer with `satisfies PatdownRuleSourceLayer`, imported from `patdown`.
 
 ```ts
 loadPatdownRules(
@@ -134,11 +134,11 @@ A file such as `rules/headings.json`:
 
 ## Embedded use
 
-Importing `@patdown/cli` does not run the executable. The runner returns an Effect, so completion, cancellation, and failures belong to your runtime:
+Importing `patdown` does not run the executable. The runner returns an Effect, so completion, cancellation, and failures belong to your runtime:
 
 ```ts
 import { Effect } from 'effect'
-import { runPatdownCli } from '@patdown/cli'
+import { runPatdownCli } from 'patdown'
 import { PatdownRuleSourceLive } from './rules-adapter.mjs'
 
 await Effect.runPromise(runPatdownCli(PatdownRuleSourceLive, ['rules']))

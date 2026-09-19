@@ -11,3 +11,7 @@ out/
 coverage/
 .turbo/
 result
+apps/patdown/LICENSE
+apps/patdown/README.md
+packages/patdown-rules/LICENSE
+packages/patdown-jev/LICENSE

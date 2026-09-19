@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - node22-compat
   pull_request:
 
 jobs:

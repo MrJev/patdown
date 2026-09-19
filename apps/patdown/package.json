@@ -1,15 +1,24 @@
 {
-	"name": "@patdown/cli",
+	"name": "patdown",
 	"version": "0.3.0",
-	"private": true,
 	"description": "Standalone CLI that lints a tree against fuzzy markdown rules",
+	"homepage": "https://github.com/tyler-dot-earth/patdown",
+	"bugs": {
+		"url": "https://github.com/tyler-dot-earth/patdown/issues"
+	},
 	"license": "0BSD",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/tyler-dot-earth/patdown.git",
+		"directory": "apps/patdown"
+	},
 	"bin": {
 		"patdown": "./dist/patdown-cli-bin.js"
 	},
 	"files": [
-		"dist",
-		"src"
+		"LICENSE",
+		"README.md",
+		"dist"
 	],
 	"type": "module",
 	"main": "./dist/index.js",
@@ -32,6 +41,9 @@
 			"default": "./dist/index.js"
 		}
 	},
+	"publishConfig": {
+		"access": "public"
+	},
 	"scripts": {
 		"build": "node ../../scripts/warn-direct-package-task.mjs build && tsc -p tsconfig.build.json",
 		"check": "node ../../scripts/warn-direct-package-task.mjs check && pnpm run lint && pnpm run format:check && pnpm run typecheck && pnpm run test",
@@ -40,6 +52,7 @@
 		"format": "oxfmt --write .",
 		"format:check": "node ../../scripts/warn-direct-package-task.mjs format:check && oxfmt --check .",
 		"lint": "node ../../scripts/warn-direct-package-task.mjs lint && oxlint --disable-nested-config -c ./oxlint.config.ts --tsconfig ./tsconfig.app.json .",
+		"prepack": "node ../../scripts/copy-package-license.mjs && cp ../../README.md ./README.md",
 		"run": "node dist/patdown-cli-bin.js",
 		"test": "node ../../scripts/warn-direct-package-task.mjs test && vitest run",
 		"test:coverage": "node ../../scripts/warn-direct-package-task.mjs test:coverage && vitest run --coverage",

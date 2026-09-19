@@ -1,5 +1,8 @@
 import type { PatdownRule } from '#src/patdown-rule'
-import { decodePatdownYesThresholdText, PatdownYesThresholdInvalid } from '#src/patdown-yes-threshold'
+import {
+	decodePatdownYesThresholdText,
+	PatdownYesThresholdInvalid,
+} from '#src/patdown-yes-threshold'
 
 const atxHeadingPattern = /^#\s+(.*)$/u
 
