@@ -96,6 +96,20 @@ await Effect.runPromise(runPatdownCli(PatdownRuleSourceLive))
 
 See [the adapter guide](docs/rule-source-adapters.md) for the interface, a multi-file parser, resolution rules, resource lifetimes, and local development setup. Adapters execute trusted local code. Install the CLI from npm as `patdown`; adapters import `@patdown/rules` and may import `patdown` for types.
 
+## Packs
+
+Ready-made rule files live in [`packs/`](packs/README.md):
+
+- [`packs/typescript.md`](packs/typescript.md) — type-safety crimes and type laundering
+- [`packs/effect.md`](packs/effect.md) — Effect v4 services, schemas, config, diagnostics
+- [`packs/anti-slop.md`](packs/anti-slop.md) — fuzzy companion to oxlint anti-slop (widen-then-assert, cast chains, empty-object spreads)
+
+```sh
+npx patdown --rules ./packs/effect.md --files-from changed.txt --verbose
+```
+
+Until packs ship on npm, copy the directory or run from a checkout. Use stacked `globs:` lines (`**/*.ts` then `**/*.tsx`); commas inside a single `globs:` line are treated as separators.
+
 ## Rules
 
 One `# heading` per rule. Optional `globs:` and `yes-threshold:` lines sit immediately under the heading, in either order. Commas or spaces, extra `globs:` lines stack. A second `yes-threshold:` line is an error. Text above the first heading is ignored. Headings inside fenced code are ignored. Only `#` headings start rules; `##` and deeper headings stay in the rule body, so sections like `## Not allowed` and `## Exceptions` are fine.
