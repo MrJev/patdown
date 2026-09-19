@@ -181,6 +181,8 @@ Pull requests and pushes to `main` run `pnpm check`. That is oxlint, tests, and 
 
 Inspired by [pi-warden](https://github.com/DevMortimer/pi-warden). Same idea, inside pi.
 
+[Abide](https://github.com/coldteadotai/abide) is a similar Jev-backed checker. It hooks into coding agents, reads project instruction files, and asks Jev whether each edit or turn broke a rule.
+
 Name inspired by It's Always Sunny in Philadelphia
 
 <img width="511" height="415" alt="image" src="https://github.com/user-attachments/assets/f7c73138-3914-4fbd-9e6b-7a37d161334a" />
