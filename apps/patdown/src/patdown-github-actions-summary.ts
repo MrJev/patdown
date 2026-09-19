@@ -33,11 +33,13 @@ function formatPatdownElapsedLabel(elapsedMs: number): string {
 	return `${String(elapsedMs)}ms`
 }
 
-function formatPatdownProbabilityCell(probability: number, violated: boolean): string {
-	const bar = formatPatdownProbabilityBar(probability)
-	const score = probability.toFixed(2)
+function formatPatdownProbabilityCell(result: PatdownLintResult): string {
+	const bar = formatPatdownProbabilityBar(result.violationProbability)
+	const score = result.violationProbability.toFixed(2)
 
-	return violated ? `${bar} **${score}**` : `${bar} ${score}`
+	if (result.violated) return `FAIL ${bar} **${score}**`
+
+	return `PASS ${bar} ${score}`
 }
 
 /** Near misses are below the cutoff but close enough to show in the heatmap. */
@@ -90,7 +92,7 @@ export function formatPatdownGitHubActionsAnnotations(
 
 	return failures.map((result) => {
 		const bar = formatPatdownProbabilityBar(result.violationProbability)
-		const message = `${bar} P(yes) ${String(result.violationProbability)} exceeds cutoff >${String(result.yesThreshold)}`
+		const message = `FAIL ${bar} P(yes) ${String(result.violationProbability)} exceeds cutoff >${String(result.yesThreshold)}`
 		const file = escapePatdownGitHubActionsProperty(result.filePath)
 		const title = escapePatdownGitHubActionsProperty(`patdown: ${result.ruleTitle}`)
 
@@ -125,13 +127,27 @@ function hottestPatdownFileScore(
 	return hottest
 }
 
+function patdownFileRowFailed(
+	byFileRule: Map<string, PatdownLintResult>,
+	filePath: string,
+	rules: ReadonlyArray<string>,
+): boolean {
+	for (const ruleTitle of rules) {
+		const result = byFileRule.get(`${filePath}\0${ruleTitle}`)
+
+		if (result?.violated === true) return true
+	}
+
+	return false
+}
+
 function formatPatdownHeatmapTable(results: ReadonlyArray<PatdownLintResult>): string {
 	const { files, rules, byFileRule } = collectPatdownSummaryAxes(results)
 
 	if (files.length === 0 || rules.length === 0) return '_No judgments._'
 
-	const header = `| file | ${rules.map((rule) => rule.replace(/\|/gu, '\\|')).join(' | ')} |`
-	const divider = `|---|${rules.map(() => '---').join('|')}|`
+	const header = `| file | status | ${rules.map((rule) => rule.replace(/\|/gu, '\\|')).join(' | ')} |`
+	const divider = `|---|---|${rules.map(() => '---').join('|')}|`
 
 	const fileOrder = [...files].toSorted((left, right) => {
 		const leftHot = hottestPatdownFileScore(results, left)
@@ -143,15 +159,17 @@ function formatPatdownHeatmapTable(results: ReadonlyArray<PatdownLintResult>): s
 	})
 
 	const rows = fileOrder.map((filePath) => {
+		const failed = patdownFileRowFailed(byFileRule, filePath, rules)
+
 		const cells = rules.map((ruleTitle) => {
 			const result = byFileRule.get(`${filePath}\0${ruleTitle}`)
 
 			if (result === undefined) return '—'
 
-			return formatPatdownProbabilityCell(result.violationProbability, result.violated)
+			return formatPatdownProbabilityCell(result)
 		})
 
-		return `| \`${filePath.replace(/\|/gu, '\\|')}\` | ${cells.join(' | ')} |`
+		return `| \`${filePath.replace(/\|/gu, '\\|')}\` | **${failed ? 'FAIL' : 'PASS'}** | ${cells.join(' | ')} |`
 	})
 
 	return [header, divider, ...rows].join('\n')
@@ -170,7 +188,7 @@ function formatPatdownFailureDetails(results: ReadonlyArray<PatdownLintResult>):
 		const bar = formatPatdownProbabilityBar(result.violationProbability)
 
 		lines.push(
-			`### \`${result.filePath}\` · ${result.ruleTitle}`,
+			`### FAIL \`${result.filePath}\` · ${result.ruleTitle}`,
 			'',
 			`${bar} estimated P(yes) **${String(result.violationProbability)}** exceeds cutoff \`>${String(result.yesThreshold)}\` · ${formatPatdownElapsedLabel(result.elapsedMs)}`,
 			'',
@@ -182,13 +200,14 @@ function formatPatdownFailureDetails(results: ReadonlyArray<PatdownLintResult>):
 
 /** Markdown for $GITHUB_STEP_SUMMARY. Hottest files first. */
 export function formatPatdownGitHubActionsSummary(input: PatdownGitHubActionsSummaryInput): string {
-	const failures = input.results.filter((result) => result.violated).length
-	const status = input.failed ? 'failed' : 'ok'
+	const failedCount = input.results.filter((result) => result.violated).length
+	const passedCount = input.results.length - failedCount
+	const status = input.failed || failedCount > 0 ? 'failed' : 'passed'
 
 	const lines = [
-		`# patdown  ${status}`,
+		`# patdown ${status}`,
 		'',
-		`${String(failures)} / ${String(input.results.length)} over cutoff · ${formatPatdownElapsedLabel(input.elapsedMs)}`,
+		`${String(passedCount)} passed · ${String(failedCount)} failed · ${formatPatdownElapsedLabel(input.elapsedMs)}`,
 		'',
 		'## Heatmap',
 		'',
@@ -202,7 +221,7 @@ export function formatPatdownGitHubActionsSummary(input: PatdownGitHubActionsSum
 		lines.push(failureDetails)
 	}
 
-	const omitted = failures - patdownGitHubActionsAnnotationLimit
+	const omitted = failedCount - patdownGitHubActionsAnnotationLimit
 
 	if (omitted > 0) {
 		lines.push(

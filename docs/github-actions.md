@@ -19,7 +19,7 @@ git diff --name-only --diff-filter=ACMR "$BASE"...HEAD > changed.txt
 npx patdown --verbose --files-from changed.txt
 ```
 
-`--files path` may be repeated. `--files` and `--files-from` may be combined. Blank lines and `#` comments in the list are ignored. Paths outside cwd, and the usual skipped directories (`.git`, `dist`, `node_modules`, …), are dropped. A missing `--files-from` file fails the command. An empty selection after filtering is still `patdown: ok`.
+`--files path` may be repeated. `--files` and `--files-from` may be combined. Blank lines and `#` comments in the list are ignored. Paths outside cwd, and the usual skipped directories (`.git`, `dist`, `node_modules`, …), are dropped. A missing `--files-from` file fails the command. An empty selection after filtering is still `patdown: passed`.
 
 When a path list is set, rules whose globs miss every listed file stay quiet. Without a path list, an empty glob still prints `patdown: no files matched …`.
 
@@ -30,7 +30,9 @@ When `GITHUB_ACTIONS=true` and `GITHUB_STEP_SUMMARY` are set, the default CLI al
 1. Prints `::error` annotations for failing file/rule pairs (hottest first, capped at 10)
 2. Appends a markdown heatmap to the step summary
 
-Stdout stays the normal PASS/FAIL lines. `--verbose` still adds the shade bar, cutoff, and elapsed time. Opt out with `--no-github`.
+The summary leads with `patdown passed` or `patdown failed`, then `N passed · M failed · elapsed`. Each heatmap row has a `status` column, and every judged cell starts with `PASS` or `FAIL` before the shade bar.
+
+Stdout stays the normal PASS/FAIL lines and ends with `patdown: passed` or `patdown: failed`. `--verbose` still adds the shade bar, cutoff, and elapsed time. Opt out with `--no-github`.
 
 Embedded callers that pass a custom `PatdownOutput` layer skip this auto-detect. Use `PatdownGitHubActionsOutputLive` if you want the same summary from your own entrypoint.
 

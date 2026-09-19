@@ -100,8 +100,8 @@ export const patdownHumanOutput: PatdownOutputWriters = {
 	writeLintOk: (elapsedMs?: number): Effect.Effect<void> =>
 		Console.log(
 			elapsedMs === undefined
-				? 'patdown: ok'
-				: `patdown: ok (elapsed: ${formatPatdownElapsedMs(elapsedMs)})`,
+				? 'patdown: passed'
+				: `patdown: passed (elapsed: ${formatPatdownElapsedMs(elapsedMs)})`,
 		),
 	writeLintResult: (result: PatdownLintResult, verbose: boolean): Effect.Effect<void> =>
 		Console.log(formatPatdownLintResult(result, verbose)),

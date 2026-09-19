@@ -68,8 +68,8 @@ describe('GitHub Actions summary', () => {
 		]
 
 		expect(formatPatdownGitHubActionsAnnotations(results)).toEqual([
-			'::error file=README.md,title=patdown%3A sentence-case::▓▓▓▓▓▓▓▓▓░ P(yes) 0.91 exceeds cutoff >0.85',
-			'::error file=src/cli.ts,title=patdown%3A explicit-actor::▓▓▓▓▓▓▓▓▒░ P(yes) 0.86 exceeds cutoff >0.85',
+			'::error file=README.md,title=patdown%3A sentence-case::FAIL ▓▓▓▓▓▓▓▓▓░ P(yes) 0.91 exceeds cutoff >0.85',
+			'::error file=src/cli.ts,title=patdown%3A explicit-actor::FAIL ▓▓▓▓▓▓▓▓▒░ P(yes) 0.86 exceeds cutoff >0.85',
 		])
 
 		const summary = formatPatdownGitHubActionsSummary({
@@ -78,10 +78,28 @@ describe('GitHub Actions summary', () => {
 			results,
 		})
 
-		expect(summary).toContain('# patdown  failed')
-		expect(summary).toContain('2 / 3 over cutoff · 1840ms')
-		expect(summary).toContain('| file | explicit-actor | sentence-case |')
-		expect(summary).toContain('`src/cli.ts`')
-		expect(summary).toContain('### `README.md` · sentence-case')
+		expect(summary).toContain('# patdown failed')
+		expect(summary).toContain('1 passed · 2 failed · 1840ms')
+		expect(summary).toContain('| file | status | explicit-actor | sentence-case |')
+		expect(summary).toContain('| `src/cli.ts` | **FAIL** | FAIL ▓▓▓▓▓▓▓▓▒░ **0.86** | — |')
+		expect(summary).toContain('| `README.md` | **FAIL** | — | FAIL ▓▓▓▓▓▓▓▓▓░ **0.91** |')
+		expect(summary).toContain('### FAIL `README.md` · sentence-case')
+
+		const passed = formatPatdownGitHubActionsSummary({
+			failed: false,
+			elapsedMs: 12,
+			results: [
+				result({
+					violated: false,
+					filePath: 'README.md',
+					ruleTitle: 'sentence-case',
+					violationProbability: 0.04,
+				}),
+			],
+		})
+
+		expect(passed).toContain('# patdown passed')
+		expect(passed).toContain('1 passed · 0 failed · 12ms')
+		expect(passed).toContain('| `README.md` | **PASS** | PASS ░░░░░░░░░░ 0.04 |')
 	})
 })
