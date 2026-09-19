@@ -1,0 +1,60 @@
+name: patdown
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  patdown:
+    name: Fuzzy lint (changed files)
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.22.2'
+          cache: pnpm
+
+      - name: Install and build CLI
+        run: |
+          pnpm install
+          pnpm build
+
+      - name: List changed files
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${GITHUB_EVENT_NAME}" = "pull_request" ]; then
+            BASE="${{ github.event.pull_request.base.sha }}"
+          else
+            BASE="${{ github.event.before }}"
+            if [ "$BASE" = "0000000000000000000000000000000000000000" ] || [ -z "$BASE" ]; then
+              BASE="$(git rev-parse HEAD^)"
+            fi
+          fi
+          git diff --name-only --diff-filter=ACMR "$BASE"...HEAD > changed.txt
+          if [ ! -s changed.txt ]; then
+            echo "No changed files."
+          fi
+          cat changed.txt
+
+      - name: Run patdown
+        env:
+          TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "${TYPESAFE_API_KEY:-}" ]; then
+            echo "patdown: set repository secret TYPESAFE_API_KEY to run fuzzy lint"
+            exit 1
+          fi
+          node apps/patdown/dist/patdown-cli-bin.js --verbose --files-from changed.txt

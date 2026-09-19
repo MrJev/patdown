@@ -8,25 +8,22 @@ import {
 import { Clock, Effect, FileSystem, Path } from 'effect'
 
 import {
+	formatPatdownEvidenceChoiceState,
+	patdownEvidenceChoiceCriteria,
+	patdownEvidenceChoiceInstructions,
+	splitPatdownEvidenceCandidates,
+} from '#src/patdown-evidence-regions'
+import { patdownGlobExcludes, patdownGlobPatterns } from '#src/patdown-glob'
+import {
 	PatdownJudge,
 	PatdownJudgeFailed,
 	askPatdownJudge,
+	locatePatdownEvidence,
 	patdownJudgmentIsYes,
 } from '#src/patdown-judge'
-import { PatdownOutput } from '#src/patdown-output'
+import { selectPatdownRuleFiles, type PatdownLintFileSelection } from '#src/patdown-lint-files'
+import { PatdownOutput, type PatdownLintEvidenceSpan } from '#src/patdown-output'
 import { decodePatdownRuleYesThreshold } from '#src/patdown-yes-threshold-config'
-
-const patdownGlobExcludes = [
-	'**/.git/**',
-	'**/.turbo/**',
-	'**/coverage/**',
-	'**/dist/**',
-	'**/node_modules/**',
-] as const
-
-function patdownGlobPatterns(globs: ReadonlyArray<string>): ReadonlyArray<string> {
-	return globs.length === 0 ? ['**/*'] : globs
-}
 
 function patdownViolationInstructions(rule: PatdownRule): string {
 	return [
@@ -100,16 +97,60 @@ function lintPatdownRuleFile(
 		)
 
 		const failed = patdownJudgmentIsYes(timed.judgment, options.yesThreshold)
+		let evidence: PatdownLintEvidenceSpan | undefined
+		let elapsedMs = timed.elapsedMs
+
+		if (failed) {
+			const evidenceStartedAt = yield* Clock.currentTimeMillis
+			const candidates = splitPatdownEvidenceCandidates(contents)
+
+			const candidatesById = new Map(
+				candidates.map((candidate) => [
+					candidate.id,
+					{ startLine: candidate.startLine, endLine: candidate.endLine },
+				]),
+			)
+
+			const located = yield* locatePatdownEvidence(
+				patdownEvidenceChoiceInstructions(),
+				formatPatdownEvidenceChoiceState({
+					relativePath,
+					ruleTitle: rule.patdownRuleTitle,
+					ruleBody: rule.patdownRuleBody,
+					violationProbability: timed.judgment.yesProbability,
+					contents,
+					candidates,
+				}),
+				patdownEvidenceChoiceCriteria(candidates),
+				candidatesById,
+			).pipe(Effect.catchTag('PatdownJudgeFailed', () => Effect.succeed(null)))
+
+			const evidenceFinishedAt = yield* Clock.currentTimeMillis
+
+			elapsedMs += Math.max(0, evidenceFinishedAt - evidenceStartedAt)
+
+			if (located !== null) {
+				evidence = {
+					startLine: located.startLine,
+					endLine: located.endLine,
+					confidence: located.confidence,
+				}
+			}
+		}
+
+		const lintResult = {
+			violated: failed,
+			ruleTitle: rule.patdownRuleTitle,
+			ruleBody: rule.patdownRuleBody,
+			ruleGlobs: rule.patdownRuleGlobs,
+			filePath: relativePath,
+			violationProbability: timed.judgment.yesProbability,
+			yesThreshold: options.yesThreshold,
+			elapsedMs,
+		}
 
 		yield* output.writeLintResult(
-			{
-				violated: failed,
-				ruleTitle: rule.patdownRuleTitle,
-				filePath: relativePath,
-				violationProbability: timed.judgment.yesProbability,
-				yesThreshold: options.yesThreshold,
-				elapsedMs: timed.elapsedMs,
-			},
+			evidence === undefined ? lintResult : { ...lintResult, evidence },
 			options.verbose,
 		)
 
@@ -117,11 +158,16 @@ function lintPatdownRuleFile(
 	})
 }
 
+type PatdownRuleLintOptions = {
+	readonly cwd: string
+	readonly verbose: boolean
+	readonly defaultYesThreshold: PatdownYesThreshold
+	readonly selection: PatdownLintFileSelection | null
+}
+
 function lintPatdownRule(
 	rule: PatdownRule,
-	cwd: string,
-	verbose: boolean,
-	defaultYesThreshold: PatdownYesThreshold,
+	options: PatdownRuleLintOptions,
 ): Effect.Effect<
 	boolean,
 	PatdownJudgeFailed | PatdownYesThresholdInvalid,
@@ -129,22 +175,37 @@ function lintPatdownRule(
 > {
 	return Effect.gen(function* () {
 		const output = yield* PatdownOutput
-		const files = yield* globPatdownRuleFiles(cwd, rule.patdownRuleGlobs)
+
+		const files = selectPatdownRuleFiles(
+			options.cwd,
+			options.selection,
+			rule.patdownRuleGlobs,
+			options.selection === null
+				? yield* globPatdownRuleFiles(options.cwd, rule.patdownRuleGlobs)
+				: [],
+		)
 
 		const yesThreshold =
 			rule.patdownRuleYesThreshold === undefined
-				? defaultYesThreshold
+				? options.defaultYesThreshold
 				: yield* decodePatdownRuleYesThreshold(rule.patdownRuleYesThreshold, rule.patdownRuleTitle)
 
 		if (files.length === 0) {
-			yield* output.writeNoFilesMatched(rule.patdownRuleTitle)
+			if (options.selection === null) {
+				yield* output.writeNoFilesMatched(rule.patdownRuleTitle)
+			}
 
 			return false
 		}
 
 		const failures = yield* Effect.forEach(
 			files,
-			(filePath) => lintPatdownRuleFile(rule, filePath, { cwd, verbose, yesThreshold }),
+			(filePath) =>
+				lintPatdownRuleFile(rule, filePath, {
+					cwd: options.cwd,
+					verbose: options.verbose,
+					yesThreshold,
+				}),
 			{ concurrency: 1 },
 		)
 
@@ -157,6 +218,7 @@ export function runPatdownLint(
 	document: PatdownRulesDocument,
 	verbose: boolean = false,
 	yesThreshold: PatdownYesThreshold = defaultPatdownYesThreshold,
+	selection: PatdownLintFileSelection | null = null,
 ): Effect.Effect<
 	{ readonly failed: boolean; readonly elapsedMs: number },
 	PatdownJudgeFailed | PatdownYesThresholdInvalid,
@@ -169,7 +231,13 @@ export function runPatdownLint(
 
 		const failures = yield* Effect.forEach(
 			document.patdownRules,
-			(rule) => lintPatdownRule(rule, cwd, verbose, yesThreshold),
+			(rule) =>
+				lintPatdownRule(rule, {
+					cwd,
+					verbose,
+					defaultYesThreshold: yesThreshold,
+					selection,
+				}),
 			{ concurrency: 1 },
 		)
 
