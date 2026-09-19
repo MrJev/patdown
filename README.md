@@ -28,7 +28,7 @@ pnpm -w patdown -- ask "Is this urgent?" --input-text "ASAP" --verbose
 pnpm -w patdown -- --yes-threshold 0.9
 ```
 
-Default command lints from the current directory. `rules` prints what it loaded. `ask` answers a yes/no question, no files involved. It prints `yes` or `no`; `--verbose` also shows the estimated probability of yes, the cutoff, and how long the judge call took. The old `--noul` and `--state` flags have been replaced by a positional question and `--input-text`.
+Default command lints from the current directory. `rules` prints what it loaded. `ask` answers a yes/no question, no files involved. It prints `yes` or `no`; `--verbose` also shows a P(yes) shade bar, the cutoff, and how long the judge call took. The old `--noul` and `--state` flags have been replaced by a positional question and `--input-text`.
 
 To judge piped output, use `--stdin`. For example, after building with `pnpm -w build` or running any `pnpm -w patdown` command:
 
@@ -119,7 +119,12 @@ FAIL README.md: No title case
 patdown: failed
 ```
 
-Exit 1 on a violation, a missing rules file, a read error, an invalid cutoff, or a judge error. Add `--verbose` to show probabilities and elapsed judge time. Lint totals that time across every rule/file pair. Patdown counts estimated P(yes) strictly above the cutoff as yes; for lint, yes means violation. Default cutoff is 0.85. Override it with `--yes-threshold`, package.json `patdown.yesThreshold`, or a per-rule `yes-threshold:` line. The flag wins over package.json; a per-rule value wins for that rule only. `1` is rejected because nothing can exceed it. This cutoff belongs to patdown, not the provider.
+Exit 1 on a violation, a missing rules file, a read error, an invalid cutoff, or a judge error. Add `--verbose` to show a P(yes) shade bar, the numeric probability, the cutoff, and elapsed judge time. Lint totals that time across every rule/file pair.
+
+````
+FAIL service.ts: explicit-actor (▓▓▓▓▓▓▓▓▒░ estimated P(yes): 0.86; cutoff: >0.85; elapsed: 312ms)
+patdown: failed (elapsed: 1840ms)
+``` Patdown counts estimated P(yes) strictly above the cutoff as yes; for lint, yes means violation. Default cutoff is 0.85. Override it with `--yes-threshold`, package.json `patdown.yesThreshold`, or a per-rule `yes-threshold:` line. The flag wins over package.json; a per-rule value wins for that rule only. `1` is rejected because nothing can exceed it. This cutoff belongs to patdown, not the provider.
 
 See [judge providers](docs/judge-providers.md) for custom layers and the planned Effect Decision integration.
 
@@ -162,7 +167,7 @@ await Effect.runPromise(
 		JsonOutputLive,
 	),
 )
-```
+````
 
 The output service receives structured judgments and lint results, including probabilities even when `--verbose` is off. Your layer decides what to print, collect, or omit. Formatting does not change the cutoff or exit status. The example emits one JSON object per output event, not a single JSON document for the entire run.
 
@@ -195,6 +200,8 @@ Pull requests and pushes to `main` run `pnpm check`. That is oxlint, tests, and 
 Inspired by [pi-warden](https://github.com/DevMortimer/pi-warden). Same idea, inside pi.
 
 [Abide](https://github.com/coldteadotai/abide) is a similar Jev-backed checker. It hooks into coding agents, reads project instruction files, and asks Jev whether each edit or turn broke a rule.
+
+[Jev Review](https://github.com/devagrawal09/jev-review) is a Jev-backed diff/codebase reviewer with a local dashboard of those judgments. Patdown stays in the terminal; `--verbose` draws a P(yes) shade bar instead of a GUI.
 
 Name inspired by It's Always Sunny in Philadelphia
 

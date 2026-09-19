@@ -3,6 +3,7 @@ import { defaultPatdownYesThreshold, type PatdownYesThreshold } from '@patdown/r
 import { Console, Context, Effect, Layer } from 'effect'
 
 import { patdownJudgmentIsYes, type PatdownJudgment } from '#src/patdown-judge'
+import { formatPatdownProbabilityBar } from '#src/patdown-probability-bar'
 
 /** One file/rule result; probability estimates a violation, not correctness of the verdict. */
 export type PatdownLintResult = {
@@ -23,7 +24,7 @@ function formatPatdownProbability(
 	yesThreshold: PatdownYesThreshold,
 	elapsedMs: number,
 ): string {
-	return `estimated P(yes): ${String(probability)}; cutoff: >${String(yesThreshold)}; elapsed: ${formatPatdownElapsedMs(elapsedMs)}`
+	return `${formatPatdownProbabilityBar(probability)} estimated P(yes): ${String(probability)}; cutoff: >${String(yesThreshold)}; elapsed: ${formatPatdownElapsedMs(elapsedMs)}`
 }
 
 function formatPatdownAnswer(

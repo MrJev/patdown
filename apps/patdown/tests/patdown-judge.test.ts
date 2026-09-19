@@ -108,8 +108,8 @@ describe('human-readable judgments', () => {
 			const lines = yield* TestConsole.logLines
 			expect(lines).toEqual([
 				'yes',
-				'no (estimated P(yes): 0.02; cutoff: >0.85; elapsed: 12ms)',
-				'FAIL README.md: Sentence case (estimated P(yes): 0.91; cutoff: >0.85; elapsed: 40ms)',
+				'no (░░░░░░░░░░ estimated P(yes): 0.02; cutoff: >0.85; elapsed: 12ms)',
+				'FAIL README.md: Sentence case (▓▓▓▓▓▓▓▓▓░ estimated P(yes): 0.91; cutoff: >0.85; elapsed: 40ms)',
 			])
 		}).pipe(Effect.provide(outputHarness)),
 	)
