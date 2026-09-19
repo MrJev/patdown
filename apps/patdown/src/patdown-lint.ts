@@ -7,15 +7,22 @@ import {
 } from '@patdown/rules'
 import { Clock, Effect, FileSystem, Path } from 'effect'
 
+import {
+	formatPatdownEvidenceChoiceState,
+	patdownEvidenceChoiceCriteria,
+	patdownEvidenceChoiceInstructions,
+	splitPatdownEvidenceRegions,
+} from '#src/patdown-evidence-regions'
 import { patdownGlobExcludes, patdownGlobPatterns } from '#src/patdown-glob'
 import {
 	PatdownJudge,
 	PatdownJudgeFailed,
 	askPatdownJudge,
+	locatePatdownEvidence,
 	patdownJudgmentIsYes,
 } from '#src/patdown-judge'
 import { selectPatdownRuleFiles, type PatdownLintFileSelection } from '#src/patdown-lint-files'
-import { PatdownOutput } from '#src/patdown-output'
+import { PatdownOutput, type PatdownLintEvidenceSpan } from '#src/patdown-output'
 import { decodePatdownRuleYesThreshold } from '#src/patdown-yes-threshold-config'
 
 function patdownViolationInstructions(rule: PatdownRule): string {
@@ -90,16 +97,56 @@ function lintPatdownRuleFile(
 		)
 
 		const failed = patdownJudgmentIsYes(timed.judgment, options.yesThreshold)
+		let evidence: PatdownLintEvidenceSpan | undefined
+		let elapsedMs = timed.elapsedMs
+
+		if (failed) {
+			const evidenceStartedAt = yield* Clock.currentTimeMillis
+			const regions = splitPatdownEvidenceRegions(contents)
+
+			const regionsById = new Map(
+				regions.map((region) => [
+					region.id,
+					{ startLine: region.startLine, endLine: region.endLine },
+				]),
+			)
+
+			const located = yield* locatePatdownEvidence(
+				patdownEvidenceChoiceInstructions(),
+				formatPatdownEvidenceChoiceState(
+					relativePath,
+					rule.patdownRuleTitle,
+					rule.patdownRuleBody,
+					regions,
+				),
+				patdownEvidenceChoiceCriteria(regions),
+				regionsById,
+			).pipe(Effect.catchTag('PatdownJudgeFailed', () => Effect.succeed(null)))
+
+			const evidenceFinishedAt = yield* Clock.currentTimeMillis
+
+			elapsedMs += Math.max(0, evidenceFinishedAt - evidenceStartedAt)
+
+			if (located !== null) {
+				evidence = {
+					startLine: located.startLine,
+					endLine: located.endLine,
+					confidence: located.confidence,
+				}
+			}
+		}
+
+		const lintResult = {
+			violated: failed,
+			ruleTitle: rule.patdownRuleTitle,
+			filePath: relativePath,
+			violationProbability: timed.judgment.yesProbability,
+			yesThreshold: options.yesThreshold,
+			elapsedMs,
+		}
 
 		yield* output.writeLintResult(
-			{
-				violated: failed,
-				ruleTitle: rule.patdownRuleTitle,
-				filePath: relativePath,
-				violationProbability: timed.judgment.yesProbability,
-				yesThreshold: options.yesThreshold,
-				elapsedMs: timed.elapsedMs,
-			},
+			evidence === undefined ? lintResult : { ...lintResult, evidence },
 			options.verbose,
 		)
 

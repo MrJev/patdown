@@ -19,6 +19,20 @@ export type PatdownTimedJudgment = {
 	readonly elapsedMs: number
 }
 
+/** Region picked by a FAIL-only evidence Choice. Line numbers come from our slice map. */
+export type PatdownEvidenceChoice = {
+	readonly regionId: string
+	readonly confidence: number
+}
+
+/** Resolved line span after mapping a Choice label onto a known region. */
+export type PatdownEvidenceLocation = {
+	readonly startLine: number
+	readonly endLine: number
+	readonly regionId: string
+	readonly confidence: number
+}
+
 /** Provider or response validation failure, independent of the backend. */
 export class PatdownJudgeFailed extends Data.TaggedError('PatdownJudgeFailed')<{
 	readonly message: string
@@ -32,6 +46,15 @@ export class PatdownJudge extends Context.Service<
 			question: string,
 			inputText: string,
 		) => Effect.Effect<PatdownJudgment, PatdownJudgeFailed>
+		/**
+		 * Optional FAIL-only locator. Returns a line span when the provider can choose among candidate
+		 * regions. Missing method means file-level annotations only.
+		 */
+		readonly locateEvidence?: (
+			question: string,
+			inputText: string,
+			criteria: Readonly<Record<string, string>>,
+		) => Effect.Effect<PatdownEvidenceChoice | null, PatdownJudgeFailed>
 	}
 >()('@patdown/cli/PatdownJudge') {}
 
@@ -67,6 +90,38 @@ export function askPatdownJudge(
 		return {
 			judgment,
 			elapsedMs: Math.max(0, finishedAt - startedAt),
+		}
+	})
+}
+
+/**
+ * Asks the optional evidence locator. Returns null when the judge has no locator, chooses noMatch,
+ * or returns an unknown region id.
+ */
+export function locatePatdownEvidence(
+	question: string,
+	inputText: string,
+	criteria: Readonly<Record<string, string>>,
+	regionsById: ReadonlyMap<string, { readonly startLine: number; readonly endLine: number }>,
+): Effect.Effect<PatdownEvidenceLocation | null, PatdownJudgeFailed, PatdownJudge> {
+	return Effect.gen(function* () {
+		const judge = yield* PatdownJudge
+
+		if (judge.locateEvidence === undefined) return null
+
+		const chosen = yield* judge.locateEvidence(question, inputText, criteria)
+
+		if (chosen === null) return null
+
+		const region = regionsById.get(chosen.regionId)
+
+		if (region === undefined) return null
+
+		return {
+			startLine: region.startLine,
+			endLine: region.endLine,
+			regionId: chosen.regionId,
+			confidence: chosen.confidence,
 		}
 	})
 }

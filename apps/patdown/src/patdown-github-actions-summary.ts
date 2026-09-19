@@ -92,11 +92,22 @@ export function formatPatdownGitHubActionsAnnotations(
 
 	return failures.map((result) => {
 		const bar = formatPatdownProbabilityBar(result.violationProbability)
-		const message = `${bar} P(yes) ${String(result.violationProbability)} exceeds cutoff >${String(result.yesThreshold)}`
+
+		const span =
+			result.evidence === undefined
+				? ''
+				: ` lines ${String(result.evidence.startLine)}-${String(result.evidence.endLine)}`
+
+		const message = `${bar} P(yes) ${String(result.violationProbability)} exceeds cutoff >${String(result.yesThreshold)}${span}`
 		const file = escapePatdownGitHubActionsProperty(result.filePath)
 		const title = escapePatdownGitHubActionsProperty(`patdown: ${result.ruleTitle}`)
 
-		return `::error file=${file},title=${title}::${escapePatdownGitHubActionsData(message)}`
+		const line =
+			result.evidence === undefined
+				? 'line=1'
+				: `line=${String(result.evidence.startLine)},endLine=${String(result.evidence.endLine)}`
+
+		return `::error file=${file},${line},title=${title}::${escapePatdownGitHubActionsData(message)}`
 	})
 }
 

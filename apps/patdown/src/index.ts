@@ -26,8 +26,11 @@ export {
 	PatdownJudgeFailed,
 	PatdownJudgmentSchema,
 	askPatdownJudge,
+	locatePatdownEvidence,
 	patdownJudgmentIsYes,
 	patdownYesThreshold,
+	type PatdownEvidenceChoice,
+	type PatdownEvidenceLocation,
 	type PatdownJudgment,
 	type PatdownTimedJudgment,
 } from '#src/patdown-judge'

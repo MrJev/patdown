@@ -7,4 +7,17 @@ export {
 	type JevNoulResult,
 } from '#src/jev-noul-schema'
 
-export { JevRequestFailed, JevSystemOne, JevSystemOneLive } from '#src/jev-system-one'
+export {
+	JevChoiceAnswerSchema,
+	JevChoiceQuestionSchema,
+	JevChoiceResultSchema,
+	type JevChoiceAnswer,
+	type JevChoiceResult,
+} from '#src/jev-choice-schema'
+
+export {
+	JevRequestFailed,
+	JevSystemOne,
+	JevSystemOneLive,
+	type JevChoiceCriteria,
+} from '#src/jev-system-one'

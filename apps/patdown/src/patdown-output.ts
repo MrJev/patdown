@@ -5,6 +5,13 @@ import { Console, Context, Effect, Layer } from 'effect'
 import { patdownJudgmentIsYes, type PatdownJudgment } from '#src/patdown-judge'
 import { formatPatdownProbabilityBar } from '#src/patdown-probability-bar'
 
+/** Optional 1-based span from a FAIL-only evidence Choice. */
+export type PatdownLintEvidenceSpan = {
+	readonly startLine: number
+	readonly endLine: number
+	readonly confidence: number
+}
+
 /** One file/rule result; probability estimates a violation, not correctness of the verdict. */
 export type PatdownLintResult = {
 	readonly violated: boolean
@@ -13,6 +20,7 @@ export type PatdownLintResult = {
 	readonly violationProbability: number
 	readonly yesThreshold: PatdownYesThreshold
 	readonly elapsedMs: number
+	readonly evidence?: PatdownLintEvidenceSpan
 }
 
 function formatPatdownElapsedMs(elapsedMs: number): string {

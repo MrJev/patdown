@@ -2,6 +2,7 @@ import { Config, Context, Data, Effect, Layer, Redacted, Schema } from 'effect'
 import type { ConfigError } from 'effect/Config'
 import { HttpClient, HttpClientRequest, HttpClientResponse } from 'effect/unstable/http'
 
+import { JevChoiceResultSchema, type JevChoiceAnswer } from '#src/jev-choice-schema'
 import { JevNoulResultSchema, type JevNoulAnswer } from '#src/jev-noul-schema'
 
 const defaultJevBaseUrl = 'https://api.typesafe.ai'
@@ -10,6 +11,8 @@ const defaultJevModel = 'jev-latest'
 
 const defaultNoulQuestionName = 'noul'
 
+const defaultChoiceQuestionName = 'choice'
+
 /** Jev / System One HTTP or config failure. Swap this service later for Effect's Decision API. */
 export class JevRequestFailed extends Data.TaggedError('JevRequestFailed')<{
 	readonly message: string
@@ -17,6 +20,9 @@ export class JevRequestFailed extends Data.TaggedError('JevRequestFailed')<{
 	readonly providerErrorCode?: string | undefined
 	readonly requestId?: string | undefined
 }> {}
+
+/** Labels for a Choice question. Values are short descriptions shown to the model. */
+export type JevChoiceCriteria = Readonly<Record<string, string | null>>
 
 /**
  * Client for TypeSafe System One (Jev). Implemented with Effect HttpClient so a Decision-based
@@ -29,6 +35,11 @@ export class JevSystemOne extends Context.Service<
 			instructions: string,
 			state: string,
 		) => Effect.Effect<JevNoulAnswer, JevRequestFailed, HttpClient.HttpClient>
+		readonly askChoice: (
+			instructions: string,
+			state: string,
+			criteria: JevChoiceCriteria,
+		) => Effect.Effect<JevChoiceAnswer, JevRequestFailed, HttpClient.HttpClient>
 	}
 >()('@patdown/jev/JevSystemOne') {}
 
@@ -68,6 +79,23 @@ function noulAnswerFromResult(
 	return Effect.succeed(answer)
 }
 
+function choiceAnswerFromResult(
+	result: typeof JevChoiceResultSchema.Type,
+	questionName: string,
+): Effect.Effect<JevChoiceAnswer, JevRequestFailed> {
+	const answer = result.answers[questionName]
+
+	if (answer === undefined) {
+		return Effect.fail(
+			new JevRequestFailed({
+				message: `jev: response missing choice answer ${questionName}`,
+			}),
+		)
+	}
+
+	return Effect.succeed(answer)
+}
+
 function encodeJevNoulBody(
 	prepared: HttpClientRequest.HttpClientRequest,
 	model: string,
@@ -92,6 +120,45 @@ function encodeJevNoulBody(
 			() =>
 				new JevRequestFailed({
 					message: 'jev: failed to encode System One request body',
+				}),
+		),
+	)
+}
+
+function encodeJevChoiceBody(
+	prepared: HttpClientRequest.HttpClientRequest,
+	options: {
+		readonly model: string
+		readonly instructions: string
+		readonly state: string
+		readonly criteria: JevChoiceCriteria
+	},
+): Effect.Effect<HttpClientRequest.HttpClientRequest, JevRequestFailed> {
+	const labels = Object.keys(options.criteria)
+
+	if (labels.length < 2) {
+		return Effect.fail(
+			new JevRequestFailed({
+				message: 'jev: choice criteria need at least two labels',
+			}),
+		)
+	}
+
+	return HttpClientRequest.bodyJson(prepared, {
+		model: options.model,
+		questions: {
+			[defaultChoiceQuestionName]: {
+				criteria: options.criteria,
+				instructions: options.instructions,
+				type: 'choice',
+			},
+		},
+		state: options.state,
+	}).pipe(
+		Effect.mapError(
+			() =>
+				new JevRequestFailed({
+					message: 'jev: failed to encode System One choice request body',
 				}),
 		),
 	)
@@ -148,22 +215,22 @@ function jevHttpFailure(
 	})
 }
 
-function askJevNoul(
-	instructions: string,
+function prepareJevSystemOneRequest(
+	baseUrl: string,
+	apiKey: Redacted.Redacted,
+): HttpClientRequest.HttpClientRequest {
+	return HttpClientRequest.post(`${baseUrl}/v1/systemone`).pipe(
+		HttpClientRequest.bearerToken(apiKey),
+		HttpClientRequest.acceptJson,
+	)
+}
+
+function executeJevSystemOneRequest(
+	request: HttpClientRequest.HttpClientRequest,
 	state: string,
-): Effect.Effect<JevNoulAnswer, JevRequestFailed, HttpClient.HttpClient> {
+): Effect.Effect<HttpClientResponse.HttpClientResponse, JevRequestFailed, HttpClient.HttpClient> {
 	return Effect.gen(function* () {
-		const apiKey = yield* readJevApiKey()
-		const baseUrl = yield* Effect.orDie(readJevBaseUrl())
-		const model = yield* Effect.orDie(readJevModel())
 		const client = yield* HttpClient.HttpClient
-
-		const prepared = HttpClientRequest.post(`${baseUrl}/v1/systemone`).pipe(
-			HttpClientRequest.bearerToken(apiKey),
-			HttpClientRequest.acceptJson,
-		)
-
-		const request = yield* encodeJevNoulBody(prepared, model, instructions, state)
 
 		const response = yield* client.execute(request).pipe(
 			Effect.mapError(
@@ -175,10 +242,24 @@ function askJevNoul(
 		)
 
 		if (response.status < 200 || response.status >= 300) {
-			const error = yield* jevHttpFailure(response, state)
-
-			return yield* error
+			return yield* Effect.fail(yield* jevHttpFailure(response, state))
 		}
+
+		return response
+	})
+}
+
+function askJevNoul(
+	instructions: string,
+	state: string,
+): Effect.Effect<JevNoulAnswer, JevRequestFailed, HttpClient.HttpClient> {
+	return Effect.gen(function* () {
+		const apiKey = yield* readJevApiKey()
+		const baseUrl = yield* Effect.orDie(readJevBaseUrl())
+		const model = yield* Effect.orDie(readJevModel())
+		const prepared = prepareJevSystemOneRequest(baseUrl, apiKey)
+		const request = yield* encodeJevNoulBody(prepared, model, instructions, state)
+		const response = yield* executeJevSystemOneRequest(request, state)
 
 		const result = yield* HttpClientResponse.schemaBodyJson(JevNoulResultSchema)(response).pipe(
 			Effect.mapError(
@@ -195,7 +276,43 @@ function askJevNoul(
 	})
 }
 
+function askJevChoice(
+	instructions: string,
+	state: string,
+	criteria: JevChoiceCriteria,
+): Effect.Effect<JevChoiceAnswer, JevRequestFailed, HttpClient.HttpClient> {
+	return Effect.gen(function* () {
+		const apiKey = yield* readJevApiKey()
+		const baseUrl = yield* Effect.orDie(readJevBaseUrl())
+		const model = yield* Effect.orDie(readJevModel())
+		const prepared = prepareJevSystemOneRequest(baseUrl, apiKey)
+
+		const request = yield* encodeJevChoiceBody(prepared, {
+			model,
+			instructions,
+			state,
+			criteria,
+		})
+
+		const response = yield* executeJevSystemOneRequest(request, state)
+
+		const result = yield* HttpClientResponse.schemaBodyJson(JevChoiceResultSchema)(response).pipe(
+			Effect.mapError(
+				() =>
+					new JevRequestFailed({
+						message: `jev: System One HTTP ${String(response.status)} response could not be decoded as the expected choice result`,
+						status: response.status,
+						requestId: safeJevErrorIdentifier(response.headers['x-typesafe-request-id']),
+					}),
+			),
+		)
+
+		return yield* choiceAnswerFromResult(result, defaultChoiceQuestionName)
+	})
+}
+
 /** Live Jev client using Effect HttpClient and TYPESAFE_* config. */
 export const JevSystemOneLive = Layer.succeed(JevSystemOne, {
 	askNoul: askJevNoul,
+	askChoice: askJevChoice,
 })

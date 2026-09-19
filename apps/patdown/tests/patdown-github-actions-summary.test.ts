@@ -68,8 +68,22 @@ describe('GitHub Actions summary', () => {
 		]
 
 		expect(formatPatdownGitHubActionsAnnotations(results)).toEqual([
-			'::error file=README.md,title=patdown%3A sentence-case::▓▓▓▓▓▓▓▓▓░ P(yes) 0.91 exceeds cutoff >0.85',
-			'::error file=src/cli.ts,title=patdown%3A explicit-actor::▓▓▓▓▓▓▓▓▒░ P(yes) 0.86 exceeds cutoff >0.85',
+			'::error file=README.md,line=1,title=patdown%3A sentence-case::▓▓▓▓▓▓▓▓▓░ P(yes) 0.91 exceeds cutoff >0.85',
+			'::error file=src/cli.ts,line=1,title=patdown%3A explicit-actor::▓▓▓▓▓▓▓▓▒░ P(yes) 0.86 exceeds cutoff >0.85',
+		])
+
+		expect(
+			formatPatdownGitHubActionsAnnotations([
+				result({
+					violated: true,
+					filePath: 'fixtures/ci/intentional-title-case-fail.md',
+					ruleTitle: 'No title case',
+					violationProbability: 0.93,
+					evidence: { startLine: 3, endLine: 7, confidence: 0.81 },
+				}),
+			]),
+		).toEqual([
+			'::error file=fixtures/ci/intentional-title-case-fail.md,line=3,endLine=7,title=patdown%3A No title case::▓▓▓▓▓▓▓▓▓░ P(yes) 0.93 exceeds cutoff >0.85 lines 3-7',
 		])
 
 		const summary = formatPatdownGitHubActionsSummary({
