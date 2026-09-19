@@ -165,7 +165,7 @@ function loadMarkdownPatdownRulesFromFile(
 	})
 }
 
-/** Loads every `*.md` rule file in a pack directory, skipping README.md. */
+/** Loads every `*.md` rule file in a directory, skipping README.md. */
 function loadMarkdownPatdownRulesFromDirectory(
 	patdownRulesDirectoryPath: string,
 ): Effect.Effect<
@@ -192,7 +192,7 @@ function loadMarkdownPatdownRulesFromDirectory(
 
 		if (ruleFiles.length === 0) {
 			return yield* new PatdownRulesLoadFailed({
-				message: `patdown: pack directory ${patdownRulesDirectoryPath} has no rule markdown files`,
+				message: `patdown: rules directory ${patdownRulesDirectoryPath} has no rule markdown files`,
 			})
 		}
 
@@ -204,7 +204,7 @@ function loadMarkdownPatdownRulesFromDirectory(
 
 			if (document.patdownRules.length === 0) {
 				return yield* new PatdownRulesLoadFailed({
-					message: `patdown: pack rule ${rulePath} has no # headings`,
+					message: `patdown: rules file ${rulePath} has no # headings`,
 				})
 			}
 

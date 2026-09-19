@@ -23,7 +23,9 @@ const failPatdown = (message: string): Effect.Effect<void> =>
 	})
 
 const rulesFileFlag = Flag.optional(Flag.string('rules')).pipe(
-	Flag.withDescription('Rules file or pack directory. Markdown skips the AGENTS.PATDOWN.md walk'),
+	Flag.withDescription(
+		'Rules markdown file or directory of rule files. Skips the AGENTS.PATDOWN.md walk',
+	),
 )
 
 const verboseFlag = Flag.boolean('verbose').pipe(

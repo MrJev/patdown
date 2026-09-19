@@ -1,27 +1,35 @@
 # Patdown packs
 
-A **pack** is a directory of rule files plus a short README. Each rule is its own markdown file (one `#` heading). That keeps packs composable and reviewable without dumping a dozen rules into one blob.
+Optional bundles of fuzzy rules. Patdown the CLI only runs rules; packs are content you can take all of, some of, or ignore.
+
+A pack is a directory of rule files plus a short README. Each rule is its own markdown file (one `#` heading). Copy a whole pack into your project, vendor individual rule files, or paste rules into your own `AGENTS.PATDOWN.md`.
 
 ## Packs
 
-| Pack                       | Focus                                             |
-| -------------------------- | ------------------------------------------------- |
+| Pack | Focus |
+|---|---|
 | [typescript/](typescript/) | TypeScript type-safety crimes and type laundering |
-| [effect/](effect/)         | Effect v4 services, schemas, config, diagnostics  |
-| [anti-slop/](anti-slop/)   | Fuzzy companion to oxlint anti-slop               |
+| [effect/](effect/) | Effect v4 services, schemas, config, diagnostics |
+| [anti-slop/](anti-slop/) | Fuzzy companion to oxlint anti-slop |
 
 These packs guide the judge. They do not replace oxlint or the Effect language service.
 
 ## Use
 
-`--rules` accepts a pack directory or a single markdown file:
+Point `--rules` at a pack directory, a single rule file, or your own rules file:
 
 ```sh
-npx patdown --rules ./packs/effect
-npx patdown --rules ./packs/typescript --files-from changed.txt --verbose
+# whole pack (directory of rule files)
+node path/to/patdown/dist/patdown-cli-bin.js --rules ./packs/effect
+
+# one rule from a pack
+node path/to/patdown/dist/patdown-cli-bin.js --rules ./packs/typescript/do-not-launder-types-with-casts.md
+
+# after a release that includes packs
+npx patdown --rules ./node_modules/patdown/packs/typescript --files-from changed.txt --verbose
 ```
 
-The loader reads every `*.md` in the directory except `README.md`, sorted by filename. Until packs ship on npm, copy this tree or run from a checkout.
+The markdown rule source loads every `*.md` in a directory except `README.md`, sorted by filename. Until packs ship on npm, copy this tree or run the CLI from a checkout.
 
 ## Layout
 
@@ -38,5 +46,5 @@ packs/
 
 - One rule per file; filename ≈ slug of the rule title.
 - Keep each rule concrete: visible violation, short not-allowed example, exceptions.
-- Prefer stacked `globs:` lines (`**/*.ts` then `**/*.tsx`). Commas inside one `globs:` value are separators.
+- Prefer stacked, backtick-wrapped `globs:` lines (`` globs: `**/*.ts` ``). Commas inside one `globs:` value are separators; bare `*` can be mangled by markdown formatters.
 - Leave cutoffs at the default unless the rule needs a different bar.

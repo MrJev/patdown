@@ -76,6 +76,7 @@ describe('pack directories', () => {
 			const source = yield* PatdownRuleSource
 			const error = yield* source.loadPatdownRules(Option.some(directory)).pipe(Effect.flip)
 
+			expect(error.message).toContain('rules directory')
 			expect(error.message).toContain('has no rule markdown files')
 		}).pipe(Effect.provide(Layer.mergeAll(MarkdownPatdownRuleSourceLive, NodeServices.layer))),
 	)

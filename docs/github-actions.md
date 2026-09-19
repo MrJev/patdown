@@ -10,7 +10,7 @@ Required:
 
 - Secret `TYPESAFE_API_KEY` for the default judge
 - `fetch-depth: 0` so the base commit exists
-- Run from the repository root (`npx patdown` in consumers; local `node apps/patdown/dist/patdown-cli-bin.js` here). Do not use `pnpm -w patdown`, which changes cwd into `apps/patdown`
+- Run from the repository root (`npx patdown` in consumers after a release that includes your flags; in this repo use `pnpm -w patdown -- …`, which builds through Turborepo and keeps the caller cwd)
 
 Fork pull requests do not receive repository secrets. The example skips those events.
 
