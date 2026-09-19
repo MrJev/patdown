@@ -146,7 +146,9 @@ Exit 1 on a violation, a missing rules file, a read error, an invalid cutoff, or
 
 ```
 ┌ explicit-actor ────────────────────────────────────────── 1✗ / 1
-│  ✗ service.ts  ▓▓▓▓▓▓▓▓▒░ 0.86  312ms
+│
+│  ✗  ▓▓▓▓▓▓▓▓▒░  0.86  312ms  service.ts
+│
 └
 patdown: failed (elapsed: 1840ms)
 ```

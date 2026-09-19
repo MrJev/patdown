@@ -44,11 +44,11 @@ describe('console rule blocks', () => {
 		expect(lines.slice(1)).toEqual([
 			'├─ apps/patdown',
 			'│',
-			'│  ·  ▒░░░░░░░░░  0.06    9ms  oxlint.config.ts',
+			'│  ✓  ▒░░░░░░░░░  0.06    9ms  oxlint.config.ts',
 			'│',
 			'├─ apps/patdown/src',
 			'│',
-			'│  ·  ▓▓░░░░░░░░  0.22  131ms  cli.ts',
+			'│  ✓  ▓▓░░░░░░░░  0.22  131ms  cli.ts',
 			'│',
 			'├─ packages/patdown-jev/src',
 			'│',

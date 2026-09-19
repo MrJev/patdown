@@ -54,7 +54,7 @@ function formatPatdownRuleBlockRow(
 	timeWidth: number,
 	nameWidth: number,
 ): string {
-	const mark = result.violated ? '✗' : '·'
+	const mark = result.violated ? '✗' : '✓'
 	const bar = formatPatdownProbabilityBar(result.violationProbability)
 	const score = result.violationProbability.toFixed(2).padStart(4, ' ')
 	const time = formatPatdownConsoleElapsed(result.elapsedMs).padStart(timeWidth, ' ')
