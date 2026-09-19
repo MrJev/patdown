@@ -106,7 +106,7 @@ See [the adapter guide](docs/rule-source-adapters.md) for the interface, a multi
 Optional rule bundles live under [`packs/`](packs/README.md). The CLI only runs rules; packs are content you can take all of, some of, or skip:
 
 - [`packs/typescript`](packs/typescript/) — type-safety crimes and type laundering
-- [`packs/effect`](packs/effect/) — Effect v4 services, schemas, config, diagnostics
+- [`packs/effect`](packs/effect/) — Effect v4 services, schemas, errors, time, HTTP, tests
 - [`packs/anti-slop`](packs/anti-slop/) — fuzzy counterpart to [Dillon Mulroy's anti-slop](https://github.com/dmmulroy/anti-slop)
 
 ```sh
@@ -229,6 +229,8 @@ Inspired by [pi-warden](https://github.com/DevMortimer/pi-warden). Same idea, in
 [Abide](https://github.com/coldteadotai/abide) is a similar Jev-backed checker. It hooks into coding agents, reads project instruction files, and asks Jev whether each edit or turn broke a rule.
 
 [Jev Review](https://github.com/devagrawal09/jev-review) is a Jev-backed diff/codebase reviewer with a local dashboard of those judgments. Patdown stays in the terminal; `--verbose` draws a P(yes) shade bar instead of a GUI.
+
+[Dillon Mulroy's anti-slop](https://github.com/dmmulroy/anti-slop) is the Oxlint ruleset that [`packs/anti-slop`](packs/anti-slop/) rephrases for fuzzy judging. Keep the static rules for exact AST hits; use the pack for paraphrases and type-laundering that still looks clean to a linter.
 
 Name inspired by It's Always Sunny in Philadelphia
 

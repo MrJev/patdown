@@ -2,7 +2,7 @@
 globs: `**/*.ts`
 globs: `**/*.tsx`
 
-Decode unknown input with Schema effectful decoders. Model expected failures as tagged errors (`Schema.TaggedErrorClass` / `Data.TaggedError`) and recover with `catchTag` / `catchTags`. Do not use `as` to skip schema validation, and do not wrap a yieldable tagged error in `Effect.fail` when yielding it directly works.
+Decode unknown input with Schema effectful decoders (`Schema.decodeUnknownEffect`, schema body decoders). Model expected failures as tagged errors (`Schema.TaggedErrorClass` / `Data.TaggedError`). Do not use `as` to skip schema validation. Prefer Struct+interface records (see the Struct/brands rule); do not reach for Schema.Class just to hold fields.
 
 ## Not allowed
 

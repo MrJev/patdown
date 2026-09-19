@@ -9,7 +9,7 @@ A pack is a directory of rule files plus a short README. Each rule is its own ma
 | Pack | Focus |
 |---|---|
 | [typescript/](typescript/) | TypeScript type-safety crimes and type laundering |
-| [effect/](effect/) | Effect v4 services, schemas, config, diagnostics |
+| [effect/](effect/) | Effect v4 services, schemas, errors, time, HTTP, tests ([effect.solutions](https://www.effect.solutions/) + Kit skill) |
 | [anti-slop/](anti-slop/) | Fuzzy counterpart to [Dillon Mulroy's anti-slop](https://github.com/dmmulroy/anti-slop) |
 
 These packs guide the judge. They do not replace oxlint or the Effect language service.
