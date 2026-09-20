@@ -114,16 +114,24 @@ function flushPatdownConsoleRuleBlock(buffer: PatdownConsoleLintBuffer): Effect.
 	return Console.log(formatPatdownRuleBlock(buffer.ruleTitle, buffer.results))
 }
 
+function formatPatdownCountNoun(count: number, singular: string, plural: string): string {
+	return `${String(count)} ${count === 1 ? singular : plural}`
+}
+
 /** First line before any judgments, so a long run does not look hung. */
 export function formatPatdownLintStartLine(
 	ruleCount: number,
 	selectionFileCount: number | null,
 ): string {
+	const rules = formatPatdownCountNoun(ruleCount, 'rule', 'rules')
+
 	if (selectionFileCount === null) {
-		return `patdown: linting against ${String(ruleCount)} rules`
+		return `patdown: linting against ${rules}`
 	}
 
-	return `patdown: linting ${String(selectionFileCount)} files against ${String(ruleCount)} rules`
+	const files = formatPatdownCountNoun(selectionFileCount, 'file', 'files')
+
+	return `patdown: linting ${files} against ${rules}`
 }
 
 /** One-line writers shared with GitHub Actions job logs. */

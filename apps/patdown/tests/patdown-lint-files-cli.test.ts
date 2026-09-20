@@ -72,7 +72,7 @@ describe('lint file flags', () => {
 
 			expect(asked).toHaveLength(1)
 			expect(asked[0]).toContain('path: service.ts')
-			expect(lines.join('\n')).toContain('patdown: linting 1 files against 2 rules')
+			expect(lines.join('\n')).toContain('patdown: linting 1 file against 2 rules')
 			expect(lines.join('\n')).not.toContain('no files matched')
 			expect(lines.join('\n')).toContain('PASS service.ts: TypeScript only')
 			expect(lines.join('\n')).not.toContain('README.md')
@@ -110,8 +110,7 @@ describe('lint file flags', () => {
 
 			expect(asked).toHaveLength(1)
 			expect(asked[0]).toContain('path: src/service.ts')
-			expect(lines.join('\n')).toContain('patdown: linting')
-			expect(lines.join('\n')).toContain('against 1 rules')
+			expect(lines.join('\n')).toContain('patdown: linting 1 file against 1 rule')
 			expect(lines.join('\n')).toContain('PASS src/service.ts: TypeScript only')
 		}).pipe(Effect.provide(outputHarness)),
 	)
