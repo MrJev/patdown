@@ -1,18 +1,50 @@
 # GitHub Actions
 
-Use patdown on pull requests as a fuzzy check over **changed files**, not the whole tree. The workflow builds a path list; patdown intersects that list with each rule's globs and judges only the survivors.
+Use patdown on pull requests as a fuzzy check over **changed files**, not the whole tree. The workflow (or composite action) builds a path list; patdown intersects that list with each rule's globs and judges only the survivors.
 
-## Workflow
+## Recommended: composite action
 
-Copy [examples/github-actions/patdown.yml](../examples/github-actions/patdown.yml) into a consumer repo. This repository dogfoods the same flow from [`.github/workflows/patdown.yml`](../.github/workflows/patdown.yml) against the built CLI in `apps/patdown/dist`.
+```yaml
+- uses: actions/checkout@v4
+  with:
+    fetch-depth: 0
 
-Required:
+- uses: tyler-dot-earth/patdown@v0.7.0
+  with:
+    github-annotation: warning
+  env:
+    TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
+```
+
+Pin the action tag to a released version. By default the action installs that same `patdown` npm version (`tyler-dot-earth/patdown@v0.7.0` → `npx patdown@0.7.0`). Override with `version` only when you intentionally want a different CLI.
+
+Inputs:
+
+| Input | Default | Meaning |
+| --- | --- | --- |
+| `version` | action tag's CLI version | npm dist-tag / version for `npx patdown@…` |
+| `working-directory` | `.` | cwd for rules discovery and the file list |
+| `rules` | unset | `--rules` file or pack directory |
+| `files-from` | auto `changed.txt` | skip auto diff and pass your own list |
+| `github-annotation` | unset | `--github-annotation` (`error` / `warning` / `notice`) |
+| `yes-threshold` | unset | `--yes-threshold` |
+| `verbose` | `true` | `--verbose` |
+| `no-github` | `false` | `--no-github` |
+| `node-version` | `22.22.2` | Node for `setup-node` |
+
+Required around the action:
 
 - Secret `TYPESAFE_API_KEY` for the default judge
-- `fetch-depth: 0` so the base commit exists
-- Run from the repository root (`npx patdown` in consumers after a release that includes your flags; in this repo use `pnpm -w patdown -- …`, which builds through Turborepo and keeps the caller cwd)
+- `fetch-depth: 0` on checkout so the base commit exists
+- Run from a checkout that has your `AGENTS.PATDOWN.md` (or pass `rules`)
 
-Fork pull requests do not receive repository secrets. The example skips those events.
+Fork pull requests do not receive repository secrets. The example workflow skips those events.
+
+Copy [examples/github-actions/patdown.yml](../examples/github-actions/patdown.yml) if you want a full workflow file. This repository dogfoods a local-dist variant in [`.github/workflows/patdown.yml`](../.github/workflows/patdown.yml) instead of the published action, so CI exercises the branch under test.
+
+## Manual CLI (copy-paste)
+
+Same behavior without the action:
 
 ```sh
 git diff --name-only --diff-filter=ACMR "$BASE"...HEAD > changed.txt
@@ -34,7 +66,7 @@ Annotation level is display only. It does not change whether a yes judgment fail
 
 1. per-rule `github-annotation:` metadata
 2. rules-file frontmatter `github-annotation:`
-3. `--github-annotation` / package.json `patdown.githubAnnotation`
+3. `--github-annotation` / package.json `patdown.githubAnnotation` / action input `github-annotation`
 4. built-in default: `error`
 
 ```
@@ -67,9 +99,19 @@ PASS stays one noul judgment. On FAIL, the default TypeSafe judge makes a second
 
 The summary leads with `patdown passed` or `patdown failed`, then `N passed · M failed · elapsed`. Each heatmap row has a `status` column with ✅ or ❌. Any failed rule marks the whole file row ❌. Judged cells show the shade bar and score; failures append ❌ after the score.
 
-Stdout stays the normal PASS/FAIL lines and ends with `patdown: passed` or `patdown: failed`. `--verbose` still adds the shade bar, cutoff, and elapsed time. Opt out with `--no-github`.
+Stdout stays the normal PASS/FAIL lines and ends with `patdown: passed` or `patdown: failed`. `--verbose` still adds the shade bar, cutoff, and elapsed time. Opt out with `--no-github` (or action input `no-github: true`).
 
-Embedded callers that pass a custom `PatdownOutput` layer skip this auto-detect. Use `PatdownGitHubActionsOutputLive` if you want the same summary from your own entrypoint.
+## Custom output shapes
+
+The composite action always runs the published CLI. It does not take an output plugin. If you need a different report shape (JSON lines, your own annotations, a dashboard upload, silence with a side channel), skip the action and embed `runPatdownCli` with your own `PatdownOutput` layer. See [Custom output](../README.md#custom-output) in the root README.
+
+Useful pieces when you embed:
+
+- `PatdownOutput` / `PatdownOutputLive` for local console
+- `makePatdownGitHubActionsOutputLive` / `PatdownGitHubActionsOutputLive` for the stock summary + annotations
+- `formatPatdownGitHubActionsAnnotations` / `formatPatdownGitHubActionsSummary` if you want the GitHub text without the default layer
+
+Rule-source adapters and output layers are separate: swap one, both, or neither. The action path is for “run stock patdown on changed files.” The library path is for “own the I/O.”
 
 ## Diffs vs files
 
