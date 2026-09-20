@@ -29,6 +29,10 @@ function isConfigPackage(manifest: PackageManifest): boolean {
 	return manifest.patdown?.packageKind === 'config-package'
 }
 
+function isContentPackage(manifest: PackageManifest): boolean {
+	return manifest.patdown?.packageKind === 'content-package'
+}
+
 function hasScript(manifest: PackageManifest, scriptName: string): boolean {
 	return decodeString(manifest.scripts?.[scriptName]) !== undefined
 }
@@ -86,10 +90,12 @@ function lintWorkspacePackage(pkg: WorkspacePackageInfo): string[] {
 		)
 	}
 
-	if (isConfigPackage(pkg.manifest)) {
+	if (isConfigPackage(pkg.manifest) || isContentPackage(pkg.manifest)) {
 		if (pkg.hasSourceDirectory) {
+			const kind = isConfigPackage(pkg.manifest) ? 'config-package' : 'content-package'
+
 			diagnostics.push(
-				`${JSON.stringify(packageName)} is marked as ${JSON.stringify('config-package')} but still has a src/ directory. Config-package exemptions are only for source-free config/tooling packages.`,
+				`${JSON.stringify(packageName)} is marked as ${JSON.stringify(kind)} but still has a src/ directory. Source-free package exemptions are only for packages without a src/ directory.`,
 			)
 		}
 

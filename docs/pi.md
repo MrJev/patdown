@@ -41,7 +41,8 @@ pi install -l npm:@patdown/pi
 From this repo after `pnpm install`:
 
 ```sh
-pi -e ./packages/patdown-pi/src/patdown-pi-extension.ts
+pi install ./packages/patdown-pi
+pi -e ./packages/patdown-pi
 ```
 
 Requires Pi 0.85+ and `TYPESAFE_API_KEY`.

@@ -12,5 +12,5 @@ TypeScript type-safety crimes and type laundering.
 ## Use
 
 ```sh
-npx patdown --rules ./packs/typescript
+npx patdown --rules ./node_modules/@patdown/packs/typescript
 ```

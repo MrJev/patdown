@@ -1,0 +1,55 @@
+{
+	"name": "@patdown/packs",
+	"version": "0.5.0",
+	"description": "Optional fuzzy rule packs and individual rule files for patdown",
+	"homepage": "https://github.com/tyler-dot-earth/patdown",
+	"bugs": {
+		"url": "https://github.com/tyler-dot-earth/patdown/issues"
+	},
+	"license": "0BSD",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/tyler-dot-earth/patdown.git",
+		"directory": "packages/patdown-packs"
+	},
+	"files": [
+		"LICENSE",
+		"README.md",
+		"anti-slop",
+		"effect",
+		"typescript"
+	],
+	"type": "module",
+	"exports": {
+		".": "./README.md",
+		"./anti-slop": "./anti-slop/README.md",
+		"./anti-slop/*": "./anti-slop/*",
+		"./effect": "./effect/README.md",
+		"./effect/*": "./effect/*",
+		"./typescript": "./typescript/README.md",
+		"./typescript/*": "./typescript/*"
+	},
+	"publishConfig": {
+		"access": "public"
+	},
+	"scripts": {
+		"build": "node ../../scripts/warn-direct-package-task.mjs build && node ./scripts/sync-patdown-packs.mjs",
+		"check": "node ../../scripts/warn-direct-package-task.mjs check && pnpm run lint && pnpm run format:check && pnpm run typecheck && pnpm run test",
+		"clean": "rm -rf anti-slop effect typescript LICENSE",
+		"format": "oxfmt --write package.json",
+		"format:check": "node ../../scripts/warn-direct-package-task.mjs format:check && oxfmt --check package.json",
+		"lint": "node ../../scripts/warn-direct-package-task.mjs lint && printf 'content package: no TypeScript to lint.\\n'",
+		"prepack": "node ../../scripts/copy-package-license.mjs && node ./scripts/sync-patdown-packs.mjs",
+		"test": "node ../../scripts/warn-direct-package-task.mjs test && node --test tests/sync-patdown-packs.test.mjs",
+		"typecheck": "node ../../scripts/warn-direct-package-task.mjs typecheck && printf 'content package: no TypeScript to typecheck.\\n'"
+	},
+	"devDependencies": {
+		"oxfmt": "catalog:"
+	},
+	"engines": {
+		"node": ">=22.22.2"
+	},
+	"patdown": {
+		"packageKind": "content-package"
+	}
+}

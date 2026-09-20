@@ -23,10 +23,10 @@
 	"devDependencies": {
 		"@patdown/oxlint-config": "workspace:*",
 		"@types/node": "catalog:",
+		"effect": "catalog:effect",
 		"oxfmt": "catalog:",
 		"oxlint": "catalog:",
 		"oxlint-tsgolint": "catalog:",
-		"typescript": "catalog:",
-		"zod": "catalog:"
+		"typescript": "catalog:"
 	}
 }

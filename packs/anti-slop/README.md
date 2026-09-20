@@ -27,5 +27,5 @@ Effect-specific anti-slop stays in [`../effect`](../effect/) (or Oxlint's `anti-
 ## Use
 
 ```sh
-pnpm -w patdown -- --rules ./packs/anti-slop --files-from changed.txt --verbose
+npx patdown --rules ./node_modules/@patdown/packs/anti-slop --files-from changed.txt --verbose
 ```

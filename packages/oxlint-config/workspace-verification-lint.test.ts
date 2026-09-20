@@ -102,6 +102,42 @@ void test('config-package exemption allows missing lint and typecheck', () => {
 	assert.deepEqual(diagnostics, [])
 })
 
+void test('content-package exemption allows missing lint and typecheck', () => {
+	const diagnostics = lintWorkspaceVerification([
+		createWorkspacePackage({
+			hasOxlintConfig: false,
+			hasSourceDirectory: false,
+			manifest: {
+				patdown: { packageKind: 'content-package' },
+				name: '@patdown/packs',
+				scripts: {
+					'format:check': 'oxfmt --check package.json',
+				},
+			},
+			oxlintConfigText: undefined,
+		}),
+	])
+
+	assert.deepEqual(diagnostics, [])
+})
+
+void test('content-package exemption rejects src directories', () => {
+	const diagnostics = lintWorkspaceVerification([
+		createWorkspacePackage({
+			manifest: {
+				patdown: { packageKind: 'content-package' },
+				name: '@patdown/packs',
+				scripts: {
+					'format:check': 'oxfmt --check package.json',
+				},
+			},
+		}),
+	])
+
+	assert.equal(diagnostics.length, 1)
+	assert.match(diagnostics[0], /still has a src\/ directory/u)
+})
+
 void test('config-package exemption rejects src directories', () => {
 	const diagnostics = lintWorkspaceVerification([
 		createWorkspacePackage({

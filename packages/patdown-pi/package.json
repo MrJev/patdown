@@ -18,7 +18,8 @@
 	"files": [
 		"LICENSE",
 		"README.md",
-		"dist"
+		"dist",
+		"src"
 	],
 	"type": "module",
 	"main": "./dist/index.js",
@@ -83,7 +84,7 @@
 	},
 	"pi": {
 		"extensions": [
-			"./dist/patdown-pi-extension.js"
+			"./src/patdown-pi-extension.ts"
 		]
 	}
 }

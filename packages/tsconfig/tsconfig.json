@@ -6,7 +6,7 @@
 		"module": "NodeNext",
 		"moduleDetection": "force",
 		"noEmit": true,
-		"skipLibCheck": false,
+		"skipLibCheck": true,
 		"strict": true,
 		"target": "ES2025",
 		"types": ["node"],

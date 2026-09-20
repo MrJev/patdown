@@ -53,4 +53,5 @@ jobs:
           pnpm publish --filter @patdown/rules --access public --no-git-checks
           pnpm publish --filter @patdown/jev --access public --no-git-checks
           pnpm publish --filter @patdown/pi --access public --no-git-checks
+          pnpm publish --filter @patdown/packs --access public --no-git-checks
           pnpm publish --filter patdown --access public --no-git-checks

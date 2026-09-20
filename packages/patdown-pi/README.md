@@ -14,6 +14,7 @@ This is not a general agent supervisor. It does not watch bash, loops, or “don
 
 ```sh
 pi install npm:@patdown/pi
+pi install ./packages/patdown-pi
 /patdown steer
 ```
 

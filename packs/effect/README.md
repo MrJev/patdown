@@ -33,5 +33,5 @@ Sources (Effect **v4** only; do not copy Effect v2/v3 blog patterns):
 ## Use
 
 ```sh
-pnpm -w patdown -- --rules ./packs/effect --files-from changed.txt --verbose
+npx patdown --rules ./node_modules/@patdown/packs/effect --files-from changed.txt --verbose
 ```

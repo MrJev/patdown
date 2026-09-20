@@ -18,6 +18,10 @@ function isConfigPackage(manifest: PackageManifest): boolean {
 	return manifest.patdown?.packageKind === 'config-package'
 }
 
+function isContentPackage(manifest: PackageManifest): boolean {
+	return manifest.patdown?.packageKind === 'content-package'
+}
+
 function hasBin(manifest: PackageManifest): boolean {
 	return manifest.bin !== undefined
 }
@@ -30,7 +34,12 @@ function isBuildableRuntimePackage(
 	manifest: PackageManifest,
 	hasSourceDirectory: boolean,
 ): boolean {
-	return hasSourceDirectory && hasBuildScript(manifest) && !isConfigPackage(manifest)
+	return (
+		hasSourceDirectory &&
+		hasBuildScript(manifest) &&
+		!isConfigPackage(manifest) &&
+		!isContentPackage(manifest)
+	)
 }
 
 function isExpoRouterRuntimeEntryApp(manifest: PackageManifest): boolean {

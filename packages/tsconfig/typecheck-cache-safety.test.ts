@@ -13,50 +13,67 @@ import os from 'node:os'
 import path from 'node:path'
 import test from 'node:test'
 
-import { z } from 'zod'
+import { Option, Schema } from 'effect'
 
 const workspaceRoot = path.resolve(import.meta.dirname, '../..')
 
-const PackageScriptsRawSchema = z.object({
-	lint: z.unknown().optional(),
-	typecheck: z.unknown().optional(),
-})
-
-const PackageManifestRawSchema = z.object({
-	scripts: PackageScriptsRawSchema.optional(),
-})
-
-const TurboTaskInspectionSchema = z.object({
-	dependsOn: z.array(z.string()).optional(),
-	outputs: z.array(z.string()).optional(),
-})
-
-const TurboConfigInspectionSchema = z.object({
-	tasks: z.object({
-		lint: TurboTaskInspectionSchema.optional(),
-		typecheck: TurboTaskInspectionSchema.optional(),
+const PackageManifestRawSchema = Schema.fromJsonString(
+	Schema.Struct({
+		patdown: Schema.optionalKey(
+			Schema.Struct({
+				packageKind: Schema.optionalKey(Schema.String),
+			}),
+		),
+		scripts: Schema.optionalKey(Schema.Record(Schema.String, Schema.Json)),
 	}),
+)
+
+const TurboTaskInspectionSchema = Schema.Struct({
+	dependsOn: Schema.optionalKey(Schema.Array(Schema.String)),
+	outputs: Schema.optionalKey(Schema.Array(Schema.String)),
 })
+
+const TurboConfigInspectionSchema = Schema.fromJsonString(
+	Schema.Struct({
+		tasks: Schema.Struct({
+			lint: Schema.optionalKey(TurboTaskInspectionSchema),
+			typecheck: Schema.optionalKey(TurboTaskInspectionSchema),
+		}),
+	}),
+)
 
 type PackageScriptsInspection = {
 	lint?: string
+	packageKind?: string
 	typecheck?: string
 }
 
-type TurboConfigInspection = z.infer<typeof TurboConfigInspectionSchema>
+type TurboConfigInspection = typeof TurboConfigInspectionSchema.Type
+
+function decodedOption<A>(decoded: Option.Option<A>): A | undefined {
+	return Option.isSome(decoded) ? decoded.value : undefined
+}
 
 function parsePackageScriptsInspection(text: string): PackageScriptsInspection | undefined {
-	const manifest = PackageManifestRawSchema.safeParse(JSON.parse(text))
+	const manifest = decodedOption(Schema.decodeOption(PackageManifestRawSchema)(text))
 
-	if (!manifest.success || manifest.data.scripts === undefined) return undefined
+	if (manifest === undefined || manifest.scripts === undefined) return undefined
 
 	const inspection: PackageScriptsInspection = {}
-	const lint = z.string().safeParse(manifest.data.scripts.lint)
-	const typecheck = z.string().safeParse(manifest.data.scripts.typecheck)
 
-	if (lint.success) inspection.lint = lint.data
+	const lint = decodedOption(Schema.decodeUnknownOption(Schema.String)(manifest.scripts.lint))
 
-	if (typecheck.success) inspection.typecheck = typecheck.data
+	const typecheck = decodedOption(
+		Schema.decodeUnknownOption(Schema.String)(manifest.scripts.typecheck),
+	)
+
+	const packageKind = manifest.patdown?.packageKind
+
+	if (lint !== undefined) inspection.lint = lint
+
+	if (typecheck !== undefined) inspection.typecheck = typecheck
+
+	if (packageKind !== undefined) inspection.packageKind = packageKind
 
 	return inspection
 }
@@ -66,9 +83,7 @@ function readPackageScriptsInspection(filePath: string): PackageScriptsInspectio
 }
 
 function parseTurboConfigInspection(text: string): TurboConfigInspection | undefined {
-	const config = TurboConfigInspectionSchema.safeParse(JSON.parse(text))
-
-	return config.success ? config.data : undefined
+	return decodedOption(Schema.decodeOption(TurboConfigInspectionSchema)(text))
 }
 
 function readTurboConfigInspection(filePath: string): TurboConfigInspection | undefined {
@@ -105,13 +120,33 @@ function assertSafeTypecheck(manifestPath: string, typecheck: string): void {
 	}
 }
 
+function isSourceFreePackage(packageKind: string | undefined): boolean {
+	return packageKind === 'config-package' || packageKind === 'content-package'
+}
+
 void test('workspace typechecks produce safely reusable build information', () => {
 	for (const manifestPath of packageManifests) {
-		const typecheck = readPackageScriptsInspection(manifestPath)?.typecheck
+		const inspection = readPackageScriptsInspection(manifestPath)
+		const typecheck = inspection?.typecheck
 
 		if (typecheck === undefined) continue
+
+		if (isSourceFreePackage(inspection?.packageKind)) continue
+
 		assertSafeTypecheck(manifestPath, typecheck)
 	}
+})
+
+void test('source-free packages may typecheck without tsc', () => {
+	assert.equal(
+		parsePackageScriptsInspection(
+			JSON.stringify({
+				patdown: { packageKind: 'content-package' },
+				scripts: { typecheck: "printf 'no TypeScript\\n'" },
+			}),
+		)?.packageKind,
+		'content-package',
+	)
 })
 
 void test('lint scripts leave TypeScript validation to the typecheck task', () => {
@@ -140,7 +175,7 @@ void test('package script inspection preserves valid siblings', () => {
 		{ typecheck: 'tsc -p tsconfig.json' },
 	)
 	assert.equal(parsePackageScriptsInspection('null'), undefined)
-	assert.throws(() => parsePackageScriptsInspection('{'), SyntaxError)
+	assert.equal(parsePackageScriptsInspection('{'), undefined)
 })
 
 void test('Turbo inspection rejects malformed task arrays', () => {
