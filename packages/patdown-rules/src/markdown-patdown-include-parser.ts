@@ -1,10 +1,8 @@
-const atxHeadingPattern = /^#\s+(.*)$/u
+const frontmatterFencePattern = /^---\s*$/u
 
-const includeLinePattern = /^include:\s*(.*)$/u
+const includeKeyPattern = /^include:\s*(.*)$/u
 
-function isFenceToggleLine(line: string): boolean {
-	return line.startsWith('```')
-}
+const includeListItemPattern = /^\s+-\s+(.*)$/u
 
 function unwrapIncludeToken(token: string): string {
 	const trimmed = token.trim()
@@ -16,53 +14,122 @@ function unwrapIncludeToken(token: string): string {
 	return trimmed
 }
 
-function includePathFromLine(line: string): string | undefined {
-	const match = includeLinePattern.exec(line)
+function requireIncludePath(raw: string): string {
+	const includePath = unwrapIncludeToken(raw)
 
-	if (match === null) return undefined
+	if (includePath.length === 0) {
+		throw new Error('patdown: include path is empty')
+	}
 
-	return unwrapIncludeToken(match[1] ?? '')
+	return includePath
 }
 
-function isPreambleHeading(line: string, inFence: boolean): boolean {
-	if (inFence) return false
+function skipLeadingBlankLines(lines: readonly string[]): number {
+	let index = 0
 
-	const match = atxHeadingPattern.exec(line)
+	while (index < lines.length && lines[index]?.trim() === '') {
+		index += 1
+	}
 
-	if (match === null) return false
+	return index
+}
 
-	const title = match[1]?.trim() ?? ''
+function frontmatterCloseIndex(lines: readonly string[], start: number): number {
+	let index = start
 
-	return title.length > 0
+	while (index < lines.length) {
+		if (frontmatterFencePattern.test(lines[index] ?? '')) return index
+
+		index += 1
+	}
+
+	throw new Error('patdown: unterminated frontmatter; expected a closing ---')
+}
+
+function extractPatdownFrontmatterLines(markdown: string): ReadonlyArray<string> | undefined {
+	const lines = markdown.split(/\r?\n/u)
+	const start = skipLeadingBlankLines(lines)
+
+	if (!frontmatterFencePattern.test(lines[start] ?? '')) return undefined
+
+	const close = frontmatterCloseIndex(lines, start + 1)
+
+	return lines.slice(start + 1, close)
+}
+
+function includeListItemPath(line: string): string | undefined {
+	const item = includeListItemPattern.exec(line)
+
+	return item === null ? undefined : requireIncludePath(item[1] ?? '')
+}
+
+function appendIncludeListItems(
+	lines: readonly string[],
+	start: number,
+	includes: string[],
+): number {
+	let index = start
+
+	while (index < lines.length) {
+		const includePath = includeListItemPath(lines[index] ?? '')
+
+		if (includePath === undefined) break
+
+		includes.push(includePath)
+		index += 1
+	}
+
+	if (index === start) {
+		throw new Error('patdown: include path is empty')
+	}
+
+	return index
+}
+
+function applyIncludeFrontmatterValue(
+	lines: readonly string[],
+	index: number,
+	value: string,
+	includes: string[],
+): number {
+	if (value.length > 0) {
+		includes.push(value)
+
+		return index + 1
+	}
+
+	return appendIncludeListItems(lines, index + 1, includes)
+}
+
+function applyFrontmatterLine(lines: readonly string[], index: number, includes: string[]): number {
+	const line = lines[index] ?? ''
+
+	if (line.trim() === '') return index + 1
+
+	const include = includeKeyPattern.exec(line)
+
+	if (include === null) {
+		throw new Error(`patdown: unknown frontmatter key ${JSON.stringify(line)}`)
+	}
+
+	return applyIncludeFrontmatterValue(lines, index, unwrapIncludeToken(include[1] ?? ''), includes)
 }
 
 /**
- * Collect `include:` paths from text above the first `# heading`. Headings and include lines inside
- * fenced code are ignored. Paths stay relative to the including file.
+ * Collect include paths from a leading `---` frontmatter block. Only `include:` is accepted.
+ * Repeated keys stack. A bare `include:` may be followed by indented `- path` list items. Paths
+ * stay relative to the including file.
  */
 export function parseMarkdownPatdownIncludes(markdown: string): ReadonlyArray<string> {
+	const frontmatter = extractPatdownFrontmatterLines(markdown)
+
+	if (frontmatter === undefined) return []
+
 	const includes: string[] = []
-	let inFence = false
+	let index = 0
 
-	for (const line of markdown.split(/\r?\n/u)) {
-		if (isFenceToggleLine(line)) {
-			inFence = !inFence
-			continue
-		}
-
-		if (isPreambleHeading(line, inFence)) break
-
-		if (inFence) continue
-
-		const includePath = includePathFromLine(line)
-
-		if (includePath === undefined) continue
-
-		if (includePath.length === 0) {
-			throw new Error('patdown: include path is empty')
-		}
-
-		includes.push(includePath)
+	while (index < frontmatter.length) {
+		index = applyFrontmatterLine(frontmatter, index, includes)
 	}
 
 	return includes

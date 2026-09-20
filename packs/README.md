@@ -19,8 +19,10 @@ These packs guide the judge. They do not replace oxlint or the Effect language s
 Include packs from the default rules file (also what Pi loads):
 
 ```
+---
 include: ./node_modules/@patdown/packs/typescript
 include: ./node_modules/@patdown/packs/effect
+---
 
 # No title case
 globs: `**/*.md`

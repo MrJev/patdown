@@ -36,7 +36,9 @@ describe('markdown rule includes', () => {
 			writeFileSync(
 				join(root, 'AGENTS.PATDOWN.md'),
 				[
+					'---',
 					'include: ./typescript',
+					'---',
 					'',
 					'# No title case',
 					'globs: **/*.md',
@@ -65,7 +67,16 @@ describe('markdown rule includes', () => {
 			writeFileSync(join(root, 'shared.md'), '# No title case\n\nFrom the pack.\n')
 			writeFileSync(
 				join(root, 'AGENTS.PATDOWN.md'),
-				['include: ./shared.md', '', '# No title case', '', 'From the project.', ''].join('\n'),
+				[
+					'---',
+					'include: ./shared.md',
+					'---',
+					'',
+					'# No title case',
+					'',
+					'From the project.',
+					'',
+				].join('\n'),
 			)
 
 			const source = yield* PatdownRuleSource
@@ -82,8 +93,8 @@ describe('markdown rule includes', () => {
 	it.effect('fails on include cycles', () =>
 		Effect.gen(function* () {
 			const root = tempDirectory()
-			writeFileSync(join(root, 'a.md'), 'include: ./b.md\n\n# A\n\nA.\n')
-			writeFileSync(join(root, 'b.md'), 'include: ./a.md\n\n# B\n\nB.\n')
+			writeFileSync(join(root, 'a.md'), '---\ninclude: ./b.md\n---\n\n# A\n\nA.\n')
+			writeFileSync(join(root, 'b.md'), '---\ninclude: ./a.md\n---\n\n# B\n\nB.\n')
 
 			const source = yield* PatdownRuleSource
 

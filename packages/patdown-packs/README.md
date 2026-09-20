@@ -11,7 +11,9 @@ pnpm add -D @patdown/packs
 Compose with project rules in `AGENTS.PATDOWN.md`:
 
 ```
+---
 include: ./node_modules/@patdown/packs/typescript
+---
 
 # No title case
 globs: **/*.md
