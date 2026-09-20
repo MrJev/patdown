@@ -26,6 +26,7 @@ describe('custom output', () => {
 						results.push(result)
 					}),
 				writeLintStart: () => Effect.void,
+				writeLintRuleStart: () => Effect.void,
 				writeRulesDocument: () => Effect.void,
 				writeNoFilesMatched: () => Effect.void,
 				writeLintOk: () => Effect.void,

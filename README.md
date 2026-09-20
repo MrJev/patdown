@@ -172,20 +172,21 @@ FAIL README.md: No title case
 patdown: failed
 ```
 
-Exit 1 on a violation, a missing rules file, a read error, an invalid cutoff, or a judge error. Add `--verbose` to group local lint output into per-rule console blocks (file, shade bar, P(yes), elapsed). Quiet mode stays one `PASS`/`FAIL` line per judgment. Lint totals elapsed time across every rule/file pair.
+Exit 1 on a violation, a missing rules file, a read error, an invalid cutoff, or a judge error. Add `--verbose` for per-rule console boxes that stream as each file is judged (shade bar, P(yes), elapsed). Quiet mode stays one `PASS`/`FAIL` line per judgment. Lint totals elapsed time across every rule/file pair.
 
 ```
-┌ Do not launder types with casts ───────────────────────── 1✗ / 1
+patdown: linting 1 file against 1 rule
+┌ Do not launder types with casts ───────────────────────── 1
 │
 ├─ apps/foo
 │
-│  ✗  ▓▓▓▓▓▓▓▓▒░  0.86  312ms  service.ts
-└
+│  ✗  ▓▓▓▓▓▓▓▓▒░  0.86   312ms  service.ts
+└ 1✗ / 1
 
 patdown: failed (elapsed: 1840ms)
 ```
 
-`--files` (repeatable) and `--files-from` restrict lint to an explicit path list intersected with each rule's globs. That is how CI should run over a pull request. See [GitHub Actions](docs/github-actions.md).
+`--files` (repeatable) and `--files-from` accept files, directories, or globs, then intersect with each rule's globs. That is how CI should run over a pull request. See [GitHub Actions](docs/github-actions.md).
 
 Patdown counts estimated P(yes) strictly above the cutoff as yes; for lint, yes means violation. Default cutoff is 0.85. Override it with `--yes-threshold`, package.json `patdown.yesThreshold`, or a per-rule `yes-threshold:` line. The flag wins over package.json; a per-rule value wins for that rule only. `1` is rejected because nothing can exceed it. This cutoff belongs to patdown, not the provider.
 
@@ -216,6 +217,9 @@ const JsonOutputLive = Layer.succeed(PatdownOutput, {
 			}),
 		),
 	writeLintResult: (result, _verbose) => Console.log(JSON.stringify(result)),
+	writeLintRuleStart: () => Effect.void,
+	writeLintStart: (ruleCount, selectionFileCount) =>
+		Console.log(JSON.stringify({ ruleCount, selectionFileCount })),
 	writeRulesDocument: (document) => Console.log(JSON.stringify(document)),
 	writeNoFilesMatched: (ruleTitle) => Console.log(JSON.stringify({ skipped: ruleTitle })),
 	writeLintOk: () => Console.log(JSON.stringify({ status: 'ok' })),

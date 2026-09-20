@@ -171,6 +171,8 @@ function lintPatdownRule(
 			return false
 		}
 
+		yield* output.writeLintRuleStart(rule.patdownRuleTitle, files.length, options.verbose)
+
 		const failures = yield* Effect.forEach(
 			files,
 			(filePath) =>
