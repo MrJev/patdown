@@ -3,12 +3,11 @@ import { describe, expect, it } from 'vitest'
 import { parseMarkdownPatdownIncludes } from '#src/markdown-patdown-include-parser'
 
 describe('parseMarkdownPatdownIncludes', () => {
-	it('collects stacked include keys from frontmatter', () => {
+	it('collects a single include path', () => {
 		const includes = parseMarkdownPatdownIncludes(
 			[
 				'---',
 				'include: ./packs/typescript',
-				'include: `./node_modules/@patdown/packs/effect`',
 				'---',
 				'',
 				'# No title case',
@@ -18,7 +17,7 @@ describe('parseMarkdownPatdownIncludes', () => {
 			].join('\n'),
 		)
 
-		expect(includes).toEqual(['./packs/typescript', './node_modules/@patdown/packs/effect'])
+		expect(includes).toEqual(['./packs/typescript'])
 	})
 
 	it('collects a YAML list under include', () => {
@@ -27,7 +26,7 @@ describe('parseMarkdownPatdownIncludes', () => {
 				'---',
 				'include:',
 				'  - ./packs/typescript',
-				'  - ./packs/effect',
+				'  - `./node_modules/@patdown/packs/effect`',
 				'---',
 				'',
 				'# Rule',
@@ -35,7 +34,7 @@ describe('parseMarkdownPatdownIncludes', () => {
 			].join('\n'),
 		)
 
-		expect(includes).toEqual(['./packs/typescript', './packs/effect'])
+		expect(includes).toEqual(['./packs/typescript', './node_modules/@patdown/packs/effect'])
 	})
 
 	it('returns no includes when the file has no frontmatter', () => {
@@ -44,7 +43,10 @@ describe('parseMarkdownPatdownIncludes', () => {
 		).toEqual([])
 	})
 
-	it('rejects unknown keys, empty include, and unterminated frontmatter', () => {
+	it('rejects a second include key, unknown keys, empty include, and unterminated frontmatter', () => {
+		expect(() =>
+			parseMarkdownPatdownIncludes('---\ninclude: ./a\ninclude: ./b\n---\n\n# Rule\n'),
+		).toThrow(/only one include key/u)
 		expect(() => parseMarkdownPatdownIncludes('---\nomit: ./x\n---\n\n# Rule\n')).toThrow(
 			/unknown frontmatter key/u,
 		)

@@ -20,8 +20,9 @@ Include a whole pack (directory of `*.md` except `README.md`) or one rule file f
 
 ```
 ---
-include: ./node_modules/@patdown/packs/typescript
-include: ./node_modules/@patdown/packs/effect/prefer-effect-fn-for-named-effectful-work.md
+include:
+  - ./node_modules/@patdown/packs/typescript
+  - ./node_modules/@patdown/packs/effect/prefer-effect-fn-for-named-effectful-work.md
 ---
 
 # No title case
