@@ -20,6 +20,7 @@ const RulesDocumentSchema = Schema.Struct({
 			patdownRuleTitle: Schema.String,
 			patdownRuleBody: Schema.String,
 			patdownRuleGlobs: Schema.Array(Schema.String),
+			patdownRuleSourcePath: Schema.optionalKey(Schema.String),
 			patdownRuleYesThreshold: Schema.optionalKey(Schema.Finite),
 		}),
 	),

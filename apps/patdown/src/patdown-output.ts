@@ -67,6 +67,11 @@ function formatPatdownRulesDocument(document: PatdownRulesDocument): string {
 	for (const rule of document.patdownRules) {
 		lines.push('')
 		lines.push(rule.patdownRuleTitle)
+
+		if (rule.patdownRuleSourcePath !== undefined) {
+			lines.push(`from: ${rule.patdownRuleSourcePath}`)
+		}
+
 		lines.push(
 			`globs: ${rule.patdownRuleGlobs.length === 0 ? '*' : rule.patdownRuleGlobs.join(' ')}`,
 		)

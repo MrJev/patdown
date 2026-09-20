@@ -1,4 +1,6 @@
-Dogfood rules for patdown. Text above the first heading is ignored.
+Dogfood rules for patdown. Packs load first; local `#` rules follow.
+
+include: ./packs/typescript
 
 # No title case
 globs: **/*.md

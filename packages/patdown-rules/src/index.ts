@@ -1,3 +1,5 @@
+export { parseMarkdownPatdownIncludes } from '#src/markdown-patdown-include-parser'
+
 export { parseMarkdownPatdownRules } from '#src/markdown-patdown-rule-parser'
 
 export {

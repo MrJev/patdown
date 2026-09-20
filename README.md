@@ -48,6 +48,8 @@ These send the piped content to the configured judge. Do not pipe secrets. `--st
 
 Walks up from cwd looking for `AGENTS.PATDOWN.md`. `--rules` skips that walk and uses the path you pass.
 
+Preamble `include:` lines (above the first `#` heading) pull in more files or pack directories. Paths are relative to the including file. Included rules load first, then the local `#` rules. Duplicate titles fail the run. Cycles fail the run. `--rules` still replaces the walk; if that file has includes, they are followed. Pi uses the same loader, so includes work there too.
+
 ## Adapters
 
 The default rule source parses markdown. Swap it with a module that exports `PatdownRuleSourceLive`, an Effect Layer for `PatdownRuleSource`.
@@ -117,8 +119,21 @@ Optional rule bundles live under [`packs/`](packs/README.md) and publish as [`@p
 - [`packs/effect`](packs/effect/) — `@patdown/packs/effect`
 - [`packs/anti-slop`](packs/anti-slop/) — `@patdown/packs/anti-slop`
 
+Compose a pack with project rules in `AGENTS.PATDOWN.md` (Pi picks this up automatically):
+
+```
+include: ./node_modules/@patdown/packs/typescript
+include: ./node_modules/@patdown/packs/effect
+
+# No title case
+globs: **/*.md
+
+Markdown headings must use sentence case.
+```
+
+Or point `--rules` at one origin:
+
 ```sh
-# whole pack, or a single rule file from a pack
 patdown --rules ./node_modules/@patdown/packs/effect --files-from changed.txt --verbose
 patdown --rules ./node_modules/@patdown/packs/typescript/do-not-launder-types-with-casts.md
 ```
@@ -127,7 +142,7 @@ patdown --rules ./node_modules/@patdown/packs/typescript/do-not-launder-types-wi
 
 ## Rules
 
-One `# heading` per rule. Optional `globs:` and `yes-threshold:` lines sit immediately under the heading, in either order. Commas or spaces, extra `globs:` lines stack. A second `yes-threshold:` line is an error. Text above the first heading is ignored. Headings inside fenced code are ignored. Only `#` headings start rules; `##` and deeper headings stay in the rule body, so sections like `## Not allowed` and `## Exceptions` are fine.
+One `# heading` per rule. Optional `globs:` and `yes-threshold:` lines sit immediately under the heading, in either order. Commas or spaces, extra `globs:` lines stack. A second `yes-threshold:` line is an error. Text above the first heading is preamble: `include:` lines load other files or pack directories; other preamble text is ignored. Headings inside fenced code are ignored. Only `#` headings start rules; `##` and deeper headings stay in the rule body, so sections like `## Not allowed` and `## Exceptions` are fine.
 
 ```
 # No title case

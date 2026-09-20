@@ -8,7 +8,18 @@ Install:
 pnpm add -D @patdown/packs
 ```
 
-Then point `--rules` at a pack directory or one rule file:
+Compose with project rules in `AGENTS.PATDOWN.md`:
+
+```
+include: ./node_modules/@patdown/packs/typescript
+
+# No title case
+globs: **/*.md
+
+Markdown headings must use sentence case.
+```
+
+Or point `--rules` at a pack directory or one rule file:
 
 ```sh
 npx patdown --rules ./node_modules/@patdown/packs/typescript
