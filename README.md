@@ -11,7 +11,7 @@ npx patdown --help
 pnpm add -D patdown
 ```
 
-Requires Node.js >=22.22.2. The library entry is `patdown`; rule adapters import `@patdown/rules`.
+Requires Node.js >=22.22.2. The library entry is `patdown`; rule adapters import `@patdown/rules`. The optional Pi package is `@patdown/pi`.
 
 ## Requirements
 
@@ -100,6 +100,14 @@ await Effect.runPromise(runPatdownCli(PatdownRuleSourceLive))
 ```
 
 See [the adapter guide](docs/rule-source-adapters.md) for the interface, a multi-file parser, resolution rules, resource lifetimes, and local development setup. Adapters execute trusted local code. Install the CLI from npm as `patdown`; adapters import `@patdown/rules` and may import `patdown` for types.
+
+## Pi write steering
+
+[`@patdown/pi`](packages/patdown-pi/) judges Pi `write` and `edit` against the same rules. Default is block-before-write; `/patdown steer` and `/patdown warn` can report after the file lands instead. It is not a general agent supervisor. See [Pi write steering](docs/pi.md).
+
+```sh
+pi install npm:@patdown/pi
+```
 
 ## Packs
 
@@ -224,7 +232,7 @@ pnpm -w release major
 
 First write and commit `releases/vX.Y.Z.md` with the next version's notes. The release command requires a clean tree and validates those notes before changing anything. It runs `pnpm check`, bumps the CLI version, commits, tags `vX.Y.Z`, and pushes to `github` and `gitea` if present. With `gh` available, it watches the matching Release workflow.
 
-The tag workflow runs checks again, creates a GitHub Release using the checked-in notes, and publishes `patdown`, `@patdown/rules`, and `@patdown/jev` to npm. See [the release process](releases/README.md) for the metadata format and backfilling published notes.
+The tag workflow runs checks again, creates a GitHub Release using the checked-in notes, and publishes `patdown`, `@patdown/rules`, `@patdown/jev`, and `@patdown/pi` to npm. See [the release process](releases/README.md) for the metadata format and backfilling published notes.
 
 Pull requests and pushes to `main` run `pnpm check`. That is oxlint, tests, and typecheck. Not the fuzzy linter.
 

@@ -13,31 +13,12 @@ import {
 	patdownEvidenceChoiceInstructions,
 	splitPatdownEvidenceCandidates,
 } from '#src/patdown-evidence-regions'
+import { judgePatdownFileContents } from '#src/patdown-file-judgment'
 import { patdownGlobExcludes, patdownGlobPatterns } from '#src/patdown-glob'
-import {
-	PatdownJudge,
-	PatdownJudgeFailed,
-	askPatdownJudge,
-	locatePatdownEvidence,
-	patdownJudgmentIsYes,
-} from '#src/patdown-judge'
+import { PatdownJudge, PatdownJudgeFailed, locatePatdownEvidence } from '#src/patdown-judge'
 import { selectPatdownRuleFiles, type PatdownLintFileSelection } from '#src/patdown-lint-files'
 import { PatdownOutput, type PatdownLintEvidenceSpan } from '#src/patdown-output'
 import { decodePatdownRuleYesThreshold } from '#src/patdown-yes-threshold-config'
-
-function patdownViolationInstructions(rule: PatdownRule): string {
-	return [
-		'Does this file violate the following patdown rule? Answer yes only if there is a clear violation.',
-		'',
-		`# ${rule.patdownRuleTitle}`,
-		'',
-		rule.patdownRuleBody,
-	].join('\n')
-}
-
-function patdownFileState(relativePath: string, contents: string): string {
-	return `path: ${relativePath}\n\n${contents}`
-}
 
 function globPatdownRuleFiles(
 	cwd: string,
@@ -91,16 +72,17 @@ function lintPatdownRuleFile(
 			),
 		)
 
-		const timed = yield* askPatdownJudge(
-			patdownViolationInstructions(rule),
-			patdownFileState(relativePath, contents),
+		const judged = yield* judgePatdownFileContents(
+			rule,
+			relativePath,
+			contents,
+			options.yesThreshold,
 		)
 
-		const failed = patdownJudgmentIsYes(timed.judgment, options.yesThreshold)
 		let evidence: PatdownLintEvidenceSpan | undefined
-		let elapsedMs = timed.elapsedMs
+		let elapsedMs = judged.elapsedMs
 
-		if (failed) {
+		if (judged.violated) {
 			const evidenceStartedAt = yield* Clock.currentTimeMillis
 			const candidates = splitPatdownEvidenceCandidates(contents)
 
@@ -117,7 +99,7 @@ function lintPatdownRuleFile(
 					relativePath,
 					ruleTitle: rule.patdownRuleTitle,
 					ruleBody: rule.patdownRuleBody,
-					violationProbability: timed.judgment.yesProbability,
+					violationProbability: judged.violationProbability,
 					contents,
 					candidates,
 				}),
@@ -138,23 +120,14 @@ function lintPatdownRuleFile(
 			}
 		}
 
-		const lintResult = {
-			violated: failed,
-			ruleTitle: rule.patdownRuleTitle,
-			ruleBody: rule.patdownRuleBody,
-			ruleGlobs: rule.patdownRuleGlobs,
-			filePath: relativePath,
-			violationProbability: timed.judgment.yesProbability,
-			yesThreshold: options.yesThreshold,
-			elapsedMs,
-		}
+		const lintResult = { ...judged, elapsedMs }
 
 		yield* output.writeLintResult(
 			evidence === undefined ? lintResult : { ...lintResult, evidence },
 			options.verbose,
 		)
 
-		return failed
+		return judged.violated
 	})
 }
 

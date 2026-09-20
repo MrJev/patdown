@@ -13,6 +13,7 @@ const publishablePackageJsonPaths = [
 	join(repoRoot, 'apps/patdown/package.json'),
 	join(repoRoot, 'packages/patdown-rules/package.json'),
 	join(repoRoot, 'packages/patdown-jev/package.json'),
+	join(repoRoot, 'packages/patdown-pi/package.json'),
 ]
 const patdownCliPackageJsonPath = publishablePackageJsonPaths[0]
 
