@@ -1,6 +1,5 @@
 # Consumer copy-paste. This repo's live workflow is .github/workflows/patdown.yml
-# (builds local dist). Needs a patdown release that includes --files-from
-# (not yet in 0.4.0). Until then, install from this branch or use local dist.
+# (builds local dist). Requires patdown >=0.5.0 for --files-from.
 name: patdown
 
 on:

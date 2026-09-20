@@ -20,16 +20,13 @@ Point `--rules` at a pack directory, a single rule file, or your own rules file:
 
 ```sh
 # whole pack (directory of rule files)
-node path/to/patdown/dist/patdown-cli-bin.js --rules ./packs/effect
+npx patdown --rules ./packs/effect --files-from changed.txt --verbose
 
 # one rule from a pack
-node path/to/patdown/dist/patdown-cli-bin.js --rules ./packs/typescript/do-not-launder-types-with-casts.md
-
-# after a release that includes packs
-npx patdown --rules ./node_modules/patdown/packs/typescript --files-from changed.txt --verbose
+npx patdown --rules ./packs/typescript/do-not-launder-types-with-casts.md
 ```
 
-The markdown rule source loads every `*.md` in a directory except `README.md`, sorted by filename. Until packs ship on npm, copy this tree or run the CLI from a checkout.
+The markdown rule source loads every `*.md` in a directory except `README.md`, sorted by filename. Packs are not published as npm packages; copy this tree into your project or point `--rules` at a checkout.
 
 ## Layout
 
