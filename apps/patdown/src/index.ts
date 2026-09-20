@@ -16,11 +16,26 @@ export {
 	readPatdownGitHubStepSummaryPath,
 } from '#src/patdown-github-actions-env'
 
+export {
+	judgePatdownFileContents,
+	judgePatdownMatchingRules,
+	patdownFileState,
+	patdownRuleAppliesToPath,
+	patdownViolationInstructions,
+} from '#src/patdown-file-judgment'
+
+export { patdownPathIsExcluded, patdownPathMatchesRuleGlobs } from '#src/patdown-glob'
+
 export type { PatdownLintFileSelection } from '#src/patdown-lint-files'
 
-export type { PatdownRuleSourceLayer } from '#src/patdown-rule-source-adapter'
+export {
+	loadConfiguredPatdownRules,
+	type PatdownRuleSourceLayer,
+} from '#src/patdown-rule-source-adapter'
 
 export { runPatdownCli } from '#src/run-patdown-cli'
+
+export { resolvePatdownYesThreshold } from '#src/patdown-yes-threshold-config'
 
 export {
 	PatdownJudge,
