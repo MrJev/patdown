@@ -101,10 +101,24 @@ function applyIncludeFrontmatterValue(
 	return appendIncludeListItems(lines, index + 1, includes)
 }
 
-function applyFrontmatterLine(lines: readonly string[], index: number, includes: string[]): number {
+type FrontmatterParseState = {
+	readonly includes: string[]
+	readonly seenIncludeKey: boolean
+}
+
+type FrontmatterLineApplied = {
+	readonly nextIndex: number
+	readonly state: FrontmatterParseState
+}
+
+function applyFrontmatterLine(
+	lines: readonly string[],
+	index: number,
+	state: FrontmatterParseState,
+): FrontmatterLineApplied {
 	const line = lines[index] ?? ''
 
-	if (line.trim() === '') return index + 1
+	if (line.trim() === '') return { nextIndex: index + 1, state }
 
 	const include = includeKeyPattern.exec(line)
 
@@ -112,25 +126,44 @@ function applyFrontmatterLine(lines: readonly string[], index: number, includes:
 		throw new Error(`patdown: unknown frontmatter key ${JSON.stringify(line)}`)
 	}
 
-	return applyIncludeFrontmatterValue(lines, index, unwrapIncludeToken(include[1] ?? ''), includes)
+	if (state.seenIncludeKey) {
+		throw new Error('patdown: frontmatter may have only one include key; use a YAML list')
+	}
+
+	const nextIncludes = [...state.includes]
+
+	const nextIndex = applyIncludeFrontmatterValue(
+		lines,
+		index,
+		unwrapIncludeToken(include[1] ?? ''),
+		nextIncludes,
+	)
+
+	const nextState: FrontmatterParseState = {
+		includes: nextIncludes,
+		seenIncludeKey: true,
+	}
+
+	return { nextIndex, state: nextState }
 }
 
 /**
- * Collect include paths from a leading `---` frontmatter block. Only `include:` is accepted.
- * Repeated keys stack. A bare `include:` may be followed by indented `- path` list items. Paths
- * stay relative to the including file.
+ * Collect include paths from a leading `---` frontmatter block. Only one `include` key is accepted:
+ * a single path, or a YAML list of paths. Paths stay relative to the including file.
  */
 export function parseMarkdownPatdownIncludes(markdown: string): ReadonlyArray<string> {
 	const frontmatter = extractPatdownFrontmatterLines(markdown)
 
 	if (frontmatter === undefined) return []
 
-	const includes: string[] = []
+	let state: FrontmatterParseState = { includes: [], seenIncludeKey: false }
 	let index = 0
 
 	while (index < frontmatter.length) {
-		index = applyFrontmatterLine(frontmatter, index, includes)
+		const applied = applyFrontmatterLine(frontmatter, index, state)
+		index = applied.nextIndex
+		state = applied.state
 	}
 
-	return includes
+	return state.includes
 }
