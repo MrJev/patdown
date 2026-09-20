@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -95,6 +95,22 @@ describe('markdown rule includes', () => {
 			const root = tempDirectory()
 			writeFileSync(join(root, 'a.md'), '---\ninclude: ./b.md\n---\n\n# A\n\nA.\n')
 			writeFileSync(join(root, 'b.md'), '---\ninclude: ./a.md\n---\n\n# B\n\nB.\n')
+
+			const source = yield* PatdownRuleSource
+
+			const error = yield* source
+				.loadPatdownRules(Option.some(join(root, 'a.md')))
+				.pipe(Effect.flip)
+
+			expect(error.message).toContain('include cycle')
+		}).pipe(Effect.provide(includeHarness)),
+	)
+
+	it.effect('fails on include cycles through a symlink alias', () =>
+		Effect.gen(function* () {
+			const root = tempDirectory()
+			writeFileSync(join(root, 'a.md'), '---\ninclude: ./alias-a.md\n---\n\n# A\n\nA.\n')
+			symlinkSync(join(root, 'a.md'), join(root, 'alias-a.md'))
 
 			const source = yield* PatdownRuleSource
 

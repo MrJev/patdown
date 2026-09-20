@@ -93,6 +93,16 @@ function pathExists(
 	)
 }
 
+function canonicalizePatdownOriginPath(
+	filePath: string,
+): Effect.Effect<string, PatdownRulesReadFailed, FileSystem.FileSystem> {
+	return FileSystem.FileSystem.use((fileSystem) =>
+		fileSystem
+			.realPath(filePath)
+			.pipe(Effect.mapError(() => new PatdownRulesReadFailed({ patdownRulesFilePath: filePath }))),
+	)
+}
+
 function readPatdownMarkdown(
 	patdownRulesFilePath: string,
 ): Effect.Effect<string, PatdownRulesReadFailed, FileSystem.FileSystem> {
@@ -163,7 +173,9 @@ function loadIncludedPatdownOrigins(
 				return yield* missingPatdownInclude(fromFilePath, includePath)
 			}
 
-			included.push(yield* loadOrigin(resolved, includeStack))
+			const canonical = yield* canonicalizePatdownOriginPath(resolved)
+
+			included.push(yield* loadOrigin(canonical, includeStack))
 		}
 
 		return included
@@ -244,33 +256,41 @@ function loadMarkdownPatdownRulesFromDirectory(
 	})
 }
 
-/** Load a markdown file or pack directory, following preamble `include:` lines. */
+/** Load a markdown file or pack directory, following frontmatter `include:` lines. */
 export function loadMarkdownPatdownOrigin(
 	originPath: string,
 	includeStack: ReadonlyArray<string>,
 ): MarkdownRulesLoad {
 	return Effect.gen(function* () {
-		if (includeStack.includes(originPath)) {
+		const canonicalPath = yield* canonicalizePatdownOriginPath(originPath)
+
+		if (includeStack.includes(canonicalPath)) {
 			return yield* new PatdownRulesLoadFailed({
-				message: patdownIncludeCycleMessage(includeStack, originPath),
+				message: patdownIncludeCycleMessage(includeStack, canonicalPath),
 			})
 		}
 
-		const nextStack = [...includeStack, originPath]
+		const nextStack = [...includeStack, canonicalPath]
 		const fileSystem = yield* FileSystem.FileSystem
 
 		const info = yield* fileSystem
-			.stat(originPath)
-			.pipe(Effect.mapError(() => new PatdownRulesReadFailed({ patdownRulesFilePath: originPath })))
+			.stat(canonicalPath)
+			.pipe(
+				Effect.mapError(() => new PatdownRulesReadFailed({ patdownRulesFilePath: canonicalPath })),
+			)
 
 		if (info.type === 'Directory') {
 			return yield* loadMarkdownPatdownRulesFromDirectory(
-				originPath,
+				canonicalPath,
 				nextStack,
 				loadMarkdownPatdownOrigin,
 			)
 		}
 
-		return yield* loadMarkdownPatdownRulesFromFile(originPath, nextStack, loadMarkdownPatdownOrigin)
+		return yield* loadMarkdownPatdownRulesFromFile(
+			canonicalPath,
+			nextStack,
+			loadMarkdownPatdownOrigin,
+		)
 	})
 }

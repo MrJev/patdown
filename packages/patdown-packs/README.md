@@ -8,11 +8,12 @@ Install:
 pnpm add -D @patdown/packs
 ```
 
-Compose with project rules in `AGENTS.PATDOWN.md`:
+Compose a whole pack directory or one rule file with project rules in `AGENTS.PATDOWN.md`:
 
 ```
 ---
 include: ./node_modules/@patdown/packs/typescript
+include: ./node_modules/@patdown/packs/effect/prefer-effect-fn-for-named-effectful-work.md
 ---
 
 # No title case

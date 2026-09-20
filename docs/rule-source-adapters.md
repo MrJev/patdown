@@ -30,7 +30,7 @@ type PatdownRulesDocument = {
 }
 ```
 
-`patdownRulesFilePath` is a display label for the whole source. Use the directory for a multi-file source. Markdown frontmatter `include:` sets optional `patdownRuleSourcePath` on each rule (the file it came from). Adapters may omit that field. Globs always match target files relative to the process cwd, not relative to that label or the adapter. An empty glob list means `**/*`. Omit `patdownRuleYesThreshold` to use the run-level cutoff (`--yes-threshold`, package.json `patdown.yesThreshold`, or 0.85). If present, it must be a finite number in `[0, 1)`.
+`patdownRulesFilePath` is a display label for the whole source. Use the directory for a multi-file source. Markdown frontmatter `include:` (a pack directory or a single rule file) sets optional `patdownRuleSourcePath` on each rule (the file it came from). Adapters may omit that field. Globs always match target files relative to the process cwd, not relative to that label or the adapter. An empty glob list means `**/*`. Omit `patdownRuleYesThreshold` to use the run-level cutoff (`--yes-threshold`, package.json `patdown.yesThreshold`, or 0.85). If present, it must be a finite number in `[0, 1)`.
 
 Layer acquisition may require Effect FileSystem and Path. Patdown supplies both. Provide any additional services inside your layer. Acquisition errors should use `PatdownRulesLoadFailed`. Loading can use the existing missing/read errors or `PatdownRulesLoadFailed` with a parser-specific message.
 

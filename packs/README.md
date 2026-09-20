@@ -16,12 +16,12 @@ These packs guide the judge. They do not replace oxlint or the Effect language s
 
 ## Use
 
-Include packs from the default rules file (also what Pi loads):
+Include a whole pack (directory of `*.md` except `README.md`) or one rule file from the default rules file (also what Pi loads):
 
 ```
 ---
 include: ./node_modules/@patdown/packs/typescript
-include: ./node_modules/@patdown/packs/effect
+include: ./node_modules/@patdown/packs/effect/prefer-effect-fn-for-named-effectful-work.md
 ---
 
 # No title case

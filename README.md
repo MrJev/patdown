@@ -48,7 +48,7 @@ These send the piped content to the configured judge. Do not pipe secrets. `--st
 
 Walks up from cwd looking for `AGENTS.PATDOWN.md`. `--rules` skips that walk and uses the path you pass.
 
-A leading `---` frontmatter block may list `include:` paths (files or pack directories, relative to the including file). Included rules load first, then the local `#` rules. Duplicate titles fail the run. Cycles fail the run. Unknown frontmatter keys fail the run. `--rules` still replaces the walk; if that file has frontmatter includes, they are followed. Pi uses the same loader, so includes work there too.
+A leading `---` frontmatter block may list `include:` paths, relative to the including file. A directory loads every `*.md` except `README.md` (a pack). A markdown file loads that file's `#` rules. Included rules load first, then the local `#` rules. Duplicate titles fail the run. Cycles fail the run. Unknown frontmatter keys fail the run. `--rules` still replaces the walk; if that file has frontmatter includes, they are followed. Pi uses the same loader, so includes work there too.
 
 ## Adapters
 
@@ -119,18 +119,19 @@ Optional rule bundles live under [`packs/`](packs/README.md) and publish as [`@p
 - [`packs/effect`](packs/effect/) — `@patdown/packs/effect`
 - [`packs/anti-slop`](packs/anti-slop/) — `@patdown/packs/anti-slop`
 
-Compose a pack with project rules in `AGENTS.PATDOWN.md` (Pi picks this up automatically):
+Compose packs and individual rules with project rules in `AGENTS.PATDOWN.md` (Pi picks this up automatically):
 
 ```
 ---
 include: ./node_modules/@patdown/packs/typescript
-include: ./node_modules/@patdown/packs/effect
+include: ./node_modules/@patdown/packs/effect/prefer-effect-fn-for-named-effectful-work.md
+include: ./rules/no-title-case.md
 ---
 
-# No title case
-globs: **/*.md
+# Keep secrets out of committed files
+globs: **/*
 
-Markdown headings must use sentence case.
+Do not commit API keys or tokens.
 ```
 
 Or point `--rules` at one origin:

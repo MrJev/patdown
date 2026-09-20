@@ -24,7 +24,7 @@ Judge errors are never treated as a pass: `block` still blocks; `steer`/`warn` s
 
 `block` always uses `before`. You cannot un-write a file from `tool_result`. Choosing `/patdown block` forces `when: before`. `/patdown steer` and `/patdown warn` default to `after`.
 
-Read-only tools are ignored. Bash is ignored, including `cat > file` / `tee` / `sed -i`. Missing rules disable judging instead of blocking every write. Frontmatter `include:` in `AGENTS.PATDOWN.md` is followed, so packs and project rules compose the same way as the CLI.
+Read-only tools are ignored. Bash is ignored, including `cat > file` / `tee` / `sed -i`. Missing rules disable judging instead of blocking every write. Frontmatter `include:` in `AGENTS.PATDOWN.md` is followed (pack directories or individual rule files), so packs and project rules compose the same way as the CLI.
 
 ## Install
 
