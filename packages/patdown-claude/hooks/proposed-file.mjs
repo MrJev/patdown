@@ -1,3 +1,4 @@
+import { existsSync, lstatSync, readFileSync, realpathSync } from 'node:fs'
 import { isAbsolute, relative, resolve, sep } from 'node:path'
 
 /** Directories skipped the same way as the CLI. */
@@ -8,6 +9,9 @@ const patdownGlobExcludes = [
 	'**/dist/**',
 	'**/node_modules/**',
 ]
+
+/** Internal deadline for the Claude PreToolUse judge, under the hook's 120s timeout. */
+export const patdownClaudeJudgeTimeoutMs = 90_000
 
 function pathMatchesExclude(relativePath, pattern) {
 	// Minimal glob: **/dir/** prefix/suffix. Enough for the fixed exclude list.
@@ -23,24 +27,65 @@ function pathMatchesExclude(relativePath, pattern) {
 	return false
 }
 
-/** Cwd-relative POSIX path, or null when the tool path is outside cwd / excluded. */
+function toPosixRelative(from, to) {
+	return relative(from, to).split(sep).join('/')
+}
+
+/**
+ * Resolve cwd, then require that a candidate path stays under it after symlink resolution. Missing
+ * leaf paths walk up to the nearest existing parent before comparing.
+ */
+export function resolvePathInsideCwd(cwd, absolutePath) {
+	const resolvedCwdPath = resolve(cwd)
+
+	if (!existsSync(resolvedCwdPath)) return null
+
+	const resolvedCwd = realpathSync(resolvedCwdPath)
+	let probe = resolve(absolutePath)
+
+	while (!existsSync(probe)) {
+		const parent = resolve(probe, '..')
+
+		if (parent === probe) return null
+
+		probe = parent
+	}
+
+	const resolvedTarget = realpathSync(probe)
+	const relativePath = toPosixRelative(resolvedCwd, resolvedTarget)
+
+	if (relativePath === '..' || relativePath.startsWith('../')) {
+		return null
+	}
+
+	return { resolvedCwd, resolvedTarget, relativePath }
+}
+
+/**
+ * Cwd-relative POSIX path, or null when the tool path is outside cwd / excluded / escapes via
+ * symlink.
+ */
 export function patdownRelativeToolPath(cwd, rawPath) {
 	const trimmed = String(rawPath ?? '').trim()
 
 	if (trimmed.length === 0) return null
 
 	const absolutePath = isAbsolute(trimmed) ? resolve(trimmed) : resolve(cwd, trimmed)
-	const relativePath = relative(cwd, absolutePath).split(sep).join('/')
+	const lexicalRelative = toPosixRelative(resolve(cwd), absolutePath)
 
-	if (relativePath === '' || relativePath === '..' || relativePath.startsWith('../')) {
+	if (lexicalRelative === '' || lexicalRelative === '..' || lexicalRelative.startsWith('../')) {
 		return null
 	}
 
-	if (patdownGlobExcludes.some((pattern) => pathMatchesExclude(relativePath, pattern))) {
+	if (patdownGlobExcludes.some((pattern) => pathMatchesExclude(lexicalRelative, pattern))) {
 		return null
 	}
 
-	return relativePath
+	if (resolvePathInsideCwd(cwd, absolutePath) === null) {
+		return null
+	}
+
+	return lexicalRelative
 }
 
 /** Apply one Claude Edit replacement. replace_all replaces every non-overlapping occurrence. */
@@ -102,4 +147,24 @@ export function proposedClaudeToolFile(cwd, toolName, toolInput, readFile) {
 	}
 
 	return null
+}
+
+/** Read a cwd-relative path only when the resolved target stays under cwd. */
+export function readFileInsideCwd(cwd, relativePath) {
+	const absolutePath = resolve(cwd, relativePath)
+	const resolved = resolvePathInsideCwd(cwd, absolutePath)
+
+	if (resolved === null) {
+		throw new Error(`patdown: path escapes workspace: ${relativePath}`)
+	}
+
+	if (lstatSync(absolutePath).isSymbolicLink()) {
+		const linkRelative = toPosixRelative(resolved.resolvedCwd, resolved.resolvedTarget)
+
+		if (linkRelative === '..' || linkRelative.startsWith('../')) {
+			throw new Error(`patdown: symlink escapes workspace: ${relativePath}`)
+		}
+	}
+
+	return readFileSync(absolutePath, 'utf8')
 }

@@ -31,10 +31,11 @@ claude plugin marketplace add ./path/to/patdown
 claude plugin install patdown@patdown
 ```
 
-Also install the CLI packages the hook imports into the project:
+Also install the CLI packages the hook and skill import into the project. Prefer `pnpm exec patdown` over bare `npx patdown`:
 
 ```sh
 pnpm add -D patdown @patdown/rules
+pnpm exec patdown rules
 ```
 
 Requires `TYPESAFE_API_KEY` for the default TypeSafe/Jev judge.

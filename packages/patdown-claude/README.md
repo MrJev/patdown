@@ -22,10 +22,11 @@ claude --plugin-dir ./packages/patdown-claude
 # /plugin install patdown@patdown
 ```
 
-Also install the CLI deps the hook imports:
+Also install the CLI deps the hook and skill import (do not rely on bare `npx patdown`):
 
 ```sh
 pnpm add -D patdown @patdown/rules
+pnpm exec patdown rules
 ```
 
 Needs `TYPESAFE_API_KEY` for the default judge.

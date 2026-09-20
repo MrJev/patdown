@@ -1,11 +1,14 @@
 #!/usr/bin/env node
 
-import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import { proposedClaudeToolFile } from './proposed-file.mjs'
+import {
+	patdownClaudeJudgeTimeoutMs,
+	proposedClaudeToolFile,
+	readFileInsideCwd,
+} from './proposed-file.mjs'
 
 const require = createRequire(import.meta.url)
 const pluginRoot = dirname(fileURLToPath(import.meta.url))
@@ -84,6 +87,24 @@ async function importPatdownModules(cwd) {
 	}
 }
 
+function withPatdownClaudeDeadline(promise, timeoutMs) {
+	let timeoutId
+
+	const timeoutPromise = new Promise((_, reject) => {
+		timeoutId = setTimeout(() => {
+			reject(
+				new Error(
+					`patdown: judge timed out after ${String(timeoutMs)}ms (fail-closed before Claude hook timeout)`,
+				),
+			)
+		}, timeoutMs)
+	})
+
+	return Promise.race([promise, timeoutPromise]).finally(() => {
+		clearTimeout(timeoutId)
+	})
+}
+
 async function judgeProposedFile(cwd, proposed) {
 	const { patdown, rules, effect, platformNode } = await importPatdownModules(cwd)
 	const { Effect, Layer, Option } = effect
@@ -93,30 +114,28 @@ async function judgeProposedFile(cwd, proposed) {
 	process.chdir(cwd)
 
 	try {
-		const loaded = await Effect.runPromise(
-			Effect.gen(function* () {
-				const document = yield* patdown.loadConfiguredPatdownRules(Option.none(), Option.none())
-				const yesThreshold = yield* patdown.resolvePatdownYesThreshold(Option.none())
-				const results = yield* patdown.judgePatdownMatchingRules(
-					document,
-					proposed.relativePath,
-					proposed.contents,
-					yesThreshold,
-				)
+		const program = Effect.gen(function* () {
+			const document = yield* patdown.loadConfiguredPatdownRules(Option.none(), Option.none())
+			const yesThreshold = yield* patdown.resolvePatdownYesThreshold(Option.none())
+			const results = yield* patdown.judgePatdownMatchingRules(
+				document,
+				proposed.relativePath,
+				proposed.contents,
+				yesThreshold,
+			)
 
-				return results
-			}).pipe(
-				Effect.provide(
-					Layer.mergeAll(
-						rules.MarkdownPatdownRuleSourceLive,
-						patdown.TypeSafeJudgeLive,
-						NodeServices.layer,
-					),
+			return results
+		}).pipe(
+			Effect.provide(
+				Layer.mergeAll(
+					rules.MarkdownPatdownRuleSourceLive,
+					patdown.TypeSafeJudgeLive,
+					NodeServices.layer,
 				),
 			),
 		)
 
-		return loaded
+		return await withPatdownClaudeDeadline(Effect.runPromise(program), patdownClaudeJudgeTimeoutMs)
 	} finally {
 		process.chdir(previousCwd)
 	}
@@ -134,7 +153,7 @@ async function main() {
 	}
 
 	const proposed = proposedClaudeToolFile(cwd, toolName, toolInput, (relativePath) =>
-		readFileSync(join(cwd, relativePath), 'utf8'),
+		readFileInsideCwd(cwd, relativePath),
 	)
 
 	if (proposed === null) {

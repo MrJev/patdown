@@ -5,7 +5,13 @@ description: Run the patdown CLI against files or a directory using project AGEN
 
 # Run patdown
 
-Use the published `patdown` CLI. Prefer the project install (`pnpm exec patdown` / `npx patdown`) so adapters and `package.json#patdown` apply.
+Use the project-installed CLI only. Install first:
+
+```sh
+pnpm add -D patdown @patdown/rules
+```
+
+Then run with `pnpm exec patdown` (or `pnpm -w patdown --` in this monorepo). Do not use bare `npx patdown`; that can fetch whatever the registry currently resolves.
 
 Needs `TYPESAFE_API_KEY` for the default TypeSafe/Jev judge.
 
@@ -14,21 +20,21 @@ Needs `TYPESAFE_API_KEY` for the default TypeSafe/Jev judge.
 Changed / explicit files:
 
 ```sh
-npx patdown --verbose --files path/to/file.ts
-npx patdown --verbose --files src
-git diff --name-only --diff-filter=ACMR HEAD | npx patdown --files-from -
+pnpm exec patdown --verbose --files path/to/file.ts
+pnpm exec patdown --verbose --files src
+git diff --name-only --diff-filter=ACMR HEAD | pnpm exec patdown --files-from -
 ```
 
 Print loaded rules (includes frontmatter packs):
 
 ```sh
-npx patdown rules
+pnpm exec patdown rules
 ```
 
 Ask a one-off yes/no without linting files:
 
 ```sh
-npx patdown ask "Is this markdown heading title case?" --input-text "# Hello World"
+pnpm exec patdown ask "Is this markdown heading title case?" --input-text "# Hello World"
 ```
 
 ## Notes
