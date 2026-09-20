@@ -8,20 +8,41 @@ import {
 import type { PatdownLintResult } from '#src/patdown-output'
 
 function result(
-	partial: Omit<PatdownLintResult, 'elapsedMs' | 'yesThreshold' | 'ruleBody' | 'ruleGlobs'> & {
+	partial: Omit<
+		PatdownLintResult,
+		'elapsedMs' | 'yesThreshold' | 'ruleBody' | 'ruleGlobs' | 'githubAnnotation'
+	> & {
 		readonly elapsedMs?: number
 		readonly yesThreshold?: number
 		readonly ruleBody?: string
 		readonly ruleGlobs?: ReadonlyArray<string>
+		readonly githubAnnotation?: PatdownLintResult['githubAnnotation']
 	},
 ): PatdownLintResult {
-	return {
+	const base: PatdownLintResult = {
 		elapsedMs: partial.elapsedMs ?? 10,
 		yesThreshold: partial.yesThreshold ?? 0.85,
 		ruleBody: partial.ruleBody ?? 'Rule guidance body.',
 		ruleGlobs: partial.ruleGlobs ?? ['**/*'],
-		...partial,
+		violated: partial.violated,
+		ruleTitle: partial.ruleTitle,
+		filePath: partial.filePath,
+		violationProbability: partial.violationProbability,
 	}
+
+	if (partial.evidence !== undefined) {
+		return partial.githubAnnotation === undefined
+			? { ...base, evidence: partial.evidence }
+			: {
+					...base,
+					evidence: partial.evidence,
+					githubAnnotation: partial.githubAnnotation,
+				}
+	}
+
+	if (partial.githubAnnotation === undefined) return base
+
+	return { ...base, githubAnnotation: partial.githubAnnotation }
 }
 
 const titleCaseGuidance = [
@@ -80,6 +101,30 @@ describe('GitHub Actions annotations', () => {
 		expect(formatPatdownGitHubActionsAnnotations(results)).toEqual([
 			'::error file=README.md,line=1,title=patdown%3A sentence-case::▓▓▓▓▓▓▓▓▓░ P(yes) 0.91 exceeds cutoff >0.85%0A%0A# sentence-case%0Aglobs: **/*%0A%0ARule guidance body.',
 			'::error file=src/cli.ts,line=1,title=patdown%3A explicit-actor::▓▓▓▓▓▓▓▓▒░ P(yes) 0.86 exceeds cutoff >0.85%0A%0A# explicit-actor%0Aglobs: **/*%0A%0ARule guidance body.',
+		])
+
+		expect(
+			formatPatdownGitHubActionsAnnotations(
+				[
+					result({
+						violated: true,
+						filePath: 'README.md',
+						ruleTitle: 'soft-rule',
+						violationProbability: 0.9,
+						githubAnnotation: 'notice',
+					}),
+					result({
+						violated: true,
+						filePath: 'src/cli.ts',
+						ruleTitle: 'default-rule',
+						violationProbability: 0.88,
+					}),
+				],
+				'warning',
+			),
+		).toEqual([
+			'::notice file=README.md,line=1,title=patdown%3A soft-rule::▓▓▓▓▓▓▓▓▓░ P(yes) 0.9 exceeds cutoff >0.85%0A%0A# soft-rule%0Aglobs: **/*%0A%0ARule guidance body.',
+			'::warning file=src/cli.ts,line=1,title=patdown%3A default-rule::▓▓▓▓▓▓▓▓▒░ P(yes) 0.88 exceeds cutoff >0.85%0A%0A# default-rule%0Aglobs: **/*%0A%0ARule guidance body.',
 		])
 
 		expect(

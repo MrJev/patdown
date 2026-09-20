@@ -1,3 +1,8 @@
+import {
+	decodePatdownGitHubAnnotationLevel,
+	PatdownGitHubAnnotationInvalid,
+	type PatdownGitHubAnnotationLevel,
+} from '#src/patdown-github-annotation'
 import type { PatdownRule } from '#src/patdown-rule'
 import {
 	decodePatdownYesThresholdText,
@@ -9,6 +14,8 @@ const atxHeadingPattern = /^#\s+(.*)$/u
 const globLinePattern = /^globs:\s*(.*)$/u
 
 const yesThresholdLinePattern = /^yes-threshold:\s*(.*)$/u
+
+const githubAnnotationLinePattern = /^github-annotation:\s*(.*)$/u
 
 function isFenceToggleLine(line: string): boolean {
 	return line.startsWith('```')
@@ -53,10 +60,17 @@ type PatdownRuleBodyParts = {
 	readonly patdownRuleBody: string
 	readonly patdownRuleGlobs: ReadonlyArray<string>
 	readonly patdownRuleYesThreshold?: number
+	readonly patdownRuleGitHubAnnotation?: PatdownGitHubAnnotationLevel
 }
 
 function yesThresholdFromLine(line: string): string | undefined {
 	const match = yesThresholdLinePattern.exec(line)
+
+	return match === null ? undefined : (match[1] ?? '')
+}
+
+function githubAnnotationFromLine(line: string): string | undefined {
+	const match = githubAnnotationLinePattern.exec(line)
 
 	return match === null ? undefined : (match[1] ?? '')
 }
@@ -82,57 +96,111 @@ function decodeRuleYesThreshold(title: string, rawThreshold: string): number {
 	return decoded
 }
 
+type PatdownRuleMetadataState = {
+	readonly yesThreshold: number | undefined
+	readonly githubAnnotation: PatdownGitHubAnnotationLevel | undefined
+}
+
 type PatdownRuleMetadataLine = {
 	readonly consumed: boolean
-	readonly yesThreshold: number | undefined
+	readonly state: PatdownRuleMetadataState
+}
+
+function decodeRuleGitHubAnnotation(title: string, rawLevel: string): PatdownGitHubAnnotationLevel {
+	const decoded = decodePatdownGitHubAnnotationLevel(
+		rawLevel,
+		`rule ${JSON.stringify(title)} github-annotation`,
+	)
+
+	if (decoded instanceof PatdownGitHubAnnotationInvalid) throw decoded
+
+	return decoded
 }
 
 function applyRuleMetadataLine(
 	title: string,
 	line: string,
 	globs: string[],
-	yesThreshold: number | undefined,
+	state: PatdownRuleMetadataState,
 ): PatdownRuleMetadataLine {
 	const globValues = globValuesFromLine(line)
 
 	if (globValues !== undefined) {
 		globs.push(...globValues)
 
-		return { consumed: true, yesThreshold }
+		return { consumed: true, state }
 	}
 
 	const rawThreshold = yesThresholdFromLine(line)
 
-	if (rawThreshold === undefined) return { consumed: false, yesThreshold }
+	if (rawThreshold !== undefined) {
+		if (state.yesThreshold !== undefined) {
+			throw new Error(`patdown: rule ${JSON.stringify(title)} has more than one yes-threshold line`)
+		}
 
-	if (yesThreshold !== undefined) {
-		throw new Error(`patdown: rule ${JSON.stringify(title)} has more than one yes-threshold line`)
+		return {
+			consumed: true,
+			state: {
+				yesThreshold: decodeRuleYesThreshold(title, rawThreshold),
+				githubAnnotation: state.githubAnnotation,
+			},
+		}
 	}
 
-	return { consumed: true, yesThreshold: decodeRuleYesThreshold(title, rawThreshold) }
+	const rawAnnotation = githubAnnotationFromLine(line)
+
+	if (rawAnnotation === undefined) return { consumed: false, state }
+
+	if (state.githubAnnotation !== undefined) {
+		throw new Error(
+			`patdown: rule ${JSON.stringify(title)} has more than one github-annotation line`,
+		)
+	}
+
+	return {
+		consumed: true,
+		state: {
+			yesThreshold: state.yesThreshold,
+			githubAnnotation: decodeRuleGitHubAnnotation(title, rawAnnotation),
+		},
+	}
 }
 
 function splitMetadataFromRuleBody(title: string, lines: readonly string[]): PatdownRuleBodyParts {
 	let index = skipBlankPrefix(lines)
 	const globs: string[] = []
-	let yesThreshold: number | undefined
+
+	let state: PatdownRuleMetadataState = {
+		yesThreshold: undefined,
+		githubAnnotation: undefined,
+	}
 
 	while (index < lines.length) {
-		const applied = applyRuleMetadataLine(title, lines[index] ?? '', globs, yesThreshold)
+		const applied = applyRuleMetadataLine(title, lines[index] ?? '', globs, state)
 
 		if (!applied.consumed) break
 
-		yesThreshold = applied.yesThreshold
+		state = applied.state
 		index += 1
 	}
 
-	const bodyParts: PatdownRuleBodyParts = {
+	let bodyParts: PatdownRuleBodyParts = {
 		patdownRuleBody: lines.slice(index).join('\n').trim(),
 		patdownRuleGlobs: globs,
 	}
 
-	if (yesThreshold !== undefined) {
-		return { ...bodyParts, patdownRuleYesThreshold: yesThreshold }
+	if (state.yesThreshold !== undefined) {
+		bodyParts = {
+			...bodyParts,
+			patdownRuleYesThreshold: state.yesThreshold,
+		}
+	}
+
+	if (state.githubAnnotation !== undefined) {
+		bodyParts = {
+			...bodyParts,
+			patdownRuleGitHubAnnotation: state.githubAnnotation,
+		}
 	}
 
 	return bodyParts
@@ -141,14 +209,24 @@ function splitMetadataFromRuleBody(title: string, lines: readonly string[]): Pat
 function finishPatdownRule(title: string, lines: readonly string[]): PatdownRule {
 	const bodyParts = splitMetadataFromRuleBody(title, lines)
 
-	const rule: PatdownRule = {
+	let rule: PatdownRule = {
 		patdownRuleBody: bodyParts.patdownRuleBody,
 		patdownRuleGlobs: bodyParts.patdownRuleGlobs,
 		patdownRuleTitle: title,
 	}
 
 	if (bodyParts.patdownRuleYesThreshold !== undefined) {
-		return { ...rule, patdownRuleYesThreshold: bodyParts.patdownRuleYesThreshold }
+		rule = {
+			...rule,
+			patdownRuleYesThreshold: bodyParts.patdownRuleYesThreshold,
+		}
+	}
+
+	if (bodyParts.patdownRuleGitHubAnnotation !== undefined) {
+		rule = {
+			...rule,
+			patdownRuleGitHubAnnotation: bodyParts.patdownRuleGitHubAnnotation,
+		}
 	}
 
 	return rule

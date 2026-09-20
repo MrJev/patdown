@@ -1,4 +1,4 @@
-import type { PatdownRulesDocument } from '@patdown/rules'
+import type { PatdownGitHubAnnotationLevel, PatdownRulesDocument } from '@patdown/rules'
 import { defaultPatdownYesThreshold, type PatdownYesThreshold } from '@patdown/rules'
 import { Console, Context, Effect, Layer, Ref } from 'effect'
 
@@ -29,6 +29,7 @@ export type PatdownLintResult = {
 	readonly violationProbability: number
 	readonly yesThreshold: PatdownYesThreshold
 	readonly elapsedMs: number
+	readonly githubAnnotation?: PatdownGitHubAnnotationLevel
 	readonly evidence?: PatdownLintEvidenceSpan
 }
 
@@ -83,6 +84,10 @@ function formatPatdownRulesDocument(document: PatdownRulesDocument): string {
 
 		if (rule.patdownRuleYesThreshold !== undefined) {
 			lines.push(`yes-threshold: ${String(rule.patdownRuleYesThreshold)}`)
+		}
+
+		if (rule.patdownRuleGitHubAnnotation !== undefined) {
+			lines.push(`github-annotation: ${rule.patdownRuleGitHubAnnotation}`)
 		}
 	}
 

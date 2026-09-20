@@ -1,5 +1,6 @@
 import { Context, Effect, FileSystem, Layer, Option, Path } from 'effect'
 
+import { PatdownGitHubAnnotationInvalid } from '#src/patdown-github-annotation'
 import { loadMarkdownPatdownOrigin } from '#src/patdown-markdown-origin-loader'
 import { defaultPatdownRulesFileName, type PatdownRulesDocument } from '#src/patdown-rule'
 import {
@@ -20,6 +21,7 @@ type MarkdownRulesLoadError =
 	| PatdownRulesReadFailed
 	| PatdownRulesLoadFailed
 	| PatdownYesThresholdInvalid
+	| PatdownGitHubAnnotationInvalid
 
 /**
  * Loads fuzzy patdown rules for a run. Provide a live layer to parse markdown, YAML, frontmatter

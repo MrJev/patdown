@@ -92,4 +92,32 @@ describe('parseMarkdownPatdownRules', () => {
 
 		expect(rules.map((rule) => rule.patdownRuleTitle)).toEqual(['One', 'Two'])
 	})
+
+	it('reads github-annotation from rule metadata', () => {
+		const rules = parseMarkdownPatdownRules(
+			[
+				'# Soft style',
+				'globs: **/*.md',
+				'github-annotation: notice',
+				'',
+				'Prefer sentence case.',
+				'',
+			].join('\n'),
+		)
+
+		expect(rules).toEqual([
+			{
+				patdownRuleBody: 'Prefer sentence case.',
+				patdownRuleGlobs: ['**/*.md'],
+				patdownRuleGitHubAnnotation: 'notice',
+				patdownRuleTitle: 'Soft style',
+			},
+		])
+
+		expect(() =>
+			parseMarkdownPatdownRules(
+				'# Bad\ngithub-annotation: warning\ngithub-annotation: error\n\nBody.\n',
+			),
+		).toThrow(/more than one github-annotation/u)
+	})
 })

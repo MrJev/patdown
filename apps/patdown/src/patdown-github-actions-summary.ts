@@ -1,3 +1,9 @@
+import {
+	defaultPatdownGitHubAnnotationLevel,
+	resolvePatdownGitHubAnnotationLevel,
+	type PatdownGitHubAnnotationLevel,
+} from '@patdown/rules'
+
 import { patdownEvidenceMinConfidence } from '#src/patdown-evidence-regions'
 import type { PatdownLintResult } from '#src/patdown-output'
 import { formatPatdownProbabilityBar } from '#src/patdown-probability-bar'
@@ -89,9 +95,16 @@ function comparePatdownLintResultsHottestFirst(
 	return left.ruleTitle.localeCompare(right.ruleTitle)
 }
 
+function patdownGitHubAnnotationCommand(
+	level: PatdownGitHubAnnotationLevel,
+): 'error' | 'warning' | 'notice' {
+	return level
+}
+
 /** Workflow commands for the PR Files tab. Failures only; capped. */
 export function formatPatdownGitHubActionsAnnotations(
 	results: ReadonlyArray<PatdownLintResult>,
+	configuredLevel: PatdownGitHubAnnotationLevel = defaultPatdownGitHubAnnotationLevel,
 ): ReadonlyArray<string> {
 	const failures = results
 		.filter((result) => result.violated)
@@ -121,7 +134,14 @@ export function formatPatdownGitHubActionsAnnotations(
 				? 'line=1'
 				: `line=${String(evidence.startLine)},endLine=${String(evidence.endLine)}`
 
-		return `::error file=${file},${line},title=${title}::${escapePatdownGitHubActionsData(message)}`
+		const level = resolvePatdownGitHubAnnotationLevel({
+			ruleLevel: result.githubAnnotation,
+			configuredLevel,
+		})
+
+		const command = patdownGitHubAnnotationCommand(level)
+
+		return `::${command} file=${file},${line},title=${title}::${escapePatdownGitHubActionsData(message)}`
 	})
 }
 

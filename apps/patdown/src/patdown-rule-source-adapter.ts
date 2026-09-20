@@ -22,6 +22,9 @@ const RulesDocumentSchema = Schema.Struct({
 			patdownRuleGlobs: Schema.Array(Schema.String),
 			patdownRuleSourcePath: Schema.optionalKey(Schema.String),
 			patdownRuleYesThreshold: Schema.optionalKey(Schema.Finite),
+			patdownRuleGitHubAnnotation: Schema.optionalKey(
+				Schema.Literals(['error', 'warning', 'notice']),
+			),
 		}),
 	),
 })
