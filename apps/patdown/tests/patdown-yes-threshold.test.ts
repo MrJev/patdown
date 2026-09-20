@@ -84,7 +84,7 @@ describe('configurable yes thresholds', () => {
 				ask: () => Effect.succeed({ yesProbability: 0.81 }),
 			})
 
-			yield* runPatdownCli(MarkdownPatdownRuleSourceLive, ['--verbose'], judge)
+			yield* runPatdownCli(MarkdownPatdownRuleSourceLive, ['--verbose', '--no-github'], judge)
 
 			const lines = yield* TestConsole.logLines
 			const text = lines.join('\n')
