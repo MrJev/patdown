@@ -1,0 +1,83 @@
+name: patdown
+description: Fuzzy-lint changed files with the patdown CLI
+author: tyler-dot-earth
+branding:
+  icon: shield
+  color: gray-dark
+
+inputs:
+  version:
+    description: >
+      patdown npm version to run. Empty means the version from apps/patdown/package.json
+      at this action ref (so tyler-dot-earth/patdown@v0.8.0 installs patdown@0.8.0).
+    required: false
+    default: ''
+  working-directory:
+    description: Directory that contains AGENTS.PATDOWN.md / package.json for the lint
+    required: false
+    default: '.'
+  rules:
+    description: Optional --rules path (file or pack directory), relative to working-directory
+    required: false
+    default: ''
+  files-from:
+    description: >
+      Optional path list for --files-from. Empty means the action builds a list under
+      RUNNER_TEMP from the GitHub event (pull_request base…HEAD or push before…HEAD).
+    required: false
+    default: ''
+  github-annotation:
+    description: FAIL annotation level for GitHub Actions (error, warning, or notice)
+    required: false
+    default: ''
+  yes-threshold:
+    description: Optional exclusive P(yes) cutoff for yes judgments
+    required: false
+    default: ''
+  verbose:
+    description: Pass --verbose to patdown
+    required: false
+    default: 'true'
+  no-github:
+    description: Pass --no-github (skip summary and annotations; still fails the step on FAIL)
+    required: false
+    default: 'false'
+  node-version:
+    description: Node.js version for setup-node before npx
+    required: false
+    default: '22.22.2'
+
+runs:
+  using: composite
+  steps:
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node-version }}
+
+    - name: List changed files
+      id: changed
+      if: ${{ inputs.files-from == '' }}
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      env:
+        GITHUB_EVENT_NAME: ${{ github.event_name }}
+        GITHUB_EVENT_PATH: ${{ github.event_path }}
+        GITHUB_EVENT_BEFORE: ${{ github.event.before }}
+        PULL_REQUEST_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+      run: bash "${{ github.action_path }}/action/list-changed-files.sh"
+
+    - name: Run patdown
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      env:
+        GITHUB_ACTION_PATH: ${{ github.action_path }}
+        PATDOWN_VERSION: ${{ inputs.version }}
+        PATDOWN_RULES: ${{ inputs.rules }}
+        PATDOWN_FILES_FROM_INPUT: ${{ inputs.files-from }}
+        PATDOWN_FILES_FROM_GENERATED: ${{ steps.changed.outputs.files-from }}
+        PATDOWN_GITHUB_ANNOTATION: ${{ inputs.github-annotation }}
+        PATDOWN_YES_THRESHOLD: ${{ inputs.yes-threshold }}
+        PATDOWN_VERBOSE: ${{ inputs.verbose }}
+        PATDOWN_NO_GITHUB: ${{ inputs.no-github }}
+      run: bash "${{ github.action_path }}/action/run-patdown.sh"

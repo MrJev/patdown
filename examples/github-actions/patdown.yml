@@ -1,5 +1,6 @@
-# Consumer copy-paste. This repo's live workflow is .github/workflows/patdown.yml
-# (builds local dist). Requires patdown >=0.5.0 for --files-from.
+# Recommended consumer workflow. Uses the composite action at the repo root.
+# Requires a published patdown release that matches the action tag, and
+# repository secret TYPESAFE_API_KEY for the default judge.
 name: patdown
 
 on:
@@ -20,29 +21,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22.22.2'
-
-      - name: List changed files
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [ "${GITHUB_EVENT_NAME}" = "pull_request" ]; then
-            BASE="${{ github.event.pull_request.base.sha }}"
-          else
-            BASE="${{ github.event.before }}"
-            if [ "$BASE" = "0000000000000000000000000000000000000000" ] || [ -z "$BASE" ]; then
-              BASE="$(git rev-parse HEAD^)"
-            fi
-          fi
-          git diff --name-only --diff-filter=ACMR "$BASE"...HEAD > changed.txt
-          if [ ! -s changed.txt ]; then
-            echo "No changed files."
-          fi
-          cat changed.txt
-
-      - name: Run patdown
+      - uses: tyler-dot-earth/patdown@v0.7.0
         env:
           TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
-        run: npx --yes patdown --verbose --files-from changed.txt
