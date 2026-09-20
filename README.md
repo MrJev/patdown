@@ -30,7 +30,10 @@ pnpm -w patdown -- ask "Is this markdown heading title case?" --input-text "# He
 pnpm -w patdown -- ask "Is this urgent?" --input-text "ASAP" --verbose
 pnpm -w patdown -- --yes-threshold 0.9
 pnpm -w patdown -- --files src/cli.ts --files README.md
+pnpm -w patdown -- --files src
+pnpm -w patdown -- --files 'src/**/*.ts'
 pnpm -w patdown -- --files-from changed.txt --verbose
+git ls-files 'src' | pnpm -w patdown -- --files-from -
 ```
 
 Do not run `pnpm build` by hand just to exercise the CLI, and do not use bare `npx patdown` against an unpublished branch (that installs the last registry version). After a release, consumers use `npx patdown` / `pnpm add -D patdown` as usual.
@@ -169,20 +172,21 @@ FAIL README.md: No title case
 patdown: failed
 ```
 
-Exit 1 on a violation, a missing rules file, a read error, an invalid cutoff, or a judge error. Add `--verbose` to group local lint output into per-rule console blocks (file, shade bar, P(yes), elapsed). Quiet mode stays one `PASS`/`FAIL` line per judgment. Lint totals elapsed time across every rule/file pair.
+Exit 1 on a violation, a missing rules file, a read error, an invalid cutoff, or a judge error. Add `--verbose` for per-rule console boxes that stream as each file is judged (shade bar, P(yes), elapsed). Quiet mode stays one `PASS`/`FAIL` line per judgment. Lint totals elapsed time across every rule/file pair.
 
 ```
-┌ Do not launder types with casts ───────────────────────── 1✗ / 1
+patdown: linting 1 file against 1 rule
+┌ Do not launder types with casts ───────────────────────── 1
 │
 ├─ apps/foo
 │
-│  ✗  ▓▓▓▓▓▓▓▓▒░  0.86  312ms  service.ts
-└
+│  ✗  ▓▓▓▓▓▓▓▓▒░  0.86   312ms  service.ts
+└ 1✗ / 1
 
 patdown: failed (elapsed: 1840ms)
 ```
 
-`--files` (repeatable) and `--files-from` restrict lint to an explicit path list intersected with each rule's globs. That is how CI should run over a pull request. See [GitHub Actions](docs/github-actions.md).
+`--files` (repeatable) and `--files-from` accept files, directories, or globs, then intersect with each rule's globs. That is how CI should run over a pull request. See [GitHub Actions](docs/github-actions.md).
 
 Patdown counts estimated P(yes) strictly above the cutoff as yes; for lint, yes means violation. Default cutoff is 0.85. Override it with `--yes-threshold`, package.json `patdown.yesThreshold`, or a per-rule `yes-threshold:` line. The flag wins over package.json; a per-rule value wins for that rule only. `1` is rejected because nothing can exceed it. This cutoff belongs to patdown, not the provider.
 
@@ -213,6 +217,9 @@ const JsonOutputLive = Layer.succeed(PatdownOutput, {
 			}),
 		),
 	writeLintResult: (result, _verbose) => Console.log(JSON.stringify(result)),
+	writeLintRuleStart: () => Effect.void,
+	writeLintStart: (ruleCount, selectionFileCount) =>
+		Console.log(JSON.stringify({ ruleCount, selectionFileCount })),
 	writeRulesDocument: (document) => Console.log(JSON.stringify(document)),
 	writeNoFilesMatched: (ruleTitle) => Console.log(JSON.stringify({ skipped: ruleTitle })),
 	writeLintOk: () => Console.log(JSON.stringify({ status: 'ok' })),

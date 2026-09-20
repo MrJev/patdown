@@ -171,6 +171,8 @@ function lintPatdownRule(
 			return false
 		}
 
+		yield* output.writeLintRuleStart(rule.patdownRuleTitle, files.length, options.verbose)
+
 		const failures = yield* Effect.forEach(
 			files,
 			(filePath) =>
@@ -199,8 +201,14 @@ export function runPatdownLint(
 > {
 	return Effect.gen(function* () {
 		const path = yield* Path.Path
+		const output = yield* PatdownOutput
 		const cwd = path.resolve('.')
 		const startedAt = yield* Clock.currentTimeMillis
+
+		yield* output.writeLintStart(
+			document.patdownRules.length,
+			selection === null ? null : selection.relativePaths.length,
+		)
 
 		const failures = yield* Effect.forEach(
 			document.patdownRules,

@@ -1,12 +1,17 @@
-import { mkdtempSync, writeFileSync, rmSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, writeFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
 import { NodeServices } from '@effect/platform-node'
 import { afterEach, describe, expect, it } from '@effect/vitest'
-import { Effect, Option } from 'effect'
+import { Effect, Layer, Option, Stdio, Stream } from 'effect'
 
-import { resolvePatdownLintFileSelection, selectPatdownRuleFiles } from '#src/patdown-lint-files'
+import {
+	expandPatdownSelectionEntry,
+	patdownPathLooksLikeGlob,
+	resolvePatdownLintFileSelection,
+	selectPatdownRuleFiles,
+} from '#src/patdown-lint-files'
 
 const directories: string[] = []
 
@@ -30,24 +35,41 @@ describe('lint file selection', () => {
 		}).pipe(Effect.provide(NodeServices.layer)),
 	)
 
-	it.effect('normalizes, dedupes, and drops excluded or outside paths', () =>
+	it.effect('expands directories and globs, and drops excluded paths', () =>
 		Effect.gen(function* () {
 			const cwd = tempDirectory()
 
-			const selection = yield* resolvePatdownLintFileSelection(
-				cwd,
-				['./README.md', 'README.md', 'node_modules/x.js', '../outside.ts', 'src/cli.ts'],
-				Option.none(),
+			mkdirSync(join(cwd, 'src'), { recursive: true })
+			mkdirSync(join(cwd, 'docs'), { recursive: true })
+			mkdirSync(join(cwd, 'node_modules'), { recursive: true })
+			writeFileSync(join(cwd, 'README.md'), '# Hi\n')
+			writeFileSync(join(cwd, 'src/cli.ts'), 'export {}\n')
+			writeFileSync(join(cwd, 'docs/guide.md'), '# Guide\n')
+			writeFileSync(join(cwd, 'node_modules/x.js'), 'export {}\n')
+
+			const fromDirectory = yield* resolvePatdownLintFileSelection(cwd, ['src'], Option.none())
+
+			expect(fromDirectory?.relativePaths).toEqual(['src/cli.ts'])
+
+			const fromGlob = yield* resolvePatdownLintFileSelection(cwd, ['**/*.md'], Option.none())
+
+			expect(fromGlob?.relativePaths).toEqual(['README.md', 'docs/guide.md'])
+
+			const error = yield* resolvePatdownLintFileSelection(cwd, ['missing.ts'], Option.none()).pipe(
+				Effect.flip,
 			)
 
-			expect(selection?.relativePaths).toEqual(['README.md', 'src/cli.ts'])
+			expect(error.message).toContain('--files path not found')
 		}).pipe(Effect.provide(NodeServices.layer)),
 	)
 
-	it.effect('reads --files-from and fails when the list is missing', () =>
+	it.effect('reads --files-from lists and stdin, and fails when the list is missing', () =>
 		Effect.gen(function* () {
 			const cwd = tempDirectory()
 
+			mkdirSync(join(cwd, 'apps'), { recursive: true })
+			writeFileSync(join(cwd, 'README.md'), '# Hi\n')
+			writeFileSync(join(cwd, 'apps/a.ts'), 'export {}\n')
 			writeFileSync(
 				join(cwd, 'changed.txt'),
 				['# comment', 'apps/a.ts', '', 'apps/a.ts'].join('\n'),
@@ -68,8 +90,38 @@ describe('lint file selection', () => {
 			).pipe(Effect.flip)
 
 			expect(error.message).toContain('--files-from')
+
+			const fromStdin = yield* resolvePatdownLintFileSelection(cwd, [], Option.some('-'))
+
+			expect(fromStdin?.relativePaths).toEqual(['apps/a.ts'])
+		}).pipe(
+			Effect.provide(
+				Stdio.layerTest({
+					stdin: Stream.make(new TextEncoder().encode('apps/a.ts\n')),
+					stdinIsTerminal: Effect.succeed(false),
+				}).pipe(Layer.provideMerge(NodeServices.layer)),
+			),
+		),
+	)
+
+	it.effect('expands a single directory entry', () =>
+		Effect.gen(function* () {
+			const cwd = tempDirectory()
+
+			mkdirSync(join(cwd, 'apps/web/src'), { recursive: true })
+			writeFileSync(join(cwd, 'apps/web/src/app.ts'), 'export {}\n')
+			writeFileSync(join(cwd, 'apps/web/README.md'), '# Web\n')
+
+			const paths = yield* expandPatdownSelectionEntry(cwd, 'apps/web')
+
+			expect(paths).toEqual(['apps/web/README.md', 'apps/web/src/app.ts'])
 		}).pipe(Effect.provide(NodeServices.layer)),
 	)
+
+	it('detects glob metacharacters', () => {
+		expect(patdownPathLooksLikeGlob('apps/**/*.ts')).toBe(true)
+		expect(patdownPathLooksLikeGlob('apps/web')).toBe(false)
+	})
 
 	it('intersects an explicit list with rule globs without globbing the tree', () => {
 		const cwd = tempDirectory()

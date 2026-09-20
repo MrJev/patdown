@@ -19,7 +19,7 @@ git diff --name-only --diff-filter=ACMR "$BASE"...HEAD > changed.txt
 npx patdown --verbose --files-from changed.txt
 ```
 
-`--files path` may be repeated. `--files` and `--files-from` may be combined. Blank lines and `#` comments in the list are ignored. Paths outside cwd, and the usual skipped directories (`.git`, `dist`, `node_modules`, …), are dropped. A missing `--files-from` file fails the command. An empty selection after filtering is still `patdown: passed`.
+`--files path` may be repeated. Paths may be files, directories, or globs. Directories expand to every file under them (same skipped directories as rule globs). `--files` and `--files-from` may be combined. `--files-from -` reads newline-separated paths from stdin. Blank lines and `#` comments in the list are ignored. Paths outside cwd, and the usual skipped directories (`.git`, `dist`, `node_modules`, …), are dropped. A missing `--files-from` file or missing `--files` path fails the command. An empty selection after filtering is still `patdown: passed`. Before judgments, patdown prints how many selected files and rules it will lint.
 
 When a path list is set, rules whose globs miss every listed file stay quiet. Without a path list, an empty glob still prints `patdown: no files matched …`.
 

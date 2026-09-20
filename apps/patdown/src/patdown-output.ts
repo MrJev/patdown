@@ -5,6 +5,9 @@ import { Console, Context, Effect, Layer, Ref } from 'effect'
 import {
 	formatPatdownLintResultLine,
 	formatPatdownRuleBlock,
+	formatPatdownRuleBlockClose,
+	formatPatdownRuleBlockOpen,
+	formatPatdownRuleBlockStreamChunk,
 } from '#src/patdown-console-rule-blocks'
 import { patdownJudgmentIsYes, type PatdownJudgment } from '#src/patdown-judge'
 import { formatPatdownProbabilityBar } from '#src/patdown-probability-bar'
@@ -29,9 +32,11 @@ export type PatdownLintResult = {
 	readonly evidence?: PatdownLintEvidenceSpan
 }
 
-type PatdownConsoleLintBuffer = {
+type PatdownConsoleLintStream = {
 	readonly ruleTitle: string | null
-	readonly results: ReadonlyArray<PatdownLintResult>
+	readonly directory: string | null
+	readonly failCount: number
+	readonly judgedCount: number
 }
 
 function formatPatdownElapsedMs(elapsedMs: number): string {
@@ -89,6 +94,15 @@ export type PatdownOutputWriters = {
 	readonly writeLintFailed: (elapsedMs?: number) => Effect.Effect<void>
 	readonly writeLintOk: (elapsedMs?: number) => Effect.Effect<void>
 	readonly writeLintResult: (result: PatdownLintResult, verbose: boolean) => Effect.Effect<void>
+	readonly writeLintRuleStart: (
+		ruleTitle: string,
+		plannedFileCount: number,
+		verbose: boolean,
+	) => Effect.Effect<void>
+	readonly writeLintStart: (
+		ruleCount: number,
+		selectionFileCount: number | null,
+	) => Effect.Effect<void>
 	readonly writeNoFilesMatched: (ruleTitle: string) => Effect.Effect<void>
 	readonly writeAnswer: (
 		judgment: PatdownJudgment,
@@ -104,10 +118,24 @@ export class PatdownOutput extends Context.Service<PatdownOutput, PatdownOutputW
 	'@patdown/cli/PatdownOutput',
 ) {}
 
-function flushPatdownConsoleRuleBlock(buffer: PatdownConsoleLintBuffer): Effect.Effect<void> {
-	if (buffer.ruleTitle === null) return Effect.void
+function formatPatdownCountNoun(count: number, singular: string, plural: string): string {
+	return `${String(count)} ${count === 1 ? singular : plural}`
+}
 
-	return Console.log(formatPatdownRuleBlock(buffer.ruleTitle, buffer.results))
+/** First line before any judgments, so a long run does not look hung. */
+export function formatPatdownLintStartLine(
+	ruleCount: number,
+	selectionFileCount: number | null,
+): string {
+	const rules = formatPatdownCountNoun(ruleCount, 'rule', 'rules')
+
+	if (selectionFileCount === null) {
+		return `patdown: linting against ${rules}`
+	}
+
+	const files = formatPatdownCountNoun(selectionFileCount, 'file', 'files')
+
+	return `patdown: linting ${files} against ${rules}`
 }
 
 /** One-line writers shared with GitHub Actions job logs. */
@@ -130,6 +158,9 @@ export const patdownStreamingHumanOutput: PatdownOutputWriters = {
 				? `${formatPatdownLintResultLine(result)} (${formatPatdownProbability(result.violationProbability, result.yesThreshold, result.elapsedMs)})`
 				: formatPatdownLintResultLine(result),
 		),
+	writeLintRuleStart: (_ruleTitle, _plannedFileCount, _verbose): Effect.Effect<void> => Effect.void,
+	writeLintStart: (ruleCount, selectionFileCount): Effect.Effect<void> =>
+		Console.log(formatPatdownLintStartLine(ruleCount, selectionFileCount)),
 	writeNoFilesMatched: (title: string): Effect.Effect<void> =>
 		Console.log(`patdown: no files matched ${title}`),
 	writeAnswer: (
@@ -144,63 +175,93 @@ export const patdownStreamingHumanOutput: PatdownOutputWriters = {
 }
 
 /**
- * Local human output. Quiet mode streams one PASS/FAIL line per judgment. Verbose mode groups
- * judgments into per-rule console blocks.
+ * Local human output. Quiet mode streams one PASS/FAIL line per judgment. Verbose mode opens a rule
+ * box, streams rows as judgments finish, then closes with the fail tally.
  */
 export const PatdownOutputLive: Layer.Layer<PatdownOutput> = Layer.effect(
 	PatdownOutput,
 	Effect.gen(function* () {
-		const buffer = yield* Ref.make<PatdownConsoleLintBuffer>({
+		const stream = yield* Ref.make<PatdownConsoleLintStream>({
 			ruleTitle: null,
-			results: [],
+			directory: null,
+			failCount: 0,
+			judgedCount: 0,
 		})
 
-		const flush = (): Effect.Effect<void> =>
+		const closeOpenRule = (): Effect.Effect<void> =>
 			Effect.gen(function* () {
-				const current = yield* Ref.get(buffer)
+				const current = yield* Ref.get(stream)
 
-				yield* flushPatdownConsoleRuleBlock(current)
-				yield* Ref.set(buffer, { ruleTitle: null, results: [] })
+				if (current.ruleTitle === null) return
+
+				yield* Console.log(formatPatdownRuleBlockClose(current.failCount, current.judgedCount))
+				yield* Ref.set(stream, {
+					ruleTitle: null,
+					directory: null,
+					failCount: 0,
+					judgedCount: 0,
+				})
 			})
 
 		const writers: PatdownOutputWriters = {
 			writeAnswer: patdownStreamingHumanOutput.writeAnswer,
 			writeRulesDocument: patdownStreamingHumanOutput.writeRulesDocument,
+			writeLintStart: patdownStreamingHumanOutput.writeLintStart,
+			writeLintRuleStart: (ruleTitle, plannedFileCount, verbose) => {
+				if (!verbose) return Effect.void
+
+				return Effect.gen(function* () {
+					yield* closeOpenRule()
+					yield* Console.log(formatPatdownRuleBlockOpen(ruleTitle, plannedFileCount))
+					yield* Ref.set(stream, {
+						ruleTitle,
+						directory: null,
+						failCount: 0,
+						judgedCount: 0,
+					})
+				})
+			},
 			writeLintResult: (result, verbose) => {
 				if (!verbose) {
 					return patdownStreamingHumanOutput.writeLintResult(result, false)
 				}
 
 				return Effect.gen(function* () {
-					const current = yield* Ref.get(buffer)
+					const current = yield* Ref.get(stream)
 
-					if (current.ruleTitle !== null && current.ruleTitle !== result.ruleTitle) {
-						yield* flushPatdownConsoleRuleBlock(current)
-						yield* Ref.set(buffer, {
-							ruleTitle: result.ruleTitle,
-							results: [result],
-						})
-
-						return
+					if (current.ruleTitle === null) {
+						yield* Console.log(formatPatdownRuleBlockOpen(result.ruleTitle, 1))
+					} else if (current.ruleTitle !== result.ruleTitle) {
+						yield* closeOpenRule()
+						yield* Console.log(formatPatdownRuleBlockOpen(result.ruleTitle, 1))
 					}
 
-					yield* Ref.set(buffer, {
+					const open = yield* Ref.get(stream)
+					const previousDirectory = open.ruleTitle === result.ruleTitle ? open.directory : null
+					const chunk = formatPatdownRuleBlockStreamChunk(result, previousDirectory)
+
+					yield* Console.log(chunk.text)
+					yield* Ref.set(stream, {
 						ruleTitle: result.ruleTitle,
-						results: [...current.results, result],
+						directory: chunk.directory,
+						failCount:
+							(open.ruleTitle === result.ruleTitle ? open.failCount : 0) +
+							(result.violated ? 1 : 0),
+						judgedCount: (open.ruleTitle === result.ruleTitle ? open.judgedCount : 0) + 1,
 					})
 				})
 			},
 			writeNoFilesMatched: (title) =>
 				Effect.gen(function* () {
-					yield* flush()
+					yield* closeOpenRule()
 					yield* Console.log(formatPatdownRuleBlock(title, []))
 				}),
 			writeLintOk: (elapsedMs) =>
 				Effect.gen(function* () {
-					const current = yield* Ref.get(buffer)
+					const current = yield* Ref.get(stream)
 					const hadVerboseBlock = current.ruleTitle !== null
 
-					yield* flush()
+					yield* closeOpenRule()
 
 					if (hadVerboseBlock) {
 						yield* Console.log('')
@@ -210,10 +271,10 @@ export const PatdownOutputLive: Layer.Layer<PatdownOutput> = Layer.effect(
 				}),
 			writeLintFailed: (elapsedMs) =>
 				Effect.gen(function* () {
-					const current = yield* Ref.get(buffer)
+					const current = yield* Ref.get(stream)
 					const hadVerboseBlock = current.ruleTitle !== null
 
-					yield* flush()
+					yield* closeOpenRule()
 
 					if (hadVerboseBlock) {
 						yield* Console.log('')

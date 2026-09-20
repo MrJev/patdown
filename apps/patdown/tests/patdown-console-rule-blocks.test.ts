@@ -40,21 +40,21 @@ describe('console rule blocks', () => {
 
 		const lines = block.split('\n')
 
-		expect(lines[0]).toMatch(/^┌ Follow Effect diagnostics ─+ 1✗ \/ 3$/u)
+		expect(lines[0]).toMatch(/^┌ Follow Effect diagnostics ─+ 3$/u)
 		expect(lines.slice(1)).toEqual([
 			'│',
 			'├─ apps/patdown',
 			'│',
-			'│  ✓  ▒░░░░░░░░░  0.06    9ms  oxlint.config.ts',
+			'│  ✓  ▒░░░░░░░░░  0.06     9ms  oxlint.config.ts',
 			'│',
 			'├─ apps/patdown/src',
 			'│',
-			'│  ✓  ▓▓░░░░░░░░  0.22  131ms  cli.ts',
+			'│  ✓  ▓▓░░░░░░░░  0.22   131ms  cli.ts',
 			'│',
 			'├─ packages/patdown-jev/src',
 			'│',
-			'│  ✗  ▓▓▓▓▓▓▓▓▓░  0.91   90ms  index.ts',
-			'└',
+			'│  ✗  ▓▓▓▓▓▓▓▓▓░  0.91    90ms  index.ts',
+			'└ 1✗ / 3',
 		])
 	})
 
@@ -71,8 +71,8 @@ describe('console rule blocks', () => {
 	it('shows an empty rule block when no files matched', () => {
 		const block = formatPatdownRuleBlock('No title case', [])
 
-		expect(block.split('\n')[0]).toMatch(/^┌ No title case ─+ 0✗ \/ 0$/u)
-		expect(block).toContain('│\n│  (no files matched)\n└')
-		expect(block.endsWith('└')).toBe(true)
+		expect(block.split('\n')[0]).toMatch(/^┌ No title case ─+ 0$/u)
+		expect(block).toContain('│\n│  (no files matched)\n└ 0✗ / 0')
+		expect(block.endsWith('└ 0✗ / 0')).toBe(true)
 	})
 })
