@@ -42,10 +42,14 @@ jobs:
             --notes-file "$RUNNER_TEMP/release-notes.md"
 
       - name: Publish npm packages
-        if: ${{ secrets.NPM_TOKEN != '' }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        # Secrets cannot be referenced in `if:`; skip quietly when the token is unset.
         run: |
+          if [ -z "${NODE_AUTH_TOKEN:-}" ]; then
+            echo "NPM_TOKEN unset; skipping npm publish (use local OTP publish)."
+            exit 0
+          fi
           pnpm publish --filter @patdown/rules --access public --no-git-checks
           pnpm publish --filter @patdown/jev --access public --no-git-checks
           pnpm publish --filter patdown --access public --no-git-checks
