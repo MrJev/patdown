@@ -13,6 +13,16 @@ pnpm add -D patdown
 
 Requires Node.js >=22.22.2. The library entry is `patdown`; rule adapters import `@patdown/rules`. The optional Pi package is `@patdown/pi`.
 
+For GitHub Actions, prefer the composite action over copy-paste yaml:
+
+```yaml
+- uses: tyler-dot-earth/patdown@v0.7.0
+  env:
+    TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
+```
+
+See [GitHub Actions](docs/github-actions.md). The action always runs the published CLI. Custom report shapes stay an embed of `runPatdownCli` with your own `PatdownOutput` layer ([Custom output](#custom-output)), not an action input.
+
 ## Requirements
 
 Node.js **>=22.22.2** and pnpm **11.8.0**. CI runs checks and built-CLI smoke tests on Node 22.22.2 and Node 24. Releases through v0.2.2 require Node >=24.18.0 and use `#/` import aliases that Node 22 rejects.
@@ -241,7 +251,7 @@ await Effect.runPromise(
 
 The output service receives structured judgments and lint results, including probabilities even when `--verbose` is off. Your layer decides what to print, collect, or omit. Formatting does not change the cutoff or exit status. The example emits one JSON object per output event, not a single JSON document for the entire run.
 
-This is an embedding API, not a `--format` flag or dynamically discovered output plugin. Supply any dependencies inside your output layer; its effects must handle their own failures. CLI help, argument errors, and loading/provider errors still use the CLI's existing help/stderr paths rather than this service. Install `patdown` from npm for embeddings. Custom adapters still need a matching Effect version.
+This is an embedding API, not a `--format` flag, action input, or dynamically discovered output plugin. The GitHub composite action cannot swap output layers; it only forwards CLI flags. If you need JSON, custom annotations, or a side channel, embed `runPatdownCli` in your own Node entrypoint and call that from Actions (or anywhere else). Supply any dependencies inside your output layer; its effects must handle their own failures. CLI help, argument errors, and loading/provider errors still use the CLI's existing help/stderr paths rather than this service. Install `patdown` from npm for embeddings. Custom adapters still need a matching Effect version.
 
 ## Env
 
