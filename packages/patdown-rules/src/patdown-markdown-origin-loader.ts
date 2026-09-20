@@ -1,7 +1,14 @@
 import { Effect, FileSystem, Path } from 'effect'
 
-import { parseMarkdownPatdownIncludes } from '#src/markdown-patdown-include-parser'
+import {
+	parseMarkdownPatdownFrontmatter,
+	type PatdownMarkdownFrontmatter,
+} from '#src/markdown-patdown-frontmatter'
 import { parseMarkdownPatdownRules } from '#src/markdown-patdown-rule-parser'
+import {
+	PatdownGitHubAnnotationInvalid,
+	type PatdownGitHubAnnotationLevel,
+} from '#src/patdown-github-annotation'
 import type { PatdownRule, PatdownRulesDocument } from '#src/patdown-rule'
 import { PatdownRulesLoadFailed, PatdownRulesReadFailed } from '#src/patdown-rule-errors'
 import { PatdownYesThresholdInvalid } from '#src/patdown-yes-threshold'
@@ -10,6 +17,7 @@ export type MarkdownRulesLoadError =
 	| PatdownRulesReadFailed
 	| PatdownRulesLoadFailed
 	| PatdownYesThresholdInvalid
+	| PatdownGitHubAnnotationInvalid
 
 export type MarkdownRulesLoad = Effect.Effect<
 	PatdownRulesDocument,
@@ -19,11 +27,14 @@ export type MarkdownRulesLoad = Effect.Effect<
 
 function parseMarkdownPatdownRulesFile(
 	markdown: string,
-): Effect.Effect<ReadonlyArray<PatdownRule>, PatdownRulesLoadFailed | PatdownYesThresholdInvalid> {
+): Effect.Effect<
+	ReadonlyArray<PatdownRule>,
+	PatdownRulesLoadFailed | PatdownYesThresholdInvalid | PatdownGitHubAnnotationInvalid
+> {
 	return Effect.try({
 		try: () => parseMarkdownPatdownRules(markdown),
 		catch: (cause) =>
-			cause instanceof PatdownYesThresholdInvalid
+			cause instanceof PatdownYesThresholdInvalid || cause instanceof PatdownGitHubAnnotationInvalid
 				? cause
 				: new PatdownRulesLoadFailed({
 						message: cause instanceof Error ? cause.message : String(cause),
@@ -31,15 +42,20 @@ function parseMarkdownPatdownRulesFile(
 	})
 }
 
-function parseMarkdownPatdownIncludePaths(
+function parseMarkdownPatdownFrontmatterBlock(
 	markdown: string,
-): Effect.Effect<ReadonlyArray<string>, PatdownRulesLoadFailed> {
+): Effect.Effect<
+	PatdownMarkdownFrontmatter,
+	PatdownRulesLoadFailed | PatdownGitHubAnnotationInvalid
+> {
 	return Effect.try({
-		try: () => parseMarkdownPatdownIncludes(markdown),
+		try: () => parseMarkdownPatdownFrontmatter(markdown),
 		catch: (cause) =>
-			new PatdownRulesLoadFailed({
-				message: cause instanceof Error ? cause.message : String(cause),
-			}),
+			cause instanceof PatdownGitHubAnnotationInvalid
+				? cause
+				: new PatdownRulesLoadFailed({
+						message: cause instanceof Error ? cause.message : String(cause),
+					}),
 	})
 }
 
@@ -47,6 +63,17 @@ function withPatdownRuleSourcePath(rule: PatdownRule, sourcePath: string): Patdo
 	if (rule.patdownRuleSourcePath !== undefined) return rule
 
 	return { ...rule, patdownRuleSourcePath: sourcePath }
+}
+
+function withPatdownRuleGitHubAnnotationDefault(
+	rule: PatdownRule,
+	defaultLevel: PatdownGitHubAnnotationLevel | undefined,
+): PatdownRule {
+	if (rule.patdownRuleGitHubAnnotation !== undefined || defaultLevel === undefined) {
+		return rule
+	}
+
+	return { ...rule, patdownRuleGitHubAnnotation: defaultLevel }
 }
 
 function duplicatePatdownRuleTitleMessage(rules: ReadonlyArray<PatdownRule>): string | undefined {
@@ -189,18 +216,23 @@ function loadMarkdownPatdownRulesFromFile(
 ): MarkdownRulesLoad {
 	return Effect.gen(function* () {
 		const markdown = yield* readPatdownMarkdown(patdownRulesFilePath)
-
-		const includePaths = yield* parseMarkdownPatdownIncludePaths(markdown)
+		const frontmatter = yield* parseMarkdownPatdownFrontmatterBlock(markdown)
 
 		const included = yield* loadIncludedPatdownOrigins(
 			patdownRulesFilePath,
-			includePaths,
+			frontmatter.includes,
 			includeStack,
 			loadOrigin,
 		)
 
 		const parsed = yield* parseMarkdownPatdownRulesFile(markdown)
-		const localRules = parsed.map((rule) => withPatdownRuleSourcePath(rule, patdownRulesFilePath))
+
+		const localRules = parsed.map((rule) =>
+			withPatdownRuleGitHubAnnotationDefault(
+				withPatdownRuleSourcePath(rule, patdownRulesFilePath),
+				frontmatter.githubAnnotation,
+			),
+		)
 
 		return yield* concatPatdownRuleDocuments(
 			[...included, { patdownRules: localRules, patdownRulesFilePath }],

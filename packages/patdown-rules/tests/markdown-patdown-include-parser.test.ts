@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
 
-import { parseMarkdownPatdownIncludes } from '#src/markdown-patdown-include-parser'
+import {
+	parseMarkdownPatdownFrontmatter,
+	parseMarkdownPatdownIncludes,
+} from '#src/markdown-patdown-include-parser'
 
 describe('parseMarkdownPatdownIncludes', () => {
 	it('collects a single include path', () => {
@@ -56,5 +59,34 @@ describe('parseMarkdownPatdownIncludes', () => {
 		expect(() => parseMarkdownPatdownIncludes('---\ninclude: ./x\n\n# Rule\n')).toThrow(
 			/unterminated frontmatter/u,
 		)
+	})
+
+	it('reads github-annotation from frontmatter', () => {
+		expect(
+			parseMarkdownPatdownFrontmatter(
+				[
+					'---',
+					'include: ./packs/typescript',
+					'github-annotation: warning',
+					'---',
+					'',
+					'# Rule',
+					'',
+				].join('\n'),
+			),
+		).toEqual({
+			includes: ['./packs/typescript'],
+			githubAnnotation: 'warning',
+		})
+
+		expect(() =>
+			parseMarkdownPatdownFrontmatter(
+				'---\ngithub-annotation: warning\ngithub-annotation: notice\n---\n\n# Rule\n',
+			),
+		).toThrow(/only one github-annotation key/u)
+
+		expect(() =>
+			parseMarkdownPatdownFrontmatter('---\ngithub-annotation: info\n---\n\n# Rule\n'),
+		).toThrow(/error, warning, or notice/u)
 	})
 })

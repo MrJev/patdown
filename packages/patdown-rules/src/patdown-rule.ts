@@ -1,3 +1,5 @@
+import type { PatdownGitHubAnnotationLevel } from '#src/patdown-github-annotation'
+
 /**
  * One fuzzy patdown rule loaded from a rules file. Globs are optional; an empty list means the rule
  * applies to the whole run.
@@ -8,6 +10,7 @@ export type PatdownRule = {
 	readonly patdownRuleTitle: string
 	readonly patdownRuleSourcePath?: string
 	readonly patdownRuleYesThreshold?: number
+	readonly patdownRuleGitHubAnnotation?: PatdownGitHubAnnotationLevel
 }
 
 /**

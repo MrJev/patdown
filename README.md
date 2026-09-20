@@ -29,6 +29,7 @@ pnpm -w patdown -- rules
 pnpm -w patdown -- ask "Is this markdown heading title case?" --input-text "# Hello World"
 pnpm -w patdown -- ask "Is this urgent?" --input-text "ASAP" --verbose
 pnpm -w patdown -- --yes-threshold 0.9
+pnpm -w patdown -- --github-annotation warning
 pnpm -w patdown -- --files src/cli.ts --files README.md
 pnpm -w patdown -- --files src
 pnpm -w patdown -- --files 'src/**/*.ts'
@@ -51,7 +52,7 @@ These send the piped content to the configured judge. Do not pipe secrets. `--st
 
 Walks up from cwd looking for `AGENTS.PATDOWN.md`. `--rules` skips that walk and uses the path you pass.
 
-A leading `---` frontmatter block may have one `include` key: a path, or a YAML list of paths, relative to the including file. A directory loads every `*.md` except `README.md` (a pack). A markdown file loads that file's `#` rules. Included rules load first, then the local `#` rules. Duplicate titles fail the run. Cycles fail the run. A second `include:` key, unknown keys, and an unterminated fence fail the run. `--rules` still replaces the walk; if that file has frontmatter includes, they are followed. Pi uses the same loader, so includes work there too.
+A leading `---` frontmatter block may have one `include` key: a path, or a YAML list of paths, relative to the including file. It may also set `github-annotation:` for FAIL annotations in GitHub Actions. A directory loads every `*.md` except `README.md` (a pack). A markdown file loads that file's `#` rules. Included rules load first, then the local `#` rules. Duplicate titles fail the run. Cycles fail the run. A second `include:` key, unknown keys, and an unterminated fence fail the run. `--rules` still replaces the walk; if that file has frontmatter includes, they are followed. Pi uses the same loader, so includes work there too.
 
 ## Adapters
 
@@ -67,7 +68,8 @@ Or in the nearest `package.json` walking up from cwd:
 {
   "patdown": {
     "adapter": "./patdown-yaml-rules.js",
-    "yesThreshold": 0.9
+    "yesThreshold": 0.9,
+    "githubAnnotation": "warning"
   }
 }
 ```
@@ -149,12 +151,13 @@ patdown --rules ./node_modules/@patdown/packs/typescript/do-not-launder-types-wi
 
 ## Rules
 
-One `# heading` per rule. Optional `globs:` and `yes-threshold:` lines sit immediately under the heading, in either order. Commas or spaces, extra `globs:` lines stack. A second `yes-threshold:` line is an error. Optional YAML frontmatter at the top of the file lists `include:` origins. Other text above the first heading is ignored. Headings inside fenced code are ignored. Only `#` headings start rules; `##` and deeper headings stay in the rule body, so sections like `## Not allowed` and `## Exceptions` are fine.
+One `# heading` per rule. Optional `globs:`, `yes-threshold:`, and `github-annotation:` lines sit immediately under the heading, in any order. Commas or spaces, extra `globs:` lines stack. A second `yes-threshold:` or `github-annotation:` line is an error. Optional YAML frontmatter at the top of the file lists `include:` origins and may set a default `github-annotation:`. Other text above the first heading is ignored. Headings inside fenced code are ignored. Only `#` headings start rules; `##` and deeper headings stay in the rule body, so sections like `## Not allowed` and `## Exceptions` are fine.
 
 ```
 # No title case
 globs: **/*.md
 yes-threshold: 0.9
+github-annotation: error
 
 Markdown headings must use sentence case, not title case.
 ```

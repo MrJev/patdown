@@ -27,8 +27,41 @@ When a path list is set, rules whose globs miss every listed file stay quiet. Wi
 
 When `GITHUB_ACTIONS=true` and `GITHUB_STEP_SUMMARY` are set, the default CLI also:
 
-1. Prints `::error` annotations for failing file/rule pairs (hottest first, capped at 10), including the rule title, globs, and full rule body under the probability line
+1. Prints workflow-command annotations for failing file/rule pairs (hottest first, capped at 10), including the rule title, globs, and full rule body under the probability line
 2. Appends a markdown heatmap to the step summary
+
+Annotation level is display only. It does not change whether a yes judgment fails the run. Levels are `error`, `warning`, and `notice` (GitHub has no `::info`). Resolution, most specific wins:
+
+1. per-rule `github-annotation:` metadata
+2. rules-file frontmatter `github-annotation:`
+3. `--github-annotation` / package.json `patdown.githubAnnotation`
+4. built-in default: `error`
+
+```
+---
+include:
+  - ./node_modules/@patdown/packs/typescript
+github-annotation: warning
+---
+
+# No title case
+globs: **/*.md
+github-annotation: error
+
+Markdown headings must use sentence case.
+```
+
+```json
+{
+  "patdown": {
+    "githubAnnotation": "warning"
+  }
+}
+```
+
+```sh
+npx patdown --github-annotation warning --files-from changed.txt
+```
 
 PASS stays one noul judgment. On FAIL, the default TypeSafe judge makes a second Choice call whose candidates are individual lines (full file + original P(yes) in state). Files larger than the per-line cap fall back to chunks. Later we may offer smarter units (functions, headings, hunks) the same way. If that Choice is unavailable, returns `noMatch`, or fails, the annotation still lands on the file at `line=1`.
 

@@ -1,9 +1,12 @@
 import { dirname, join, resolve } from 'node:path'
 
 import {
+	decodePatdownGitHubAnnotationLevel,
 	decodePatdownYesThreshold,
+	PatdownGitHubAnnotationInvalid,
 	PatdownRulesLoadFailed,
 	PatdownYesThresholdInvalid,
+	type PatdownGitHubAnnotationLevel,
 	type PatdownYesThreshold,
 } from '@patdown/rules'
 import { Effect, FileSystem, Schema } from 'effect'
@@ -13,6 +16,7 @@ const PatdownPackageJsonSchema = Schema.fromJsonString(
 		patdown: Schema.optionalKey(
 			Schema.Struct({
 				adapter: Schema.optionalKey(Schema.NonEmptyString),
+				githubAnnotation: Schema.optionalKey(Schema.NonEmptyString),
 				yesThreshold: Schema.optionalKey(Schema.Finite),
 			}),
 		),
@@ -22,11 +26,13 @@ const PatdownPackageJsonSchema = Schema.fromJsonString(
 export type PatdownPackageConfig = {
 	readonly adapter?: string
 	readonly fromDirectory: string
+	readonly githubAnnotation?: PatdownGitHubAnnotationLevel
 	readonly yesThreshold?: PatdownYesThreshold
 }
 
 type DecodedPatdownPackageJson = {
 	readonly adapter?: string
+	readonly githubAnnotation?: string
 	readonly yesThreshold?: number
 }
 
@@ -41,22 +47,46 @@ function decodeConfiguredYesThreshold(
 		: Effect.succeed(decoded)
 }
 
+function decodeConfiguredGitHubAnnotation(
+	value: string,
+	filename: string,
+): Effect.Effect<PatdownGitHubAnnotationLevel, PatdownGitHubAnnotationInvalid> {
+	const decoded = decodePatdownGitHubAnnotationLevel(
+		value,
+		`package.json ${filename} patdown.githubAnnotation`,
+	)
+
+	return decoded instanceof PatdownGitHubAnnotationInvalid
+		? Effect.fail(decoded)
+		: Effect.succeed(decoded)
+}
+
 function failedPackageJson(filename: string): PatdownRulesLoadFailed {
 	return new PatdownRulesLoadFailed({
 		message: `patdown: failed to read ${filename}`,
 	})
 }
 
-function decodedPackageJson(
-	adapter: string | undefined,
-	yesThreshold: number | undefined,
-): DecodedPatdownPackageJson {
-	const decoded: DecodedPatdownPackageJson = {}
+function decodedPackageJson(patdown: {
+	readonly adapter?: string
+	readonly yesThreshold?: number
+	readonly githubAnnotation?: string
+}): DecodedPatdownPackageJson {
+	let decoded: DecodedPatdownPackageJson = {}
 
-	return {
-		...(adapter === undefined ? decoded : { ...decoded, adapter }),
-		...(yesThreshold === undefined ? decoded : { ...decoded, yesThreshold }),
+	if (patdown.adapter !== undefined) {
+		decoded = { ...decoded, adapter: patdown.adapter }
 	}
+
+	if (patdown.yesThreshold !== undefined) {
+		decoded = { ...decoded, yesThreshold: patdown.yesThreshold }
+	}
+
+	if (patdown.githubAnnotation !== undefined) {
+		decoded = { ...decoded, githubAnnotation: patdown.githubAnnotation }
+	}
+
+	return decoded
 }
 
 function readPatdownPackageJson(
@@ -86,7 +116,7 @@ function readPatdownPackageJson(
 
 		if (decoded.patdown === undefined) return {}
 
-		return decodedPackageJson(decoded.patdown.adapter, decoded.patdown.yesThreshold)
+		return decodedPackageJson(decoded.patdown)
 	})
 }
 
@@ -100,85 +130,163 @@ type DiscoveredYesThreshold = {
 	readonly filename: string
 }
 
+type DiscoveredGitHubAnnotation = {
+	readonly value: string
+	readonly filename: string
+}
+
 type CollectedPackageConfig = {
 	readonly adapter: DiscoveredAdapter | undefined
 	readonly yesThresholdValue: DiscoveredYesThreshold | undefined
+	readonly githubAnnotationValue: DiscoveredGitHubAnnotation | undefined
 }
 
-function collectPackageConfig(
-	directory: string,
-	adapter: DiscoveredAdapter | undefined,
-	yesThresholdValue: DiscoveredYesThreshold | undefined,
-	decoded: DecodedPatdownPackageJson,
-): CollectedPackageConfig {
+type CollectPackageConfigInput = {
+	readonly directory: string
+	readonly adapter: DiscoveredAdapter | undefined
+	readonly yesThresholdValue: DiscoveredYesThreshold | undefined
+	readonly githubAnnotationValue: DiscoveredGitHubAnnotation | undefined
+	readonly decoded: DecodedPatdownPackageJson
+}
+
+function collectPackageConfig(input: CollectPackageConfigInput): CollectedPackageConfig {
 	const nextAdapter: DiscoveredAdapter | undefined =
-		adapter ??
-		(decoded.adapter === undefined
+		input.adapter ??
+		(input.decoded.adapter === undefined
 			? undefined
-			: { moduleSpecifier: decoded.adapter, fromDirectory: directory })
+			: { moduleSpecifier: input.decoded.adapter, fromDirectory: input.directory })
 
 	const nextYesThreshold: DiscoveredYesThreshold | undefined =
-		yesThresholdValue ??
-		(decoded.yesThreshold === undefined
+		input.yesThresholdValue ??
+		(input.decoded.yesThreshold === undefined
 			? undefined
-			: { value: decoded.yesThreshold, filename: join(directory, 'package.json') })
+			: {
+					value: input.decoded.yesThreshold,
+					filename: join(input.directory, 'package.json'),
+				})
 
-	const collected: CollectedPackageConfig = {
+	const nextGitHubAnnotation: DiscoveredGitHubAnnotation | undefined =
+		input.githubAnnotationValue ??
+		(input.decoded.githubAnnotation === undefined
+			? undefined
+			: {
+					value: input.decoded.githubAnnotation,
+					filename: join(input.directory, 'package.json'),
+				})
+
+	return {
 		adapter: nextAdapter,
 		yesThresholdValue: nextYesThreshold,
+		githubAnnotationValue: nextGitHubAnnotation,
 	}
-
-	return collected
 }
 
 function packageConfigFromDiscovery(
 	directory: string,
 	adapter: DiscoveredAdapter | undefined,
 	yesThreshold: PatdownYesThreshold | undefined,
+	githubAnnotation: PatdownGitHubAnnotationLevel | undefined,
 ): PatdownPackageConfig {
-	const config: PatdownPackageConfig = {
+	let config: PatdownPackageConfig = {
 		fromDirectory: adapter?.fromDirectory ?? directory,
 	}
 
-	if (adapter !== undefined && yesThreshold !== undefined) {
-		return { ...config, adapter: adapter.moduleSpecifier, yesThreshold }
-	}
-
 	if (adapter !== undefined) {
-		return { ...config, adapter: adapter.moduleSpecifier }
+		config = { ...config, adapter: adapter.moduleSpecifier }
 	}
 
 	if (yesThreshold !== undefined) {
-		return { ...config, yesThreshold }
+		config = { ...config, yesThreshold }
+	}
+
+	if (githubAnnotation !== undefined) {
+		config = { ...config, githubAnnotation }
 	}
 
 	return config
 }
 
+function discoveryNeedsMore(
+	adapter: DiscoveredAdapter | undefined,
+	yesThresholdValue: DiscoveredYesThreshold | undefined,
+	githubAnnotationValue: DiscoveredGitHubAnnotation | undefined,
+): boolean {
+	return (
+		adapter === undefined || yesThresholdValue === undefined || githubAnnotationValue === undefined
+	)
+}
+
+function discoveryFoundNothing(
+	adapter: DiscoveredAdapter | undefined,
+	yesThresholdValue: DiscoveredYesThreshold | undefined,
+	githubAnnotationValue: DiscoveredGitHubAnnotation | undefined,
+): boolean {
+	return (
+		adapter === undefined && yesThresholdValue === undefined && githubAnnotationValue === undefined
+	)
+}
+
+function decodeDiscoveredPackageValues(
+	yesThresholdValue: DiscoveredYesThreshold | undefined,
+	githubAnnotationValue: DiscoveredGitHubAnnotation | undefined,
+): Effect.Effect<
+	{
+		readonly yesThreshold: PatdownYesThreshold | undefined
+		readonly githubAnnotation: PatdownGitHubAnnotationLevel | undefined
+	},
+	PatdownYesThresholdInvalid | PatdownGitHubAnnotationInvalid
+> {
+	return Effect.gen(function* () {
+		const yesThreshold =
+			yesThresholdValue === undefined
+				? undefined
+				: yield* decodeConfiguredYesThreshold(yesThresholdValue.value, yesThresholdValue.filename)
+
+		const githubAnnotation =
+			githubAnnotationValue === undefined
+				? undefined
+				: yield* decodeConfiguredGitHubAnnotation(
+						githubAnnotationValue.value,
+						githubAnnotationValue.filename,
+					)
+
+		return { yesThreshold, githubAnnotation }
+	})
+}
+
 /**
- * Walks from cwd for package.json `patdown` settings. A nearer file without adapter/yesThreshold
- * does not hide a parent that has them. Invalid JSON fails immediately.
+ * Walks from cwd for package.json `patdown` settings. A nearer file without a key does not hide a
+ * parent that has it. Invalid JSON fails immediately.
  */
 export function discoverPatdownPackageConfig(
 	startDirectory: string = process.cwd(),
 ): Effect.Effect<
 	PatdownPackageConfig | null,
-	PatdownRulesLoadFailed | PatdownYesThresholdInvalid,
+	PatdownRulesLoadFailed | PatdownYesThresholdInvalid | PatdownGitHubAnnotationInvalid,
 	FileSystem.FileSystem
 > {
 	return Effect.gen(function* () {
 		let directory = resolve(startDirectory)
-		let adapter: { readonly moduleSpecifier: string; readonly fromDirectory: string } | undefined
-		let yesThresholdValue: { readonly value: number; readonly filename: string } | undefined
+		let adapter: DiscoveredAdapter | undefined
+		let yesThresholdValue: DiscoveredYesThreshold | undefined
+		let githubAnnotationValue: DiscoveredGitHubAnnotation | undefined
 
-		while (adapter === undefined || yesThresholdValue === undefined) {
+		while (discoveryNeedsMore(adapter, yesThresholdValue, githubAnnotationValue)) {
 			const filename = join(directory, 'package.json')
 			const decoded = yield* readPatdownPackageJson(filename)
 
 			if (decoded !== null) {
-				const collected = collectPackageConfig(directory, adapter, yesThresholdValue, decoded)
+				const collected = collectPackageConfig({
+					directory,
+					adapter,
+					yesThresholdValue,
+					githubAnnotationValue,
+					decoded,
+				})
+
 				adapter = collected.adapter
 				yesThresholdValue = collected.yesThresholdValue
+				githubAnnotationValue = collected.githubAnnotationValue
 			}
 
 			const parent = dirname(directory)
@@ -188,14 +296,21 @@ export function discoverPatdownPackageConfig(
 			directory = parent
 		}
 
-		if (adapter === undefined && yesThresholdValue === undefined) return null
+		if (discoveryFoundNothing(adapter, yesThresholdValue, githubAnnotationValue)) {
+			return null
+		}
 
-		const yesThreshold =
-			yesThresholdValue === undefined
-				? undefined
-				: yield* decodeConfiguredYesThreshold(yesThresholdValue.value, yesThresholdValue.filename)
+		const decodedValues = yield* decodeDiscoveredPackageValues(
+			yesThresholdValue,
+			githubAnnotationValue,
+		)
 
-		return packageConfigFromDiscovery(directory, adapter, yesThreshold)
+		return packageConfigFromDiscovery(
+			directory,
+			adapter,
+			decodedValues.yesThreshold,
+			decodedValues.githubAnnotation,
+		)
 	})
 }
 
@@ -212,6 +327,34 @@ export function discoverPatdownYesThresholdConfig(
 
 			if (decoded?.yesThreshold !== undefined) {
 				return yield* decodeConfiguredYesThreshold(decoded.yesThreshold, filename)
+			}
+
+			const parent = dirname(directory)
+
+			if (parent === directory) return null
+
+			directory = parent
+		}
+	})
+}
+
+/** Reads only githubAnnotation from package.json. Broken adapter config is skipped. */
+export function discoverPatdownGitHubAnnotationConfig(
+	startDirectory: string = process.cwd(),
+): Effect.Effect<
+	PatdownGitHubAnnotationLevel | null,
+	PatdownGitHubAnnotationInvalid,
+	FileSystem.FileSystem
+> {
+	return Effect.gen(function* () {
+		let directory = resolve(startDirectory)
+
+		while (true) {
+			const filename = join(directory, 'package.json')
+			const decoded = yield* readPatdownPackageJson(filename).pipe(Effect.orElseSucceed(() => null))
+
+			if (decoded?.githubAnnotation !== undefined) {
+				return yield* decodeConfiguredGitHubAnnotation(decoded.githubAnnotation, filename)
 			}
 
 			const parent = dirname(directory)

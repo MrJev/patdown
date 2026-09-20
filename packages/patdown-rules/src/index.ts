@@ -1,6 +1,18 @@
-export { parseMarkdownPatdownIncludes } from '#src/markdown-patdown-include-parser'
+export {
+	parseMarkdownPatdownFrontmatter,
+	parseMarkdownPatdownIncludes,
+	type PatdownMarkdownFrontmatter,
+} from '#src/markdown-patdown-frontmatter'
 
 export { parseMarkdownPatdownRules } from '#src/markdown-patdown-rule-parser'
+
+export {
+	defaultPatdownGitHubAnnotationLevel,
+	decodePatdownGitHubAnnotationLevel,
+	PatdownGitHubAnnotationInvalid,
+	resolvePatdownGitHubAnnotationLevel,
+	type PatdownGitHubAnnotationLevel,
+} from '#src/patdown-github-annotation'
 
 export {
 	defaultPatdownRulesFileName,

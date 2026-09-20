@@ -2,7 +2,10 @@ export { patdownCommand, makePatdownCommand } from '#src/cli'
 
 export { PatdownOutput, PatdownOutputLive, type PatdownLintResult } from '#src/patdown-output'
 
-export { PatdownGitHubActionsOutputLive } from '#src/patdown-github-actions-output'
+export {
+	makePatdownGitHubActionsOutputLive,
+	PatdownGitHubActionsOutputLive,
+} from '#src/patdown-github-actions-output'
 
 export {
 	formatPatdownGitHubActionsAnnotations,
@@ -52,9 +55,14 @@ export {
 } from '#src/patdown-judge'
 
 export {
+	defaultPatdownGitHubAnnotationLevel,
 	defaultPatdownYesThreshold,
+	decodePatdownGitHubAnnotationLevel,
 	decodePatdownYesThreshold,
+	PatdownGitHubAnnotationInvalid,
 	PatdownYesThresholdInvalid,
+	resolvePatdownGitHubAnnotationLevel,
+	type PatdownGitHubAnnotationLevel,
 	type PatdownYesThreshold,
 } from '@patdown/rules'
 

@@ -1,4 +1,5 @@
 import {
+	PatdownGitHubAnnotationInvalid,
 	PatdownRuleSource,
 	PatdownRulesFileMissing,
 	PatdownRulesReadFailed,
@@ -61,6 +62,12 @@ const noGitHubFlag = Flag.boolean('no-github').pipe(
 	Flag.withDescription('Disable GitHub Actions summary and annotations'),
 )
 
+const githubAnnotationFlag = Flag.optional(Flag.string('github-annotation')).pipe(
+	Flag.withDescription(
+		'GitHub Actions FAIL annotation level: error, warning, or notice; overridable per rule',
+	),
+)
+
 type PatdownLintServices =
 	| FileSystem.FileSystem
 	| Stdio.Stdio
@@ -119,6 +126,8 @@ function makePatdownRulesCommand(
 					PatdownRulesReadFailed: (error: PatdownRulesReadFailed) => failPatdown(error.message),
 					PatdownRulesLoadFailed: (error: PatdownRulesLoadFailed) => failPatdown(error.message),
 					PatdownYesThresholdInvalid: (error: PatdownYesThresholdInvalid) =>
+						failPatdown(error.message),
+					PatdownGitHubAnnotationInvalid: (error: PatdownGitHubAnnotationInvalid) =>
 						failPatdown(error.message),
 				}),
 			),
@@ -204,6 +213,8 @@ function runPatdownRootLint(
 			PatdownRulesLoadFailed: (error: PatdownRulesLoadFailed) => failPatdown(error.message),
 			PatdownJudgeFailed: (error: PatdownJudgeFailed) => failPatdown(error.message),
 			PatdownYesThresholdInvalid: (error: PatdownYesThresholdInvalid) => failPatdown(error.message),
+			PatdownGitHubAnnotationInvalid: (error: PatdownGitHubAnnotationInvalid) =>
+				failPatdown(error.message),
 			PatdownRulesFileMissing: (error: PatdownRulesFileMissing) => failPatdown(error.message),
 			PatdownRulesReadFailed: (error: PatdownRulesReadFailed) => failPatdown(error.message),
 		}),
@@ -223,12 +234,22 @@ export function makePatdownCommand(
 			adapter: adapterFlag,
 			files: filesFlag,
 			filesFrom: filesFromFlag,
+			githubAnnotation: githubAnnotationFlag,
 			noGitHub: noGitHubFlag,
 			rules: rulesFileFlag,
 			verbose: verboseFlag,
 			yesThreshold: yesThresholdFlag,
 		},
-		({ rules, adapter, verbose, yesThreshold, files, filesFrom, noGitHub: _noGitHub }) =>
+		({
+			rules,
+			adapter,
+			verbose,
+			yesThreshold,
+			files,
+			filesFrom,
+			githubAnnotation: _githubAnnotation,
+			noGitHub: _noGitHub,
+		}) =>
 			runPatdownRootLint(discoverAdapters, {
 				rules,
 				adapter,

@@ -52,7 +52,7 @@ export function judgePatdownFileContents(
 			patdownFileState(relativePath, contents),
 		)
 
-		return {
+		const result: PatdownLintResult = {
 			violated: patdownJudgmentIsYes(timed.judgment, yesThreshold),
 			ruleTitle: rule.patdownRuleTitle,
 			ruleBody: rule.patdownRuleBody,
@@ -61,6 +61,13 @@ export function judgePatdownFileContents(
 			violationProbability: timed.judgment.yesProbability,
 			yesThreshold,
 			elapsedMs: timed.elapsedMs,
+		}
+
+		if (rule.patdownRuleGitHubAnnotation === undefined) return result
+
+		return {
+			...result,
+			githubAnnotation: rule.patdownRuleGitHubAnnotation,
 		}
 	})
 }
