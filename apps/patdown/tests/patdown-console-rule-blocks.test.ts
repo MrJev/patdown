@@ -42,6 +42,7 @@ describe('console rule blocks', () => {
 
 		expect(lines[0]).toMatch(/^┌ Follow Effect diagnostics ─+ 1✗ \/ 3$/u)
 		expect(lines.slice(1)).toEqual([
+			'│',
 			'├─ apps/patdown',
 			'│',
 			'│  ✓  ▒░░░░░░░░░  0.06    9ms  oxlint.config.ts',
@@ -53,7 +54,6 @@ describe('console rule blocks', () => {
 			'├─ packages/patdown-jev/src',
 			'│',
 			'│  ✗  ▓▓▓▓▓▓▓▓▓░  0.91   90ms  index.ts',
-			'│',
 			'└',
 		])
 	})
@@ -72,7 +72,7 @@ describe('console rule blocks', () => {
 		const block = formatPatdownRuleBlock('No title case', [])
 
 		expect(block.split('\n')[0]).toMatch(/^┌ No title case ─+ 0✗ \/ 0$/u)
-		expect(block).toContain('│\n│  (no files matched)\n│')
+		expect(block).toContain('│\n│  (no files matched)\n└')
 		expect(block.endsWith('└')).toBe(true)
 	})
 })

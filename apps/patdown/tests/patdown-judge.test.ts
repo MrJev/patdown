@@ -111,9 +111,12 @@ describe('human-readable judgments', () => {
 			const lines = yield* TestConsole.logLines
 			expect(lines[0]).toBe('yes')
 			expect(lines[1]).toBe('no (░░░░░░░░░░ estimated P(yes): 0.02; cutoff: >0.85; elapsed: 12ms)')
-			expect(lines.slice(2, -1).join('\n')).toContain('┌ Sentence case')
-			expect(lines.slice(2, -1).join('\n')).toContain('README.md')
-			expect(lines.slice(2, -1).join('\n')).toContain('▓▓▓▓▓▓▓▓▓░  0.91')
+			const block = lines.slice(2, -1).join('\n')
+
+			expect(block).toContain('┌ Sentence case')
+			expect(block).toContain('README.md')
+			expect(block).toContain('▓▓▓▓▓▓▓▓▓░  0.91')
+			expect(lines.at(-2)).toBe('')
 			expect(lines.at(-1)).toBe('patdown: failed (elapsed: 40ms)')
 		}).pipe(Effect.provide(outputHarness)),
 	)

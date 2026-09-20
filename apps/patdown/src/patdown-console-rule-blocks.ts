@@ -81,10 +81,10 @@ export function formatPatdownRuleBlock(
 	const failCount = results.filter((result) => result.violated).length
 	const lines = [padPatdownRuleBlockTitle(ruleTitle, failCount, results.length)]
 
+	lines.push('│')
+
 	if (results.length === 0) {
-		lines.push('│')
 		lines.push('│  (no files matched)')
-		lines.push('│')
 	} else {
 		const ordered = [...results].toSorted((left, right) =>
 			left.filePath.localeCompare(right.filePath),
@@ -116,8 +116,6 @@ export function formatPatdownRuleBlock(
 
 			lines.push(formatPatdownRuleBlockRow(result, timeWidth, nameWidth))
 		}
-
-		lines.push('│')
 	}
 
 	lines.push('└')

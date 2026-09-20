@@ -192,12 +192,28 @@ export const PatdownOutputLive: Layer.Layer<PatdownOutput> = Layer.effect(
 				}),
 			writeLintOk: (elapsedMs) =>
 				Effect.gen(function* () {
+					const current = yield* Ref.get(buffer)
+					const hadVerboseBlock = current.ruleTitle !== null
+
 					yield* flush()
+
+					if (hadVerboseBlock) {
+						yield* Console.log('')
+					}
+
 					yield* patdownStreamingHumanOutput.writeLintOk(elapsedMs)
 				}),
 			writeLintFailed: (elapsedMs) =>
 				Effect.gen(function* () {
+					const current = yield* Ref.get(buffer)
+					const hadVerboseBlock = current.ruleTitle !== null
+
 					yield* flush()
+
+					if (hadVerboseBlock) {
+						yield* Console.log('')
+					}
+
 					yield* patdownStreamingHumanOutput.writeLintFailed(elapsedMs)
 				}),
 		}
