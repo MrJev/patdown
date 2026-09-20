@@ -1,6 +1,8 @@
 import type { PatdownLintResult } from 'patdown'
 import { formatPatdownRuleGuidance } from 'patdown'
 
+import type { PatdownPiMode } from '#src/patdown-pi-policy'
+
 /** Failures first, then hottest P(yes). */
 export function patdownSteerFailures(
 	results: ReadonlyArray<PatdownLintResult>,
@@ -18,12 +20,17 @@ function formatPatdownSteerFailure(result: PatdownLintResult): string {
 	].join('\n')
 }
 
-/** Tool-block reason the agent sees. Quotes the broken rule; does not fail closed as a pass. */
+function patdownSteerVerb(mode: PatdownPiMode): string {
+	return mode === 'block' ? 'blocked' : 'flagged'
+}
+
+/** Message the agent or UI sees. Quotes the broken rule; does not fail closed as a pass. */
 export function formatPatdownSteerReason(
 	relativePath: string,
 	failures: ReadonlyArray<PatdownLintResult>,
+	mode: PatdownPiMode = 'block',
 ): string {
 	const details = failures.map(formatPatdownSteerFailure).join('\n\n')
 
-	return [`patdown blocked write to ${relativePath}`, '', details].join('\n')
+	return [`patdown ${patdownSteerVerb(mode)} write to ${relativePath}`, '', details].join('\n')
 }

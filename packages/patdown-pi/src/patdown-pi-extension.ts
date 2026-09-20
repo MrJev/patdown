@@ -2,12 +2,18 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 import {
+	isEditToolResult,
 	isToolCallEventType,
+	isWriteToolResult,
 	type ExtensionAPI,
 	type ExtensionContext,
 	type ToolCallEvent,
+	type ToolResultEvent,
 } from '@earendil-works/pi-coding-agent'
+import type { PatdownLintResult } from 'patdown'
 
+import { applyPatdownPiCommand, patdownPiCommandUsage } from '#src/patdown-pi-command'
+import { patdownPiJudgesAfter, patdownPiJudgesBefore } from '#src/patdown-pi-policy'
 import {
 	applyExactPatdownEdits,
 	patdownRelativeToolPath,
@@ -18,10 +24,10 @@ import {
 	idlePatdownPiSession,
 	judgePatdownPiProposedFile,
 	loadPatdownPiSession,
-	setPatdownPiEnabled,
 	type PatdownPiSession,
 } from '#src/patdown-pi-session'
 import { formatPatdownSteerReason, patdownSteerFailures } from '#src/patdown-pi-steer'
+import { decodePatdownToolResultPath } from '#src/patdown-pi-tool-result'
 
 function readExistingPatdownFile(cwd: string, relativePath: string): string | null {
 	try {
@@ -76,27 +82,51 @@ function proposedPatdownToolFile(cwd: string, event: ToolCallEvent): PatdownProp
 	return null
 }
 
+function writtenPatdownToolFile(cwd: string, event: ToolResultEvent): PatdownProposedFile | null {
+	if (event.isError) return null
+
+	if (!isWriteToolResult(event) && !isEditToolResult(event)) return null
+
+	const path = decodePatdownToolResultPath(JSON.stringify(event.input))
+
+	if (path === null) return null
+
+	const relativePath = patdownRelativeToolPath(cwd, path)
+
+	if (relativePath === null) return null
+
+	const contents = readExistingPatdownFile(cwd, relativePath)
+
+	if (contents === null) return null
+
+	return { relativePath, contents }
+}
+
 type PatdownPiBlock = {
 	readonly block: true
 	readonly reason: string
 }
 
-function notifyPatdownPiBlock(
+type PatdownPiJudgmentOutcome =
+	| { readonly kind: 'pass' }
+	| { readonly kind: 'fail'; readonly failures: ReadonlyArray<PatdownLintResult> }
+	| { readonly kind: 'error'; readonly message: string }
+
+function notifyPatdownPiFinding(
 	ctx: ExtensionContext,
 	relativePath: string,
 	failureCount: number,
 ): void {
 	if (!ctx.hasUI) return
 
-	ctx.ui.notify(`patdown blocked ${relativePath}`, 'warning')
+	ctx.ui.notify(`patdown flagged ${relativePath}`, 'warning')
 	ctx.ui.setStatus('patdown', `patdown: ${String(failureCount)}✗`)
 }
 
-async function blockPatdownProposedWrite(
+async function judgePatdownProposedFile(
 	session: PatdownPiSession,
 	proposed: PatdownProposedFile,
-	ctx: ExtensionContext,
-): Promise<PatdownPiBlock | undefined> {
+): Promise<PatdownPiJudgmentOutcome> {
 	try {
 		const results = await judgePatdownPiProposedFile(
 			session,
@@ -106,28 +136,87 @@ async function blockPatdownProposedWrite(
 
 		const failures = patdownSteerFailures(results)
 
-		if (failures.length === 0) return undefined
+		if (failures.length === 0) return { kind: 'pass' }
 
-		notifyPatdownPiBlock(ctx, proposed.relativePath, failures.length)
-
-		return { block: true, reason: formatPatdownSteerReason(proposed.relativePath, failures) }
+		return { kind: 'fail', failures }
 	} catch (cause) {
 		const message = cause instanceof Error ? cause.message : String(cause)
 
-		return { block: true, reason: `patdown: judge failed: ${message}` }
+		return { kind: 'error', message }
 	}
 }
 
-function applyPatdownPiCommand(session: PatdownPiSession, args: string): PatdownPiSession | null {
-	const action = args.trim()
+function headlinePatdownFinding(text: string): string {
+	return text.split('\n')[0] ?? text
+}
 
-	if (action === 'off') return setPatdownPiEnabled(session, false)
+function deliverPatdownFinding(
+	pi: ExtensionAPI,
+	ctx: ExtensionContext,
+	text: string,
+	mode: 'steer' | 'warn',
+): void {
+	if (ctx.hasUI) {
+		ctx.ui.notify(headlinePatdownFinding(text), 'warning')
+	}
 
-	if (action === 'on') return setPatdownPiEnabled(session, true)
+	if (mode === 'warn') return
 
-	if (action.length === 0 || action === 'status') return session
+	if (ctx.isIdle()) {
+		pi.sendUserMessage(text)
 
-	return null
+		return
+	}
+
+	pi.sendUserMessage(text, { deliverAs: 'followUp' })
+}
+
+async function blockPatdownBeforeWrite(
+	session: PatdownPiSession,
+	proposed: PatdownProposedFile,
+	ctx: ExtensionContext,
+): Promise<PatdownPiBlock | undefined> {
+	const outcome = await judgePatdownProposedFile(session, proposed)
+
+	if (outcome.kind === 'pass') return undefined
+
+	if (outcome.kind === 'error') {
+		return { block: true, reason: `patdown: judge failed: ${outcome.message}` }
+	}
+
+	notifyPatdownPiFinding(ctx, proposed.relativePath, outcome.failures.length)
+
+	return {
+		block: true,
+		reason: formatPatdownSteerReason(proposed.relativePath, outcome.failures, 'block'),
+	}
+}
+
+async function reportPatdownFinding(
+	pi: ExtensionAPI,
+	session: PatdownPiSession,
+	proposed: PatdownProposedFile,
+	ctx: ExtensionContext,
+): Promise<void> {
+	const outcome = await judgePatdownProposedFile(session, proposed)
+
+	if (outcome.kind === 'pass') return
+
+	const mode = session.policy.mode === 'block' ? 'steer' : session.policy.mode
+
+	if (outcome.kind === 'error') {
+		deliverPatdownFinding(pi, ctx, `patdown: judge failed: ${outcome.message}`, mode)
+
+		return
+	}
+
+	notifyPatdownPiFinding(ctx, proposed.relativePath, outcome.failures.length)
+	deliverPatdownFinding(
+		pi,
+		ctx,
+		formatPatdownSteerReason(proposed.relativePath, outcome.failures, session.policy.mode),
+		mode,
+	)
 }
 
 function notifyPatdownPiStatus(ctx: ExtensionContext, status: string): void {
@@ -142,7 +231,7 @@ export function installPatdownPiExtension(pi: ExtensionAPI): void {
 	let session = idlePatdownPiSession()
 
 	pi.on('session_start', async (_event, ctx) => {
-		session = await loadPatdownPiSession()
+		session = await loadPatdownPiSession(ctx.cwd)
 
 		if (ctx.hasUI) {
 			ctx.ui.setStatus('patdown', formatPatdownPiStatus(session))
@@ -152,24 +241,44 @@ export function installPatdownPiExtension(pi: ExtensionAPI): void {
 	pi.on('tool_call', async (event, ctx): Promise<PatdownPiBlock | undefined> => {
 		if (!session.enabled || session.document === null) return undefined
 
+		if (!patdownPiJudgesBefore(session.policy)) return undefined
+
 		const proposed = proposedPatdownToolFile(ctx.cwd, event)
 
 		if (proposed === null) return undefined
 
-		const blocked = await blockPatdownProposedWrite(session, proposed, ctx)
+		if (session.policy.mode === 'block') {
+			const blocked = await blockPatdownBeforeWrite(session, proposed, ctx)
 
-		return blocked
+			return blocked
+		}
+
+		await reportPatdownFinding(pi, session, proposed, ctx)
+
+		return undefined
+	})
+
+	pi.on('tool_result', async (event, ctx) => {
+		if (!session.enabled || session.document === null) return
+
+		if (!patdownPiJudgesAfter(session.policy)) return
+
+		const written = writtenPatdownToolFile(ctx.cwd, event)
+
+		if (written === null) return
+
+		await reportPatdownFinding(pi, session, written, ctx)
 	})
 
 	pi.registerCommand('patdown', {
-		description: 'Show or toggle in-agent patdown write steering',
+		description: 'Show or set in-agent patdown write steering (block/steer/warn, before/after)',
 		handler: async (args, ctx): Promise<void> => {
 			await Promise.resolve()
 
 			const next = applyPatdownPiCommand(session, args)
 
 			if (next === null) {
-				ctx.ui.notify('usage: /patdown [on|off|status]', 'warning')
+				ctx.ui.notify(patdownPiCommandUsage, 'warning')
 
 				return
 			}

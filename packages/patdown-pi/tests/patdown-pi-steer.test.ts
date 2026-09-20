@@ -36,6 +36,9 @@ describe('steer messages', () => {
 		const reason = formatPatdownSteerReason('src/cli.ts', failures)
 
 		expect(reason).toContain('patdown blocked write to src/cli.ts')
+		expect(formatPatdownSteerReason('src/cli.ts', failures, 'steer')).toContain(
+			'patdown flagged write to src/cli.ts',
+		)
 		expect(reason).toContain('# Do not launder types with casts')
 		expect(reason).toContain('P(yes) 0.91 exceeds cutoff >0.85')
 		expect(reason).toContain('Do not hide a type with a cast.')

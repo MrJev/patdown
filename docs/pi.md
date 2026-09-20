@@ -1,18 +1,30 @@
 # Pi write steering
 
-`@patdown/pi` is a [pi package](https://pi.dev/packages) that intercepts Pi `write` and `edit` tool calls, reconstructs the proposed file, and runs the same in-memory judge the CLI uses.
+`@patdown/pi` is a [pi package](https://pi.dev/packages) that judges Pi `write` and `edit` against the same fuzzy rules the CLI uses.
 
 It is optional. Patdown the CLI stays a tree linter for CI and local runs. The package exists so you do not have to wait for `pnpm check` / `patdown --files-from` to see a rule violation.
 
-## What it does
+## Modes
 
-1. On session start, load rules the same way the CLI does (`AGENTS.PATDOWN.md` walk, `--rules` equivalent is the default file, package.json adapter / `yesThreshold`).
-2. On `write`, judge `content` as the new file.
-3. On `edit`, apply exact `oldText` → `newText` replacements against the current file, then judge the result. Overlapping or missing spans are skipped so Pi’s own edit matcher can fail.
-4. If any matching rule’s P(yes) is strictly above the cutoff, block the tool and return the rule body to the agent.
-5. If the judge call fails, block the tool with that error. Do not treat a failed judgment as a pass.
+| Mode | On a violation |
+|---|---|
+| `block` | Stop the tool. The agent sees the rule in the tool error. Default. |
+| `steer` | Let the write happen, then queue a follow-up so the agent can fix it. |
+| `warn` | Notify in the TUI only. Do not inject into the conversation. |
 
-Read-only tools are ignored. Bash is ignored, including `cat > file` / `tee` / `sed -i` — those still wait for the CLI or CI. Missing rules disable steering instead of blocking every write.
+Judge errors are never treated as a pass: `block` still blocks; `steer`/`warn` still report the failure.
+
+## When
+
+| When | Hook |
+|---|---|
+| `before` | `tool_call` — reconstruct the proposed file, judge, optionally block |
+| `after` | `tool_result` — read the file that landed, judge, report |
+| `both` | both hooks |
+
+`block` always uses `before`. You cannot un-write a file from `tool_result`. Choosing `/patdown block` forces `when: before`. `/patdown steer` and `/patdown warn` default to `after`.
+
+Read-only tools are ignored. Bash is ignored, including `cat > file` / `tee` / `sed -i`. Missing rules disable judging instead of blocking every write.
 
 ## Install
 
@@ -36,10 +48,34 @@ Requires Pi 0.85+ and `TYPESAFE_API_KEY`.
 
 ## Commands
 
-- `/patdown` / `/patdown status` — footer line with rule count and source path
-- `/patdown off` — stop intercepting writes for this session
-- `/patdown on` — resume (no-op if rules failed to load)
+```
+/patdown
+/patdown status
+/patdown on
+/patdown off
+/patdown block
+/patdown steer
+/patdown warn
+/patdown before
+/patdown after
+/patdown both
+```
+
+## package.json
+
+```json
+{
+  "patdown": {
+    "pi": {
+      "mode": "steer",
+      "when": "after"
+    }
+  }
+}
+```
+
+Walks up from cwd. Session `/patdown` commands override for that session only. Adapter and `yesThreshold` stay the CLI keys.
 
 ## Not in scope
 
-pi-warden covers stuck loops, secrets, runaway replies, and irreversible bash. This package does not. Use warden for those; use `@patdown/pi` to enforce _your_ markdown rules on the file the agent is about to write.
+pi-warden covers stuck loops, secrets, runaway replies, and irreversible bash. This package does not. Use warden for those; use `@patdown/pi` to enforce _your_ markdown rules on the file the agent is writing.

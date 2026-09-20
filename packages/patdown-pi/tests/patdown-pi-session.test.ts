@@ -22,23 +22,26 @@ function sessionWithRules(enabled: boolean): PatdownPiSession {
 		},
 		yesThreshold: 0.85,
 		loadError: null,
+		policy: { mode: 'block', when: 'before' },
 	}
 }
 
 describe('pi session status', () => {
 	it('reports idle, loaded, disabled, and load errors', () => {
-		expect(formatPatdownPiStatus(idlePatdownPiSession())).toBe('patdown off (no rules)')
+		expect(formatPatdownPiStatus(idlePatdownPiSession())).toBe(
+			'patdown off block/before (no rules)',
+		)
 		expect(formatPatdownPiStatus(sessionWithRules(true))).toBe(
-			'patdown on (1 rule from AGENTS.PATDOWN.md)',
+			'patdown on block/before (1 rule from AGENTS.PATDOWN.md)',
 		)
 		expect(formatPatdownPiStatus(setPatdownPiEnabled(sessionWithRules(true), false))).toBe(
-			'patdown off (1 rule from AGENTS.PATDOWN.md)',
+			'patdown off block/before (1 rule from AGENTS.PATDOWN.md)',
 		)
 		expect(
 			formatPatdownPiStatus({
 				...idlePatdownPiSession(),
 				loadError: 'patdown: no AGENTS.PATDOWN.md found walking up from /tmp',
 			}),
-		).toBe('patdown off (patdown: no AGENTS.PATDOWN.md found walking up from /tmp)')
+		).toBe('patdown off block/before (patdown: no AGENTS.PATDOWN.md found walking up from /tmp)')
 	})
 })

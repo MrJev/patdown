@@ -103,7 +103,7 @@ See [the adapter guide](docs/rule-source-adapters.md) for the interface, a multi
 
 ## Pi write steering
 
-[`@patdown/pi`](packages/patdown-pi/) intercepts Pi `write` and `edit` calls, judges the proposed file against the same rules, and blocks violations before they hit disk. It is not a general agent supervisor. See [Pi write steering](docs/pi.md).
+[`@patdown/pi`](packages/patdown-pi/) judges Pi `write` and `edit` against the same rules. Default is block-before-write; `/patdown steer` and `/patdown warn` can report after the file lands instead. It is not a general agent supervisor. See [Pi write steering](docs/pi.md).
 
 ```sh
 pi install npm:@patdown/pi

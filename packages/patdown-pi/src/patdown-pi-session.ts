@@ -14,12 +14,20 @@ import {
 	type PatdownLintResult,
 } from 'patdown'
 
-/** Loaded rules for the current Pi session. Missing rules disable steering. */
+import { discoverPatdownPiPolicy } from '#src/patdown-pi-package-policy'
+import {
+	defaultPatdownPiPolicy,
+	formatPatdownPiPolicy,
+	type PatdownPiPolicy,
+} from '#src/patdown-pi-policy'
+
+/** Loaded rules for the current Pi session. Missing rules disable judging. */
 export type PatdownPiSession = {
 	readonly enabled: boolean
 	readonly document: PatdownRulesDocument | null
 	readonly yesThreshold: PatdownYesThreshold
 	readonly loadError: string | null
+	readonly policy: PatdownPiPolicy
 }
 
 export function idlePatdownPiSession(): PatdownPiSession {
@@ -28,27 +36,31 @@ export function idlePatdownPiSession(): PatdownPiSession {
 		document: null,
 		yesThreshold: defaultPatdownYesThreshold,
 		loadError: null,
+		policy: defaultPatdownPiPolicy,
 	}
 }
 
 function patdownPiSessionFromDocument(
 	document: PatdownRulesDocument,
 	yesThreshold: PatdownYesThreshold,
+	policy: PatdownPiPolicy,
 ): PatdownPiSession {
 	return {
 		enabled: true,
 		document,
 		yesThreshold,
 		loadError: null,
+		policy,
 	}
 }
 
-function patdownPiSessionFromError(message: string): PatdownPiSession {
+function patdownPiSessionFromError(message: string, policy: PatdownPiPolicy): PatdownPiSession {
 	return {
 		enabled: false,
 		document: null,
 		yesThreshold: defaultPatdownYesThreshold,
 		loadError: message,
+		policy,
 	}
 }
 
@@ -61,16 +73,18 @@ function prettyPatdownPiCause(cause: Cause.Cause<unknown>): string {
 }
 
 /** Load markdown / adapter rules the same way the CLI does. */
-export async function loadPatdownPiSession(): Promise<PatdownPiSession> {
+export async function loadPatdownPiSession(cwd: string): Promise<PatdownPiSession> {
+	const policy = discoverPatdownPiPolicy(cwd)
+
 	const loaded = Effect.gen(function* () {
 		const document = yield* loadConfiguredPatdownRules(Option.none(), Option.none())
 		const yesThreshold = yield* resolvePatdownYesThreshold(Option.none())
 
-		return patdownPiSessionFromDocument(document, yesThreshold)
+		return patdownPiSessionFromDocument(document, yesThreshold, policy)
 	}).pipe(
 		Effect.provide(Layer.mergeAll(MarkdownPatdownRuleSourceLive, NodeServices.layer)),
 		Effect.catchCause((cause) =>
-			Effect.succeed(patdownPiSessionFromError(prettyPatdownPiCause(cause))),
+			Effect.succeed(patdownPiSessionFromError(prettyPatdownPiCause(cause), policy)),
 		),
 	)
 
@@ -102,17 +116,26 @@ export function setPatdownPiEnabled(session: PatdownPiSession, enabled: boolean)
 	return { ...session, enabled }
 }
 
+export function setPatdownPiPolicy(
+	session: PatdownPiSession,
+	policy: PatdownPiPolicy,
+): PatdownPiSession {
+	return { ...session, policy }
+}
+
 /** Footer / notify line for the current session. */
 export function formatPatdownPiStatus(session: PatdownPiSession): string {
-	if (session.loadError !== null) return `patdown off (${session.loadError})`
+	const policy = formatPatdownPiPolicy(session.policy)
 
-	if (session.document === null) return 'patdown off (no rules)'
+	if (session.loadError !== null) return `patdown off ${policy} (${session.loadError})`
+
+	if (session.document === null) return `patdown off ${policy} (no rules)`
 
 	const count = session.document.patdownRules.length
 	const rulesLabel = count === 1 ? '1 rule' : `${String(count)} rules`
 	const path = session.document.patdownRulesFilePath
 
-	if (!session.enabled) return `patdown off (${rulesLabel} from ${path})`
+	if (!session.enabled) return `patdown off ${policy} (${rulesLabel} from ${path})`
 
-	return `patdown on (${rulesLabel} from ${path})`
+	return `patdown on ${policy} (${rulesLabel} from ${path})`
 }

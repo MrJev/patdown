@@ -1,28 +1,20 @@
 # @patdown/pi
 
-Pi package that judges `write` and `edit` against the same fuzzy rules as the [patdown](https://github.com/tyler-dot-earth/patdown) CLI, before those tools hit disk.
+Pi package that judges `write` and `edit` against the same fuzzy rules as the [patdown](https://github.com/tyler-dot-earth/patdown) CLI.
 
-This is not a general agent supervisor. It does not watch bash, loops, or “done” claims. Failures are steered back to the agent with the broken rule quoted. Judge errors block the write; they are not converted into a pass.
+This is not a general agent supervisor. It does not watch bash, loops, or “done” claims. Judge errors are never converted into a pass.
 
-## Install
+## Modes
+
+- `block` (default) — stop the tool before it hits disk
+- `steer` — let it write, then follow up so the agent can fix it
+- `warn` — TUI notify only
+
+`/patdown before|after|both` picks the lifecycle hook. `block` always uses `before`.
 
 ```sh
 pi install npm:@patdown/pi
+/patdown steer
 ```
 
-From a checkout after `pnpm install`:
-
-```sh
-pi -e ./packages/patdown-pi/src/patdown-pi-extension.ts
-```
-
-Needs `TYPESAFE_API_KEY` (same as the CLI). Rules load the same way: walk up from cwd for `AGENTS.PATDOWN.md`, plus package.json adapter / cutoff.
-
-## Commands
-
-```
-/patdown
-/patdown status
-/patdown off
-/patdown on
-```
+Needs `TYPESAFE_API_KEY`. See [Pi write steering](../../docs/pi.md).
