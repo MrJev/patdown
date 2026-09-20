@@ -145,7 +145,7 @@ patdown: failed
 Exit 1 on a violation, a missing rules file, a read error, an invalid cutoff, or a judge error. Add `--verbose` to group local lint output into per-rule console blocks (file, shade bar, P(yes), elapsed). Quiet mode stays one `PASS`/`FAIL` line per judgment. Lint totals elapsed time across every rule/file pair.
 
 ```
-┌ explicit-actor ────────────────────────────────────────── 1✗ / 1
+┌ Do not launder types with casts ───────────────────────── 1✗ / 1
 │
 ├─ apps/foo
 │
