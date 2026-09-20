@@ -12,7 +12,11 @@ import {
 } from '@earendil-works/pi-coding-agent'
 import type { PatdownLintResult } from 'patdown'
 
-import { applyPatdownPiCommand, patdownPiCommandUsage } from '#src/patdown-pi-command'
+import {
+	applyPatdownPiCommand,
+	patdownPiCommandArgumentCompletions,
+	patdownPiCommandUsage,
+} from '#src/patdown-pi-command'
 import { patdownPiJudgesAfter, patdownPiJudgesBefore } from '#src/patdown-pi-policy'
 import {
 	applyExactPatdownEdits,
@@ -272,6 +276,11 @@ export function installPatdownPiExtension(pi: ExtensionAPI): void {
 
 	pi.registerCommand('patdown', {
 		description: 'Show or set in-agent patdown write steering (block/steer/warn, before/after)',
+		getArgumentCompletions: (prefix) => {
+			const items = patdownPiCommandArgumentCompletions(prefix)
+
+			return items === null ? null : [...items]
+		},
 		handler: async (args, ctx): Promise<void> => {
 			await Promise.resolve()
 

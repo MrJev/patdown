@@ -48,6 +48,8 @@ Requires Pi 0.85+ and `TYPESAFE_API_KEY`.
 
 ## Commands
 
+Type `/patdown ` (with a trailing space) for subcommand suggestions.
+
 ```
 /patdown
 /patdown status

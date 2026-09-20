@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { applyPatdownPiCommand } from '#src/patdown-pi-command'
+import { applyPatdownPiCommand, patdownPiCommandArgumentCompletions } from '#src/patdown-pi-command'
 import { idlePatdownPiSession, type PatdownPiSession } from '#src/patdown-pi-session'
 
 function sessionWithRules(): PatdownPiSession {
@@ -43,5 +43,24 @@ describe('pi slash commands', () => {
 		})
 		expect(applyPatdownPiCommand(loaded, 'status')).toBe(loaded)
 		expect(applyPatdownPiCommand(idlePatdownPiSession(), 'wat')).toBeNull()
+	})
+
+	it('completes subcommands from the argument prefix', () => {
+		const empty = patdownPiCommandArgumentCompletions('')
+		const steered = patdownPiCommandArgumentCompletions('st')
+
+		expect(empty?.map((item) => item.value)).toEqual([
+			'status',
+			'on',
+			'off',
+			'block',
+			'steer',
+			'warn',
+			'before',
+			'after',
+			'both',
+		])
+		expect(steered?.map((item) => item.value)).toEqual(['status', 'steer'])
+		expect(patdownPiCommandArgumentCompletions('zzz')).toBeNull()
 	})
 })

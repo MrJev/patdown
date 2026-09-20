@@ -1,4 +1,9 @@
-export { applyPatdownPiCommand, patdownPiCommandUsage } from '#src/patdown-pi-command'
+export {
+	applyPatdownPiCommand,
+	patdownPiCommandArgumentCompletions,
+	patdownPiCommandUsage,
+	type PatdownPiCommandCompletion,
+} from '#src/patdown-pi-command'
 
 export { installPatdownPiExtension } from '#src/patdown-pi-extension'
 
