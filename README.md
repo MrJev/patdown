@@ -11,7 +11,7 @@ npx patdown --help
 pnpm add -D patdown
 ```
 
-Requires Node.js >=22.22.2. The library entry is `patdown`; rule adapters import `@patdown/rules`. The optional Pi package is `@patdown/pi`.
+Requires Node.js >=22.22.2. The library entry is `patdown`; rule adapters import `@patdown/rules`. Optional agent packages: `@patdown/pi` (Pi write steering) and `@patdown/claude` (Claude Code Write/Edit hooks). See [Pi write steering](docs/pi.md) and [Claude Code plugin](docs/claude.md).
 
 For GitHub Actions, prefer the composite action over copy-paste yaml:
 
@@ -118,12 +118,18 @@ await Effect.runPromise(runPatdownCli(PatdownRuleSourceLive))
 
 See [the adapter guide](docs/rule-source-adapters.md) for the interface, a multi-file parser, resolution rules, resource lifetimes, and local development setup. Adapters execute trusted local code. Install the CLI from npm as `patdown`; adapters import `@patdown/rules` and may import `patdown` for types.
 
-## Pi write steering
+## Agent write steering
 
-[`@patdown/pi`](packages/patdown-pi/) judges Pi `write` and `edit` against the same rules. Default is block-before-write; `/patdown steer` and `/patdown warn` can report after the file lands instead. It is not a general agent supervisor. See [Pi write steering](docs/pi.md).
+[`@patdown/pi`](packages/patdown-pi/) judges Pi `write` and `edit` against the same rules. Default is block-before-write; `/patdown steer` and `/patdown warn` can report after the file lands instead. See [Pi write steering](docs/pi.md).
 
 ```sh
 pi install npm:@patdown/pi
+```
+
+[`@patdown/claude`](packages/patdown-claude/) is a Claude Code plugin with a `Write|Edit` PreToolUse hook (block before disk) plus a `/patdown:run-patdown` skill. Best-effort until validated with Claude Code locally. See [Claude Code plugin](docs/claude.md).
+
+```sh
+claude --plugin-dir ./packages/patdown-claude
 ```
 
 ## Packs

@@ -1,0 +1,23 @@
+{
+	"name": "patdown",
+	"owner": {
+		"name": "tyler-dot-earth",
+		"url": "https://github.com/tyler-dot-earth/patdown"
+	},
+	"metadata": {
+		"description": "Fuzzy markdown rules for agents: CLI, Pi write steering, Claude Code Write/Edit hooks, and GitHub Actions"
+	},
+	"plugins": [
+		{
+			"name": "patdown",
+			"source": "./packages/patdown-claude",
+			"description": "Judge Claude Code Write/Edit against AGENTS.PATDOWN.md before they hit disk",
+			"version": "0.8.0",
+			"author": {
+				"name": "tyler-dot-earth"
+			},
+			"homepage": "https://github.com/tyler-dot-earth/patdown/tree/main/packages/patdown-claude",
+			"keywords": ["patdown", "fuzzy-lint", "hooks", "write-steering"]
+		}
+	]
+}

@@ -1,0 +1,13 @@
+{
+	"name": "patdown",
+	"version": "0.8.0",
+	"description": "Judge Claude Code Write/Edit against fuzzy patdown markdown rules before they hit disk",
+	"author": {
+		"name": "tyler-dot-earth",
+		"url": "https://github.com/tyler-dot-earth/patdown"
+	},
+	"homepage": "https://github.com/tyler-dot-earth/patdown/tree/main/packages/patdown-claude",
+	"repository": "https://github.com/tyler-dot-earth/patdown",
+	"license": "0BSD",
+	"keywords": ["patdown", "fuzzy-lint", "write-steering", "hooks"]
+}
