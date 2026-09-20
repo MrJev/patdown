@@ -89,7 +89,7 @@ describe('provider-neutral judgments', () => {
 })
 
 describe('human-readable judgments', () => {
-	it.effect('hides probabilities by default and exposes them in verbose output', () =>
+	it.effect('hides probabilities by default and prints verbose rule blocks', () =>
 		Effect.gen(function* () {
 			const output = yield* PatdownOutput
 			yield* output.writeAnswer({ yesProbability: 0.86 }, false)
@@ -107,12 +107,17 @@ describe('human-readable judgments', () => {
 				},
 				true,
 			)
+			yield* output.writeLintFailed(40)
 			const lines = yield* TestConsole.logLines
-			expect(lines).toEqual([
-				'yes',
-				'no (░░░░░░░░░░ estimated P(yes): 0.02; cutoff: >0.85; elapsed: 12ms)',
-				'FAIL README.md: Sentence case (▓▓▓▓▓▓▓▓▓░ estimated P(yes): 0.91; cutoff: >0.85; elapsed: 40ms)',
-			])
+			expect(lines[0]).toBe('yes')
+			expect(lines[1]).toBe('no (░░░░░░░░░░ estimated P(yes): 0.02; cutoff: >0.85; elapsed: 12ms)')
+			const block = lines.slice(2, -1).join('\n')
+
+			expect(block).toContain('┌ Sentence case')
+			expect(block).toContain('README.md')
+			expect(block).toContain('▓▓▓▓▓▓▓▓▓░  0.91')
+			expect(lines.at(-2)).toBe('')
+			expect(lines.at(-1)).toBe('patdown: failed (elapsed: 40ms)')
 		}).pipe(Effect.provide(outputHarness)),
 	)
 })

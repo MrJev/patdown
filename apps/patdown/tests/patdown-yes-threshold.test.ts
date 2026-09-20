@@ -87,7 +87,11 @@ describe('configurable yes thresholds', () => {
 			yield* runPatdownCli(MarkdownPatdownRuleSourceLive, ['--verbose'], judge)
 
 			const lines = yield* TestConsole.logLines
-			expect(lines.join('\n')).toContain('cutoff: >0.8')
+			const text = lines.join('\n')
+
+			expect(text).toContain('┌ Strict headings')
+			expect(text).toContain('README.md')
+			expect(text).toContain('0.81')
 			expect(process.exitCode).toBe(1)
 			process.exitCode = previousExitCode
 		}).pipe(Effect.provide(outputHarness)),

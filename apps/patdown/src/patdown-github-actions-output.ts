@@ -7,7 +7,7 @@ import {
 } from '#src/patdown-github-actions-summary'
 import {
 	PatdownOutput,
-	patdownHumanOutput,
+	patdownStreamingHumanOutput,
 	type PatdownLintResult,
 	type PatdownOutputWriters,
 } from '#src/patdown-output'
@@ -65,12 +65,12 @@ export const PatdownGitHubActionsOutputLive: Layer.Layer<
 			})
 
 		const writers: PatdownOutputWriters = {
-			writeAnswer: patdownHumanOutput.writeAnswer,
-			writeRulesDocument: patdownHumanOutput.writeRulesDocument,
-			writeNoFilesMatched: patdownHumanOutput.writeNoFilesMatched,
+			writeAnswer: patdownStreamingHumanOutput.writeAnswer,
+			writeRulesDocument: patdownStreamingHumanOutput.writeRulesDocument,
+			writeNoFilesMatched: patdownStreamingHumanOutput.writeNoFilesMatched,
 			writeLintResult: (result, verbose) =>
 				Effect.gen(function* () {
-					yield* patdownHumanOutput.writeLintResult(result, verbose)
+					yield* patdownStreamingHumanOutput.writeLintResult(result, verbose)
 					yield* Ref.update(state, (current) => ({
 						results: [...current.results, result],
 					}))
@@ -79,14 +79,14 @@ export const PatdownGitHubActionsOutputLive: Layer.Layer<
 				Effect.gen(function* () {
 					const current = yield* Ref.get(state)
 
-					yield* patdownHumanOutput.writeLintOk(elapsedMs)
+					yield* patdownStreamingHumanOutput.writeLintOk(elapsedMs)
 					yield* publish(false, elapsedMs, current.results)
 				}),
 			writeLintFailed: (elapsedMs) =>
 				Effect.gen(function* () {
 					const current = yield* Ref.get(state)
 
-					yield* patdownHumanOutput.writeLintFailed(elapsedMs)
+					yield* patdownStreamingHumanOutput.writeLintFailed(elapsedMs)
 					yield* publish(true, elapsedMs, current.results)
 				}),
 		}
