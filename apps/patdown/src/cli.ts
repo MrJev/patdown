@@ -45,11 +45,15 @@ const yesThresholdFlag = Flag.optional(Flag.float('yes-threshold')).pipe(
 
 const filesFlag = Flag.string('files').pipe(
 	Flag.between(0, 10_000),
-	Flag.withDescription('Restrict lint to these paths; intersects each rule glob'),
+	Flag.withDescription(
+		'Restrict lint to these files, directories, or globs; directories expand; intersects each rule glob',
+	),
 )
 
 const filesFromFlag = Flag.optional(Flag.string('files-from')).pipe(
-	Flag.withDescription('Newline-separated paths to lint; intersects each rule glob'),
+	Flag.withDescription(
+		'Newline-separated files, directories, or globs to lint; use - for stdin; intersects each rule glob',
+	),
 )
 
 const noGitHubFlag = Flag.boolean('no-github').pipe(

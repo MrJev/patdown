@@ -67,6 +67,7 @@ export const PatdownGitHubActionsOutputLive: Layer.Layer<
 		const writers: PatdownOutputWriters = {
 			writeAnswer: patdownStreamingHumanOutput.writeAnswer,
 			writeRulesDocument: patdownStreamingHumanOutput.writeRulesDocument,
+			writeLintStart: patdownStreamingHumanOutput.writeLintStart,
 			writeNoFilesMatched: patdownStreamingHumanOutput.writeNoFilesMatched,
 			writeLintResult: (result, verbose) =>
 				Effect.gen(function* () {

@@ -30,7 +30,10 @@ pnpm -w patdown -- ask "Is this markdown heading title case?" --input-text "# He
 pnpm -w patdown -- ask "Is this urgent?" --input-text "ASAP" --verbose
 pnpm -w patdown -- --yes-threshold 0.9
 pnpm -w patdown -- --files src/cli.ts --files README.md
+pnpm -w patdown -- --files src
+pnpm -w patdown -- --files 'src/**/*.ts'
 pnpm -w patdown -- --files-from changed.txt --verbose
+git ls-files 'src' | pnpm -w patdown -- --files-from -
 ```
 
 Do not run `pnpm build` by hand just to exercise the CLI, and do not use bare `npx patdown` against an unpublished branch (that installs the last registry version). After a release, consumers use `npx patdown` / `pnpm add -D patdown` as usual.

@@ -89,6 +89,10 @@ export type PatdownOutputWriters = {
 	readonly writeLintFailed: (elapsedMs?: number) => Effect.Effect<void>
 	readonly writeLintOk: (elapsedMs?: number) => Effect.Effect<void>
 	readonly writeLintResult: (result: PatdownLintResult, verbose: boolean) => Effect.Effect<void>
+	readonly writeLintStart: (
+		ruleCount: number,
+		selectionFileCount: number | null,
+	) => Effect.Effect<void>
 	readonly writeNoFilesMatched: (ruleTitle: string) => Effect.Effect<void>
 	readonly writeAnswer: (
 		judgment: PatdownJudgment,
@@ -108,6 +112,18 @@ function flushPatdownConsoleRuleBlock(buffer: PatdownConsoleLintBuffer): Effect.
 	if (buffer.ruleTitle === null) return Effect.void
 
 	return Console.log(formatPatdownRuleBlock(buffer.ruleTitle, buffer.results))
+}
+
+/** First line before any judgments, so a long run does not look hung. */
+export function formatPatdownLintStartLine(
+	ruleCount: number,
+	selectionFileCount: number | null,
+): string {
+	if (selectionFileCount === null) {
+		return `patdown: linting against ${String(ruleCount)} rules`
+	}
+
+	return `patdown: linting ${String(selectionFileCount)} files against ${String(ruleCount)} rules`
 }
 
 /** One-line writers shared with GitHub Actions job logs. */
@@ -130,6 +146,8 @@ export const patdownStreamingHumanOutput: PatdownOutputWriters = {
 				? `${formatPatdownLintResultLine(result)} (${formatPatdownProbability(result.violationProbability, result.yesThreshold, result.elapsedMs)})`
 				: formatPatdownLintResultLine(result),
 		),
+	writeLintStart: (ruleCount, selectionFileCount): Effect.Effect<void> =>
+		Console.log(formatPatdownLintStartLine(ruleCount, selectionFileCount)),
 	writeNoFilesMatched: (title: string): Effect.Effect<void> =>
 		Console.log(`patdown: no files matched ${title}`),
 	writeAnswer: (
@@ -166,6 +184,7 @@ export const PatdownOutputLive: Layer.Layer<PatdownOutput> = Layer.effect(
 		const writers: PatdownOutputWriters = {
 			writeAnswer: patdownStreamingHumanOutput.writeAnswer,
 			writeRulesDocument: patdownStreamingHumanOutput.writeRulesDocument,
+			writeLintStart: patdownStreamingHumanOutput.writeLintStart,
 			writeLintResult: (result, verbose) => {
 				if (!verbose) {
 					return patdownStreamingHumanOutput.writeLintResult(result, false)
