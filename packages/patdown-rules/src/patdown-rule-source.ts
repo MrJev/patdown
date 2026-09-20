@@ -1,39 +1,25 @@
-import { Context, Data, Effect, FileSystem, Layer, Option, Path } from 'effect'
+import { Context, Effect, FileSystem, Layer, Option, Path } from 'effect'
 
-import { parseMarkdownPatdownRules } from '#src/markdown-patdown-rule-parser'
+import { loadMarkdownPatdownOrigin } from '#src/patdown-markdown-origin-loader'
+import { defaultPatdownRulesFileName, type PatdownRulesDocument } from '#src/patdown-rule'
 import {
-	defaultPatdownRulesFileName,
-	type PatdownRule,
-	type PatdownRulesDocument,
-} from '#src/patdown-rule'
+	PatdownRulesFileMissing,
+	PatdownRulesLoadFailed,
+	PatdownRulesReadFailed,
+} from '#src/patdown-rule-errors'
 import { PatdownYesThresholdInvalid } from '#src/patdown-yes-threshold'
 
-/** No AGENTS.PATDOWN.md (or override path) existed walking up from the start directory. */
-export class PatdownRulesFileMissing extends Data.TaggedError('PatdownRulesFileMissing')<{
-	readonly patdownRulesFileName: string
-	readonly startDirectory: string
-}> {
-	override get message(): string {
-		return `patdown: no ${this.patdownRulesFileName} found walking up from ${this.startDirectory}`
-	}
-}
+export {
+	PatdownRulesFileMissing,
+	PatdownRulesLoadFailed,
+	PatdownRulesReadFailed,
+} from '#src/patdown-rule-errors'
 
-/** The rules file existed but could not be read. */
-export class PatdownRulesReadFailed extends Data.TaggedError('PatdownRulesReadFailed')<{
-	readonly patdownRulesFilePath: string
-}> {
-	override get message(): string {
-		return `patdown: failed to read ${this.patdownRulesFilePath}`
-	}
-}
-
-/**
- * Adapter discovery, parsing, or loading failed. Preserve the source-specific diagnostic in
- * message.
- */
-export class PatdownRulesLoadFailed extends Data.TaggedError('PatdownRulesLoadFailed')<{
-	readonly message: string
-}> {}
+type MarkdownRulesLoadError =
+	| PatdownRulesFileMissing
+	| PatdownRulesReadFailed
+	| PatdownRulesLoadFailed
+	| PatdownYesThresholdInvalid
 
 /**
  * Loads fuzzy patdown rules for a run. Provide a live layer to parse markdown, YAML, frontmatter
@@ -46,10 +32,7 @@ export class PatdownRuleSource extends Context.Service<
 			rulesFilePathOverride: Option.Option<string>,
 		) => Effect.Effect<
 			PatdownRulesDocument,
-			| PatdownRulesFileMissing
-			| PatdownRulesReadFailed
-			| PatdownRulesLoadFailed
-			| PatdownYesThresholdInvalid,
+			MarkdownRulesLoadError,
 			FileSystem.FileSystem | Path.Path
 		>
 	}
@@ -128,119 +111,13 @@ export function resolvePatdownRulesFilePath(
 	})
 }
 
-function parseMarkdownPatdownRulesFile(
-	markdown: string,
-): Effect.Effect<ReadonlyArray<PatdownRule>, PatdownRulesLoadFailed | PatdownYesThresholdInvalid> {
-	return Effect.try({
-		try: () => parseMarkdownPatdownRules(markdown),
-		catch: (cause) =>
-			cause instanceof PatdownYesThresholdInvalid
-				? cause
-				: new PatdownRulesLoadFailed({
-						message: cause instanceof Error ? cause.message : String(cause),
-					}),
-	})
-}
-
-function loadMarkdownPatdownRulesFromFile(
-	patdownRulesFilePath: string,
-): Effect.Effect<
-	PatdownRulesDocument,
-	PatdownRulesReadFailed | PatdownRulesLoadFailed | PatdownYesThresholdInvalid,
-	FileSystem.FileSystem
-> {
-	return Effect.gen(function* () {
-		const fileSystem = yield* FileSystem.FileSystem
-
-		const markdown = yield* fileSystem
-			.readFileString(patdownRulesFilePath)
-			.pipe(Effect.mapError(() => new PatdownRulesReadFailed({ patdownRulesFilePath })))
-
-		const parsed = yield* parseMarkdownPatdownRulesFile(markdown)
-
-		return {
-			patdownRules: parsed,
-			patdownRulesFilePath,
-		}
-	})
-}
-
-/** Loads every `*.md` rule file in a directory, skipping README.md. */
-function loadMarkdownPatdownRulesFromDirectory(
-	patdownRulesDirectoryPath: string,
-): Effect.Effect<
-	PatdownRulesDocument,
-	PatdownRulesReadFailed | PatdownRulesLoadFailed | PatdownYesThresholdInvalid,
-	FileSystem.FileSystem | Path.Path
-> {
-	return Effect.gen(function* () {
-		const fileSystem = yield* FileSystem.FileSystem
-		const path = yield* Path.Path
-
-		const entries = yield* fileSystem
-			.readDirectory(patdownRulesDirectoryPath)
-			.pipe(
-				Effect.mapError(
-					() => new PatdownRulesReadFailed({ patdownRulesFilePath: patdownRulesDirectoryPath }),
-				),
-			)
-
-		const ruleFiles = entries
-			.filter((entry) => entry.toLowerCase().endsWith('.md'))
-			.filter((entry) => entry.toLowerCase() !== 'readme.md')
-			.toSorted((left, right) => left.localeCompare(right))
-
-		if (ruleFiles.length === 0) {
-			return yield* new PatdownRulesLoadFailed({
-				message: `patdown: rules directory ${patdownRulesDirectoryPath} has no rule markdown files`,
-			})
-		}
-
-		const rules = []
-
-		for (const ruleFile of ruleFiles) {
-			const rulePath = path.join(patdownRulesDirectoryPath, ruleFile)
-			const document = yield* loadMarkdownPatdownRulesFromFile(rulePath)
-
-			if (document.patdownRules.length === 0) {
-				return yield* new PatdownRulesLoadFailed({
-					message: `patdown: rules file ${rulePath} has no # headings`,
-				})
-			}
-
-			rules.push(...document.patdownRules)
-		}
-
-		return {
-			patdownRules: rules,
-			patdownRulesFilePath: patdownRulesDirectoryPath,
-		}
-	})
-}
-
 function loadMarkdownPatdownRules(
 	rulesFilePathOverride: Option.Option<string>,
-): Effect.Effect<
-	PatdownRulesDocument,
-	| PatdownRulesFileMissing
-	| PatdownRulesReadFailed
-	| PatdownRulesLoadFailed
-	| PatdownYesThresholdInvalid,
-	FileSystem.FileSystem | Path.Path
-> {
+): Effect.Effect<PatdownRulesDocument, MarkdownRulesLoadError, FileSystem.FileSystem | Path.Path> {
 	return Effect.gen(function* () {
 		const patdownRulesFilePath = yield* resolvePatdownRulesFilePath(rulesFilePathOverride)
-		const fileSystem = yield* FileSystem.FileSystem
 
-		const info = yield* fileSystem
-			.stat(patdownRulesFilePath)
-			.pipe(Effect.mapError(() => new PatdownRulesReadFailed({ patdownRulesFilePath })))
-
-		if (info.type === 'Directory') {
-			return yield* loadMarkdownPatdownRulesFromDirectory(patdownRulesFilePath)
-		}
-
-		return yield* loadMarkdownPatdownRulesFromFile(patdownRulesFilePath)
+		return yield* loadMarkdownPatdownOrigin(patdownRulesFilePath, [])
 	})
 }
 

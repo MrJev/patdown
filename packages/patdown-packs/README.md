@@ -8,7 +8,21 @@ Install:
 pnpm add -D @patdown/packs
 ```
 
-Then point `--rules` at a pack directory or one rule file:
+Compose a whole pack directory or one rule file with project rules in `AGENTS.PATDOWN.md`:
+
+```
+---
+include: ./node_modules/@patdown/packs/typescript
+include: ./node_modules/@patdown/packs/effect/prefer-effect-fn-for-named-effectful-work.md
+---
+
+# No title case
+globs: **/*.md
+
+Markdown headings must use sentence case.
+```
+
+Or point `--rules` at a pack directory or one rule file:
 
 ```sh
 npx patdown --rules ./node_modules/@patdown/packs/typescript

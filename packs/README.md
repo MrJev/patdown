@@ -2,7 +2,7 @@
 
 Optional bundles of fuzzy rules. Patdown the CLI only runs rules; packs are content you can take all of, some of, or ignore.
 
-A pack is a directory of rule files plus a short README. Each rule is its own markdown file (one `#` heading). Copy a whole pack into your project, vendor individual rule files, or paste rules into your own `AGENTS.PATDOWN.md`.
+A pack is a directory of rule files plus a short README. Each rule is its own markdown file (one `#` heading). Include a pack from `AGENTS.PATDOWN.md`, copy it into your project, vendor individual rule files, or paste rules into that file.
 
 ## Packs
 
@@ -16,13 +16,24 @@ These packs guide the judge. They do not replace oxlint or the Effect language s
 
 ## Use
 
-Point `--rules` at a pack directory, a single rule file, or your own rules file:
+Include a whole pack (directory of `*.md` except `README.md`) or one rule file from the default rules file (also what Pi loads):
+
+```
+---
+include: ./node_modules/@patdown/packs/typescript
+include: ./node_modules/@patdown/packs/effect/prefer-effect-fn-for-named-effectful-work.md
+---
+
+# No title case
+globs: `**/*.md`
+
+Markdown headings must use sentence case.
+```
+
+Or point `--rules` at a pack directory or a single rule file:
 
 ```sh
-# whole pack (directory of rule files)
 npx patdown --rules ./node_modules/@patdown/packs/effect --files-from changed.txt --verbose
-
-# one rule from a pack
 npx patdown --rules ./node_modules/@patdown/packs/typescript/do-not-launder-types-with-casts.md
 ```
 
