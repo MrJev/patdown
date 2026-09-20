@@ -22,8 +22,8 @@ inputs:
     default: ''
   files-from:
     description: >
-      Optional path list for --files-from. Empty means the action builds changed.txt from
-      the GitHub event (pull_request base…HEAD or push before…HEAD).
+      Optional path list for --files-from. Empty means the action builds a list under
+      RUNNER_TEMP from the GitHub event (pull_request base…HEAD or push before…HEAD).
     required: false
     default: ''
   github-annotation:
@@ -56,6 +56,7 @@ runs:
         node-version: ${{ inputs.node-version }}
 
     - name: List changed files
+      id: changed
       if: ${{ inputs.files-from == '' }}
       shell: bash
       working-directory: ${{ inputs.working-directory }}
@@ -73,7 +74,8 @@ runs:
         GITHUB_ACTION_PATH: ${{ github.action_path }}
         PATDOWN_VERSION: ${{ inputs.version }}
         PATDOWN_RULES: ${{ inputs.rules }}
-        PATDOWN_FILES_FROM: ${{ inputs.files-from }}
+        PATDOWN_FILES_FROM_INPUT: ${{ inputs.files-from }}
+        PATDOWN_FILES_FROM_GENERATED: ${{ steps.changed.outputs.files-from }}
         PATDOWN_GITHUB_ANNOTATION: ${{ inputs.github-annotation }}
         PATDOWN_YES_THRESHOLD: ${{ inputs.yes-threshold }}
         PATDOWN_VERBOSE: ${{ inputs.verbose }}

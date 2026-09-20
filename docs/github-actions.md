@@ -25,7 +25,7 @@ Inputs:
 | `version` | action tag's CLI version | npm dist-tag / version for `npx patdown@…` |
 | `working-directory` | `.` | cwd for rules discovery and the file list |
 | `rules` | unset | `--rules` file or pack directory |
-| `files-from` | auto `changed.txt` | skip auto diff and pass your own list |
+| `files-from` | auto under `RUNNER_TEMP` | skip auto diff and pass your own list |
 | `github-annotation` | unset | `--github-annotation` (`error` / `warning` / `notice`) |
 | `yes-threshold` | unset | `--yes-threshold` |
 | `verbose` | `true` | `--verbose` |
@@ -44,11 +44,16 @@ Copy [examples/github-actions/patdown.yml](../examples/github-actions/patdown.ym
 
 ## Manual CLI (copy-paste)
 
-Same behavior without the action:
+Same behavior without the action. On a pull request, `$BASE` is the base SHA; on push, use the previous commit:
 
 ```sh
-git diff --name-only --diff-filter=ACMR "$BASE"...HEAD > changed.txt
-npx patdown --verbose --files-from changed.txt
+if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+  BASE="$PULL_REQUEST_BASE_SHA"
+else
+  BASE="${GITHUB_EVENT_BEFORE:-$(git rev-parse HEAD^)}"
+fi
+git diff --name-only --diff-filter=ACMR "$BASE"...HEAD > "$RUNNER_TEMP/patdown-changed-files.txt"
+npx patdown --verbose --files-from "$RUNNER_TEMP/patdown-changed-files.txt"
 ```
 
 `--files path` may be repeated. Paths may be files, directories, or globs. Directories expand to every file under them (same skipped directories as rule globs). `--files` and `--files-from` may be combined. `--files-from -` reads newline-separated paths from stdin. Blank lines and `#` comments in the list are ignored. Paths outside cwd, and the usual skipped directories (`.git`, `dist`, `node_modules`, …), are dropped. A missing `--files-from` file or missing `--files` path fails the command. An empty selection after filtering is still `patdown: passed`. Before judgments, patdown prints how many selected files and rules it will lint.

@@ -9,9 +9,14 @@ if [ -z "$version" ]; then
 	version="$(node -p "require('${GITHUB_ACTION_PATH}/apps/patdown/package.json').version")"
 fi
 
-files_from="${PATDOWN_FILES_FROM:-}"
+files_from="${PATDOWN_FILES_FROM_INPUT:-}"
 if [ -z "$files_from" ]; then
-	files_from="changed.txt"
+	files_from="${PATDOWN_FILES_FROM_GENERATED:-}"
+fi
+
+if [ -z "$files_from" ]; then
+	echo "patdown: no files-from list; pass inputs.files-from or let the action generate one" >&2
+	exit 1
 fi
 
 args=(--files-from "$files_from")
