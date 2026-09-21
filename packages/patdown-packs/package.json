@@ -35,7 +35,7 @@
 	"scripts": {
 		"build": "node ../../scripts/warn-direct-package-task.mjs build && node ./scripts/sync-patdown-packs.mjs",
 		"check": "node ../../scripts/warn-direct-package-task.mjs check && pnpm run lint && pnpm run format:check && pnpm run typecheck && pnpm run test",
-		"clean": "rm -rf anti-slop effect typescript LICENSE",
+		"clean": "rm -rf anti-slop effect typescript",
 		"format": "oxfmt --write package.json",
 		"format:check": "node ../../scripts/warn-direct-package-task.mjs format:check && oxfmt --check package.json",
 		"lint": "node ../../scripts/warn-direct-package-task.mjs lint && printf 'content package: no TypeScript to lint.\\n'",

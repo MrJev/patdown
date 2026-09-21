@@ -11,12 +11,7 @@ out/
 coverage/
 .turbo/
 result
-apps/patdown/LICENSE
 apps/patdown/README.md
-packages/patdown-rules/LICENSE
-packages/patdown-jev/LICENSE
-packages/patdown-pi/LICENSE
-packages/patdown-packs/LICENSE
 packages/patdown-packs/anti-slop/
 packages/patdown-packs/effect/
 packages/patdown-packs/typescript/
