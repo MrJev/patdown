@@ -78,7 +78,9 @@ function isMissingModuleMessage(message) {
 		message.includes("Cannot find module 'effect'") ||
 		message.includes('Cannot find module "effect"') ||
 		message.includes("Cannot find module '@effect/platform-node'") ||
-		message.includes('Cannot find module "@effect/platform-node"')
+		message.includes('Cannot find module "@effect/platform-node"') ||
+		message.includes("Cannot find module '@effect/platform-node/NodeServices'") ||
+		message.includes('Cannot find module "@effect/platform-node/NodeServices"')
 	)
 }
 
@@ -108,16 +110,18 @@ async function importPatdownModules(cwd) {
 		const fromPatdown = createRequire(patdownEntry)
 		const rulesEntry = fromPatdown.resolve('@patdown/rules')
 		const effectEntry = fromPatdown.resolve('effect')
-		const platformEntry = fromPatdown.resolve('@effect/platform-node')
+		// Deep import: the package barrel re-exports NodeRedis, which breaks when
+		// node-redis is CJS-only (`SocketTimeoutError` named export missing).
+		const nodeServicesEntry = fromPatdown.resolve('@effect/platform-node/NodeServices')
 
-		const [patdown, rules, effect, platformNode] = await Promise.all([
+		const [patdown, rules, effect, NodeServices] = await Promise.all([
 			import(patdownEntry),
 			import(rulesEntry),
 			import(effectEntry),
-			import(platformEntry),
+			import(nodeServicesEntry),
 		])
 
-		return { patdown, rules, effect, platformNode }
+		return { patdown, rules, effect, NodeServices }
 	} catch (cause) {
 		const detail = cause instanceof Error ? cause.message : String(cause)
 
@@ -148,9 +152,8 @@ function withPatdownClaudeDeadline(promise, timeoutMs) {
 }
 
 async function judgeProposedFile(cwd, proposed) {
-	const { patdown, rules, effect, platformNode } = await importPatdownModules(cwd)
+	const { patdown, rules, effect, NodeServices } = await importPatdownModules(cwd)
 	const { Effect, Layer, Option } = effect
-	const { NodeServices } = platformNode
 
 	const previousCwd = process.cwd()
 	process.chdir(cwd)
