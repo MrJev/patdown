@@ -14,7 +14,7 @@ Same boundary as [`@patdown/pi`](pi.md): write/edit steering only.
 | Reconstruct proposed file, judge in memory | Steer / warn session modes (Pi only for now) |
 | `permissionDecision: deny` on FAIL | General agent supervision |
 
-Judge errors are never treated as a pass. Missing `AGENTS.PATDOWN.md` disables judging instead of blocking every write.
+Judge errors are never treated as a pass. Missing `AGENTS.PATDOWN.md` disables judging instead of blocking every write. Rule discovery matches the CLI (including `package.json#patdown.adapter`); only `--adapter` / `--rules` flags are unavailable in the hook.
 
 ## Install
 
@@ -31,14 +31,16 @@ claude plugin marketplace add ./path/to/patdown
 claude plugin install patdown@patdown
 ```
 
-Also install the CLI packages the hook and skill import into the project. Prefer `pnpm exec patdown` over bare `npx patdown`:
+Also install the CLI packages into the **project being edited**. The Claude plugin cache under `~/.claude/plugins/...` does not ship `patdown`; the hook resolves modules from the project cwd:
 
 ```sh
 pnpm add -D patdown @patdown/rules
 pnpm exec patdown rules
 ```
 
-Requires `TYPESAFE_API_KEY` for the default TypeSafe/Jev judge.
+Prefer `pnpm exec patdown` over bare `npx patdown`. Requires `TYPESAFE_API_KEY` for the default TypeSafe/Jev judge.
+
+If Claude shows a cached path like `.../plugins/cache/patdown/patdown/0.8.0/...` after a newer release, reinstall or bump the marketplace plugin so `plugin.json` matches the package version.
 
 ## Skill
 

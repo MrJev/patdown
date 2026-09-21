@@ -63,14 +63,52 @@ function resolveFrom(specifier, paths) {
 	return require.resolve(specifier, { paths })
 }
 
+function isMissingRulesMessage(message) {
+	return message.includes('patdown: no ') && message.includes(' found walking up from ')
+}
+
+function isMissingModuleMessage(message) {
+	return (
+		message.includes("Cannot find module 'patdown'") ||
+		message.includes('Cannot find module "patdown"') ||
+		message.includes("Cannot find package 'patdown'") ||
+		message.includes('Cannot find package "patdown"') ||
+		message.includes("Cannot find module '@patdown/rules'") ||
+		message.includes('Cannot find module "@patdown/rules"') ||
+		message.includes("Cannot find module 'effect'") ||
+		message.includes('Cannot find module "effect"') ||
+		message.includes("Cannot find module '@effect/platform-node'") ||
+		message.includes('Cannot find module "@effect/platform-node"')
+	)
+}
+
+function formatMissingInstall(cwd, cause) {
+	const detail = cause instanceof Error ? cause.message : String(cause)
+
+	return [
+		`patdown: cannot resolve CLI packages from ${cwd}.`,
+		'The Claude plugin cache does not ship `patdown`; install it (and `@patdown/rules`) in the project being edited:',
+		'',
+		'  pnpm add -D patdown @patdown/rules',
+		'',
+		'Transitive Effect deps are resolved from the installed `patdown` package, so you should not need to add `effect` by hand.',
+		'Needs TYPESAFE_API_KEY for the default judge.',
+		`Resolve detail: ${detail}`,
+	].join('\n')
+}
+
 async function importPatdownModules(cwd) {
+	// Resolve `patdown` from the project cwd first. The plugin cache under ~/.claude never
+	// contains it; join(pluginRoot, '..') only helps monorepo --plugin-dir checkouts.
+	// Then resolve Effect / rules from that package so pnpm's isolated layout still works.
 	const searchPaths = [cwd, join(pluginRoot, '..'), pluginRoot]
 
 	try {
 		const patdownEntry = resolveFrom('patdown', searchPaths)
-		const rulesEntry = resolveFrom('@patdown/rules', searchPaths)
-		const effectEntry = resolveFrom('effect', searchPaths)
-		const platformEntry = resolveFrom('@effect/platform-node', searchPaths)
+		const fromPatdown = createRequire(patdownEntry)
+		const rulesEntry = fromPatdown.resolve('@patdown/rules')
+		const effectEntry = fromPatdown.resolve('effect')
+		const platformEntry = fromPatdown.resolve('@effect/platform-node')
 
 		const [patdown, rules, effect, platformNode] = await Promise.all([
 			import(patdownEntry),
@@ -81,9 +119,13 @@ async function importPatdownModules(cwd) {
 
 		return { patdown, rules, effect, platformNode }
 	} catch (cause) {
-		throw new Error(
-			`patdown: install patdown (and its Effect deps) in this project so the Claude plugin can judge writes: ${cause instanceof Error ? cause.message : String(cause)}`,
-		)
+		const detail = cause instanceof Error ? cause.message : String(cause)
+
+		if (isMissingModuleMessage(detail)) {
+			throw new Error(formatMissingInstall(cwd, cause))
+		}
+
+		throw new Error(`patdown: failed to import judge modules from ${cwd}: ${detail}`)
 	}
 }
 
@@ -172,9 +214,14 @@ async function main() {
 
 		writeDeny(formatBlockReason(proposed.relativePath, failures))
 	} catch (cause) {
-		writeDeny(
-			`patdown judge failed (not converted to a pass): ${cause instanceof Error ? cause.message : String(cause)}`,
-		)
+		const message = cause instanceof Error ? cause.message : String(cause)
+
+		// Same policy as Pi: no rules file means skip judging, do not block every write.
+		if (isMissingRulesMessage(message)) {
+			process.exit(0)
+		}
+
+		writeDeny(`patdown judge failed (not converted to a pass): ${message}`)
 	}
 }
 

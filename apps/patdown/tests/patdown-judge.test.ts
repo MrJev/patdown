@@ -120,4 +120,43 @@ describe('human-readable judgments', () => {
 			expect(lines.at(-1)).toBe('patdown: failed (elapsed: 40ms)')
 		}).pipe(Effect.provide(outputHarness)),
 	)
+
+	it.effect('leaves a blank line between verbose rule boxes', () =>
+		Effect.gen(function* () {
+			const output = yield* PatdownOutput
+
+			const first = {
+				violated: false,
+				filePath: 'README.md',
+				ruleTitle: 'No title case',
+				ruleBody: 'Use sentence case.',
+				ruleGlobs: ['**/*.md'],
+				violationProbability: 0.12,
+				yesThreshold: 0.85,
+				elapsedMs: 9,
+			} as const
+
+			const second = {
+				violated: false,
+				filePath: 'apps/patdown/src/cli.ts',
+				ruleTitle: 'Follow Effect diagnostics',
+				ruleBody: 'Address Effect diagnostics.',
+				ruleGlobs: ['**/*.ts'],
+				violationProbability: 0.22,
+				yesThreshold: 0.85,
+				elapsedMs: 131,
+			} as const
+
+			yield* output.writeLintRuleStart(first.ruleTitle, 1, true)
+			yield* output.writeLintResult(first, true)
+			yield* output.writeLintRuleStart(second.ruleTitle, 1, true)
+			yield* output.writeLintResult(second, true)
+			yield* output.writeLintOk(140)
+
+			const text = (yield* TestConsole.logLines).join('\n')
+
+			expect(text).toContain('└ 0✗ / 1\n\n┌ Follow Effect diagnostics')
+			expect(text).toContain('└ 0✗ / 1\n\npatdown: passed (elapsed: 140ms)')
+		}).pipe(Effect.provide(outputHarness)),
+	)
 })
