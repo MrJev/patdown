@@ -12,7 +12,7 @@
 			"name": "patdown",
 			"source": "./packages/patdown-claude",
 			"description": "Judge Claude Code Write/Edit against AGENTS.PATDOWN.md before they hit disk",
-			"version": "0.10.0",
+			"version": "0.10.1",
 			"author": {
 				"name": "tyler-dot-earth"
 			},

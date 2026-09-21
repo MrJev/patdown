@@ -1,6 +1,6 @@
 {
 	"name": "@patdown/packs",
-	"version": "0.10.0",
+	"version": "0.10.1",
 	"description": "Optional fuzzy rule packs and individual rule files for patdown",
 	"homepage": "https://github.com/tyler-dot-earth/patdown",
 	"bugs": {
