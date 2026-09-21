@@ -200,6 +200,7 @@ export const PatdownOutputLive: Layer.Layer<PatdownOutput> = Layer.effect(
 				if (current.ruleTitle === null) return
 
 				yield* Console.log(formatPatdownRuleBlockClose(current.failCount, current.judgedCount))
+				yield* Console.log('')
 				yield* Ref.set(stream, {
 					ruleTitle: null,
 					directory: null,
@@ -260,31 +261,16 @@ export const PatdownOutputLive: Layer.Layer<PatdownOutput> = Layer.effect(
 				Effect.gen(function* () {
 					yield* closeOpenRule()
 					yield* Console.log(formatPatdownRuleBlock(title, []))
+					yield* Console.log('')
 				}),
 			writeLintOk: (elapsedMs) =>
 				Effect.gen(function* () {
-					const current = yield* Ref.get(stream)
-					const hadVerboseBlock = current.ruleTitle !== null
-
 					yield* closeOpenRule()
-
-					if (hadVerboseBlock) {
-						yield* Console.log('')
-					}
-
 					yield* patdownStreamingHumanOutput.writeLintOk(elapsedMs)
 				}),
 			writeLintFailed: (elapsedMs) =>
 				Effect.gen(function* () {
-					const current = yield* Ref.get(stream)
-					const hadVerboseBlock = current.ruleTitle !== null
-
 					yield* closeOpenRule()
-
-					if (hadVerboseBlock) {
-						yield* Console.log('')
-					}
-
 					yield* patdownStreamingHumanOutput.writeLintFailed(elapsedMs)
 				}),
 		}
