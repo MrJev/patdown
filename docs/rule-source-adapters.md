@@ -81,7 +81,7 @@ Or configure a project:
 - Configured relative paths and package names resolve from the directory containing that package.json. Package resolution uses ESM import conditions.
 - Missing package.json files are skipped. Unreadable files, invalid JSON, and invalid adapter settings are errors.
 - With no adapter configured, the built-in markdown source remains the default.
-- Discovery happens only when lint or `rules` executes. `ask`, `--help`, and `--version` do not import the adapter.
+- Discovery happens only when lint, `rules`, or `doctor` executes. `ask`, `--help`, and `--version` do not import the adapter.
 
 Adapters execute local code with the CLI's permissions. Only run adapters and project configuration you trust. The loader uses native module import, not a sandbox or a TypeScript transpiler. Use `.mjs` or compiled ESM `.js` for portability. Any native TypeScript support depends on your Node version and its restrictions.
 
