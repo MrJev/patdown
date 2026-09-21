@@ -4,7 +4,29 @@ Adapters own rule discovery and parsing. Patdown owns matching target files, cal
 
 ## Contract
 
-Export a named `PatdownRuleSourceLive` Layer that provides the `PatdownRuleSource` service from `@patdown/rules`. TypeScript adapters can check their layer with `satisfies PatdownRuleSourceLayer`, imported from `patdown`.
+Two exports work. Pick one.
+
+**Plain loader.** Export `loadPatdownRules(override)`. `override` is the `--rules` string, or `null`. Return the document (or a Promise of it). The adapter file does not import `effect`. Use this when the app is on another Effect major and you do not want a second install just to load rules.
+
+```js
+export function loadPatdownRules(override) {
+	return {
+		patdownRulesFilePath: override ?? 'docs/conventions',
+		patdownRules: [
+			{
+				patdownRuleTitle: 'style/no-title-case',
+				patdownRuleBody: 'Headings use sentence case.',
+				patdownRuleGlobs: ['**/*.md'],
+				patdownRuleYesThreshold: 0.6,
+			},
+		],
+	}
+}
+```
+
+`@patdown/rules` also exports `patdownPlainRuleSourceLayer` if you want to wrap that function yourself.
+
+**Effect layer.** Export a named `PatdownRuleSourceLive` Layer that provides the `PatdownRuleSource` service from `@patdown/rules`. TypeScript adapters can check their layer with `satisfies PatdownRuleSourceLayer`, imported from `patdown`. The adapter's `effect` import must resolve to the same major the CLI uses (`4.0.0-rc.116` in this release). Do not add that pin to an Effect v3 app root; keep it next to the adapter, or use the plain loader instead.
 
 ```ts
 loadPatdownRules(
@@ -59,7 +81,7 @@ Or configure a project:
 - Configured relative paths and package names resolve from the directory containing that package.json. Package resolution uses ESM import conditions.
 - Missing package.json files are skipped. Unreadable files, invalid JSON, and invalid adapter settings are errors.
 - With no adapter configured, the built-in markdown source remains the default.
-- Discovery happens only when lint or `rules` executes. `ask`, `--help`, and `--version` do not import the adapter.
+- Discovery happens only when lint, `rules`, or `doctor` executes. `ask`, `--help`, and `--version` do not import the adapter.
 
 Adapters execute local code with the CLI's permissions. Only run adapters and project configuration you trust. The loader uses native module import, not a sandbox or a TypeScript transpiler. Use `.mjs` or compiled ESM `.js` for portability. Any native TypeScript support depends on your Node version and its restrictions.
 
@@ -148,10 +170,14 @@ Supplying a layer disables discovery, including `--adapter`. Omitting the layer 
 
 The executable alone calls `NodeRuntime.runMain`. Command handlers still set `process.exitCode` for lint failures and handled loading errors, so embedding does not yet provide a separate structured exit result.
 
+## Doctor
+
+`patdown doctor` loads rules the same way lint, Claude, and Pi do, then prints whether `TYPESAFE_API_KEY` is set **in this process**. It does not call the judge. Exit 1 when the key is missing or, inside a Claude hook, when `CLAUDE_PLUGIN_ROOT`'s `plugin.json` version does not match the installed `patdown` package.
+
+A missing rules file is still a load error here (exit 1). Claude and Pi skip judging in that case, but they print the skip instead of staying silent.
+
 ## Current distribution
 
-The workspace packages are still private and unpublished. The GitHub release currently supplies source, not an installable CLI bundle. These imports assume a built checkout with workspace dependencies or an equivalent local development setup. Build with `pnpm install` and `pnpm -w build`; the executable is `apps/patdown/dist/patdown-cli-bin.js`.
+`patdown` and `@patdown/rules` publish to npm. Effect layer adapters must resolve the same Effect major the CLI pins (`4.0.0-rc.116`). That prerelease is not a stable plugin ABI across majors. A plain `loadPatdownRules` adapter does not import `effect`, so an Effect v3 app can keep v4 out of its root install.
 
-Use matching Effect versions across the host and adapter. This checkout pins Effect `4.0.0-rc.116`; its prerelease APIs are not a stable cross-version plugin ABI. Third-party adapters must make the host's `@patdown/rules` service and matching Effect runtime resolvable, typically through peer dependencies once publishing is available.
-
-The workspace `pnpm -w patdown` command executes from `apps/patdown`. To lint another project, invoke the built executable by absolute path from that project's directory. Its cwd determines config discovery and target globs.
+From this repo, `pnpm -w patdown` builds through Turborepo and runs the CLI in the current directory. That cwd is what config discovery and globs use.

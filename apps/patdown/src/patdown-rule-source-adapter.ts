@@ -2,6 +2,8 @@ import { isAbsolute, join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
 import {
+	patdownModuleHasPlainRuleSource,
+	patdownPlainRuleSourceLayer,
 	PatdownRuleSource,
 	PatdownRulesLoadFailed,
 	type PatdownRulesDocument,
@@ -11,7 +13,10 @@ import { resolve as resolveModule } from 'import-meta-resolve'
 
 import { discoverPatdownPackageConfig } from '#src/patdown-package-config'
 
-const AdapterModuleSchema = Schema.Struct({ PatdownRuleSourceLive: Schema.Unknown })
+const AdapterModuleSchema = Schema.Struct({
+	PatdownRuleSourceLive: Schema.optionalKey(Schema.Unknown),
+	loadPatdownRules: Schema.optionalKey(Schema.Unknown),
+})
 
 const RulesDocumentSchema = Schema.Struct({
 	patdownRulesFilePath: Schema.String,
@@ -43,7 +48,7 @@ function importPatdownAdapter(
 	moduleSpecifier: string,
 	fromDirectory: string,
 ): Effect.Effect<
-	Layer.Layer<unknown, unknown, FileSystem.FileSystem | Path.Path>,
+	Layer.Layer<PatdownRuleSource, unknown, FileSystem.FileSystem | Path.Path>,
 	PatdownRulesLoadFailed
 > {
 	return Effect.gen(function* () {
@@ -72,20 +77,25 @@ function importPatdownAdapter(
 
 		const decoded = yield* Schema.decodeUnknownEffect(AdapterModuleSchema)(imported)
 
-		if (!Layer.isLayer(decoded.PatdownRuleSourceLive)) {
-			return yield* new PatdownRulesLoadFailed({
-				message: 'patdown: adapter must export a PatdownRuleSourceLive Layer',
-			})
+		const live = decoded.PatdownRuleSourceLive
+
+		const plainSource =
+			live === undefined && patdownModuleHasPlainRuleSource(decoded) ? decoded : null
+
+		if (plainSource !== null) {
+			return patdownPlainRuleSourceLayer(plainSource)
 		}
 
-		// SAFETY: The boundary retains unknown failures/output. Host requirements alone are asserted;
-		// missing dependencies are caught at build, and service presence and returned rules are checked.
-		// oxlint-disable-next-line typescript/no-unsafe-type-assertion
-		return decoded.PatdownRuleSourceLive as Layer.Layer<
-			unknown,
-			unknown,
-			FileSystem.FileSystem | Path.Path
-		>
+		if (live !== undefined && Layer.isLayer(live)) {
+			// SAFETY: The boundary retains unknown failures/output. Host requirements alone are asserted;
+			// missing dependencies are caught at build, and service presence and returned rules are checked.
+			// oxlint-disable-next-line typescript/no-unsafe-type-assertion
+			return live as Layer.Layer<PatdownRuleSource, unknown, FileSystem.FileSystem | Path.Path>
+		}
+
+		return yield* new PatdownRulesLoadFailed({
+			message: 'patdown: adapter must export PatdownRuleSourceLive or loadPatdownRules(override)',
+		})
 	}).pipe(
 		Effect.mapError(
 			(cause) =>

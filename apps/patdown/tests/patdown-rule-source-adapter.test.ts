@@ -19,6 +19,22 @@ const fixture = fileURLToPath(
 	new URL('./fixtures/fixed-patdown-rule-source-adapter.js', import.meta.url),
 )
 
+const plainFixture = fileURLToPath(
+	new URL('./fixtures/plain-patdown-rule-source-adapter.js', import.meta.url),
+)
+
+const brokenPlainFixture = fileURLToPath(
+	new URL('./fixtures/broken-plain-patdown-rule-source-adapter.js', import.meta.url),
+)
+
+const throwingPlainFixture = fileURLToPath(
+	new URL('./fixtures/throwing-plain-patdown-rule-source-adapter.js', import.meta.url),
+)
+
+const rejectingPlainFixture = fileURLToPath(
+	new URL('./fixtures/rejecting-plain-patdown-rule-source-adapter.js', import.meta.url),
+)
+
 const directories: string[] = []
 
 const originalCwd = process.cwd()
@@ -51,6 +67,35 @@ describe('rule source adapters', () => {
 		Effect.gen(function* () {
 			const document = yield* loadAdapter(fixture)
 			expect(document.patdownRules[0]?.patdownRuleTitle).toBe('From adapter')
+		}),
+	)
+
+	it.effect('executes a plain loadPatdownRules export without an Effect layer', () =>
+		Effect.gen(function* () {
+			const document = yield* loadAdapter(plainFixture)
+			expect(document.patdownRules[0]?.patdownRuleTitle).toBe('From plain adapter')
+			expect(document.patdownRulesFilePath).toBe('plain-adapter')
+		}),
+	)
+
+	it.effect('fails a plain adapter that returns a malformed document', () =>
+		Effect.gen(function* () {
+			const error = yield* Effect.flip(loadAdapter(brokenPlainFixture))
+			expect(error.message).toContain('plain adapter')
+		}),
+	)
+
+	it.effect('fails a plain adapter that throws', () =>
+		Effect.gen(function* () {
+			const error = yield* Effect.flip(loadAdapter(throwingPlainFixture))
+			expect(error.message).toContain('sync boom')
+		}),
+	)
+
+	it.effect('fails a plain adapter that rejects', () =>
+		Effect.gen(function* () {
+			const error = yield* Effect.flip(loadAdapter(rejectingPlainFixture))
+			expect(error.message).toContain('async boom')
 		}),
 	)
 
