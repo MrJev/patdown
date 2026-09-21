@@ -1,6 +1,6 @@
 {
 	"name": "@patdown/rules",
-	"version": "0.10.1",
+	"version": "0.10.2",
 	"description": "Fuzzy patdown rule types and markdown rule loading",
 	"homepage": "https://github.com/tyler-dot-earth/patdown",
 	"bugs": {

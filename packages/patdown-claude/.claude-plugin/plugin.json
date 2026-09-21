@@ -1,6 +1,6 @@
 {
 	"name": "patdown",
-	"version": "0.10.1",
+	"version": "0.10.2",
 	"description": "Judge Claude Code Write/Edit against fuzzy patdown markdown rules before they hit disk",
 	"author": {
 		"name": "tyler-dot-earth",
