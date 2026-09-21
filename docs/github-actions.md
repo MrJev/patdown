@@ -5,7 +5,7 @@ Use patdown on pull requests as a fuzzy check over **changed files**, not the wh
 ## Recommended: composite action
 
 ```yaml
-- uses: actions/checkout@v4
+- uses: actions/checkout@v5
   with:
     fetch-depth: 0
 
