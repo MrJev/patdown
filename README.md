@@ -277,7 +277,7 @@ pnpm -w release major
 
 First write and commit `releases/vX.Y.Z.md` with the next version's notes. The release command requires a clean tree and validates those notes before changing anything. It runs `pnpm check`, bumps the CLI version, commits, tags `vX.Y.Z`, and pushes to `github` and `gitea` if present. With `gh` available, it watches the matching Release workflow.
 
-The tag workflow runs checks again, creates a GitHub Release using the checked-in notes, and publishes `patdown`, `@patdown/rules`, `@patdown/jev`, `@patdown/pi`, and `@patdown/packs` to npm. See [the release process](releases/README.md) for the metadata format and backfilling published notes.
+The tag workflow runs checks again, creates a GitHub Release using the checked-in notes, and publishes `patdown`, `@patdown/rules`, `@patdown/jev`, `@patdown/pi`, `@patdown/claude`, and `@patdown/packs` to npm. See [the release process](releases/README.md) for the metadata format and backfilling published notes.
 
 Pull requests and pushes to `main` run `pnpm check`. That is oxlint, tests, and typecheck. Not the fuzzy linter.
 
