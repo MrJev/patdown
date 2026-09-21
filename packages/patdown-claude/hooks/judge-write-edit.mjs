@@ -74,7 +74,11 @@ function isMissingModuleMessage(message) {
 		message.includes("Cannot find package 'patdown'") ||
 		message.includes('Cannot find package "patdown"') ||
 		message.includes("Cannot find module '@patdown/rules'") ||
-		message.includes('Cannot find module "@patdown/rules"')
+		message.includes('Cannot find module "@patdown/rules"') ||
+		message.includes("Cannot find module 'effect'") ||
+		message.includes('Cannot find module "effect"') ||
+		message.includes("Cannot find module '@effect/platform-node'") ||
+		message.includes('Cannot find module "@effect/platform-node"')
 	)
 }
 
@@ -83,25 +87,28 @@ function formatMissingInstall(cwd, cause) {
 
 	return [
 		`patdown: cannot resolve CLI packages from ${cwd}.`,
-		'The Claude plugin cache does not ship `patdown` / `@patdown/rules`; install them in the project being edited:',
+		'The Claude plugin cache does not ship `patdown`; install it (and `@patdown/rules`) in the project being edited:',
 		'',
 		'  pnpm add -D patdown @patdown/rules',
 		'',
+		'Transitive Effect deps are resolved from the installed `patdown` package, so you should not need to add `effect` by hand.',
 		'Needs TYPESAFE_API_KEY for the default judge.',
 		`Resolve detail: ${detail}`,
 	].join('\n')
 }
 
 async function importPatdownModules(cwd) {
-	// Resolve from the project cwd first. The plugin cache under ~/.claude never contains
-	// patdown itself; join(pluginRoot, '..') only helps monorepo --plugin-dir checkouts.
+	// Resolve `patdown` from the project cwd first. The plugin cache under ~/.claude never
+	// contains it; join(pluginRoot, '..') only helps monorepo --plugin-dir checkouts.
+	// Then resolve Effect / rules from that package so pnpm's isolated layout still works.
 	const searchPaths = [cwd, join(pluginRoot, '..'), pluginRoot]
 
 	try {
 		const patdownEntry = resolveFrom('patdown', searchPaths)
-		const rulesEntry = resolveFrom('@patdown/rules', searchPaths)
-		const effectEntry = resolveFrom('effect', searchPaths)
-		const platformEntry = resolveFrom('@effect/platform-node', searchPaths)
+		const fromPatdown = createRequire(patdownEntry)
+		const rulesEntry = fromPatdown.resolve('@patdown/rules')
+		const effectEntry = fromPatdown.resolve('effect')
+		const platformEntry = fromPatdown.resolve('@effect/platform-node')
 
 		const [patdown, rules, effect, platformNode] = await Promise.all([
 			import(patdownEntry),
