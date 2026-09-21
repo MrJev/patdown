@@ -42,6 +42,12 @@ describe('in-memory file judgments', () => {
 			typescriptRule !== undefined &&
 				patdownRuleAppliesToPath(typescriptRule, 'node_modules/pkg/index.ts'),
 		).toBe(false)
+		expect(typescriptRule !== undefined && patdownRuleAppliesToPath(typescriptRule, 'id_rsa')).toBe(
+			false,
+		)
+		expect(markdownRule !== undefined && patdownRuleAppliesToPath(markdownRule, '.env.local')).toBe(
+			false,
+		)
 	})
 
 	it.effect('judges only matching rules against supplied contents', () =>

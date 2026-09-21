@@ -26,8 +26,12 @@ test('patdownRelativeToolPath keeps cwd-relative paths and drops excludes', () =
 	const root = makeRepo()
 
 	try {
+		writeFileSync(join(root, '.env'), 'SECRET=1\n')
+		writeFileSync(join(root, 'id_rsa'), 'private-key\n')
 		assert.equal(patdownRelativeToolPath(root, join(root, 'src/cli.ts')), 'src/cli.ts')
 		assert.equal(patdownRelativeToolPath(root, join(root, 'node_modules/x.js')), null)
+		assert.equal(patdownRelativeToolPath(root, join(root, '.env')), null)
+		assert.equal(patdownRelativeToolPath(root, join(root, 'id_rsa')), null)
 		assert.equal(patdownRelativeToolPath(root, '/elsewhere/x.ts'), null)
 	} finally {
 		rmSync(root, { recursive: true, force: true })

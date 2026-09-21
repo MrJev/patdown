@@ -29,10 +29,11 @@ catalogs:
     '@effect/language-service': 0.87.2
     '@effect/tsgo': 0.45.0
     '@effect/platform-node': 4.0.0-rc.116
+    '@effect/platform-node-shared': 4.0.0-rc.116
     '@effect/vitest': 4.0.0-rc.116
     effect: 4.0.0-rc.116
 
-# Keep platform-node-shared on the same rc as effect. A floating caret can pull a newer shared build that imports symbols the pinned effect rc does not have.
+# Workspace resolution still needs this. Published packages also declare the same exact version as a direct dependency so npm consumers do not float shared ahead of effect.
 overrides:
   '@effect/platform-node-shared': 4.0.0-rc.116
 

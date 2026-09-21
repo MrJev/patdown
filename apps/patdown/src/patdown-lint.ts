@@ -1,3 +1,5 @@
+import { isAbsolute, resolve } from 'node:path'
+
 import {
 	defaultPatdownYesThreshold,
 	PatdownYesThresholdInvalid,
@@ -5,7 +7,7 @@ import {
 	type PatdownRulesDocument,
 	type PatdownYesThreshold,
 } from '@patdown/rules'
-import { Clock, Effect, FileSystem, Path } from 'effect'
+import { Clock, Effect, FileSystem, Option, Path } from 'effect'
 
 import {
 	formatPatdownEvidenceChoiceState,
@@ -20,6 +22,7 @@ import { selectPatdownRuleFiles, type PatdownLintFileSelection } from '#src/patd
 import { PatdownOutput, type PatdownLintEvidenceSpan } from '#src/patdown-output'
 import { decodePatdownRuleYesThreshold } from '#src/patdown-yes-threshold-config'
 
+/** Glob rule targets and keep files only. Effect FileSystem.glob also returns directories. */
 function globPatdownRuleFiles(
 	cwd: string,
 	globs: ReadonlyArray<string>,
@@ -37,7 +40,14 @@ function globPatdownRuleFiles(
 				})
 				.pipe(Effect.orElseSucceed((): string[] => []))
 
-			matches.push(...found)
+			for (const match of found) {
+				const absolutePath = isAbsolute(match) ? match : resolve(cwd, match)
+				const info = yield* fileSystem.stat(absolutePath).pipe(Effect.option)
+
+				if (Option.isNone(info) || info.value.type !== 'File') continue
+
+				matches.push(absolutePath)
+			}
 		}
 
 		return [...new Set(matches)].toSorted()

@@ -115,3 +115,50 @@ describe('lint file flags', () => {
 		}).pipe(Effect.provide(outputHarness)),
 	)
 })
+
+describe('empty rule globs', () => {
+	it.effect('lint files only and skip credential paths', () =>
+		Effect.gen(function* () {
+			const root = projectDirectory()
+
+			mkdirSync(join(root, 'src'), { recursive: true })
+			mkdirSync(join(root, 'dist'), { recursive: true })
+			writeFileSync(
+				join(root, 'AGENTS.PATDOWN.md'),
+				['# Whole tree', '', 'Prefer explicit actors.', ''].join('\n'),
+			)
+			writeFileSync(join(root, 'README.md'), '# Hello World\n')
+			writeFileSync(join(root, 'src/service.ts'), 'export const x = 1\n')
+			writeFileSync(join(root, 'dist/bundle.js'), 'export {}\n')
+			writeFileSync(join(root, '.env'), 'SECRET=1\n')
+			writeFileSync(join(root, 'id_rsa'), 'private-key\n')
+			process.chdir(root)
+
+			const asked: string[] = []
+
+			const judge = Layer.succeed(PatdownJudge, {
+				ask: (question, text) =>
+					Effect.sync(() => {
+						asked.push(`${question}\n${text}`)
+
+						return { yesProbability: 0.1 }
+					}),
+			})
+
+			yield* runPatdownCli(MarkdownPatdownRuleSourceLive, [], judge)
+
+			const askedText = asked.join('\n')
+			const lines = yield* TestConsole.logLines
+
+			expect(asked.length).toBeGreaterThan(0)
+			expect(askedText).toContain('path: README.md')
+			expect(askedText).toContain('path: src/service.ts')
+			expect(askedText).toContain('path: AGENTS.PATDOWN.md')
+			expect(askedText).not.toContain('path: src\n')
+			expect(askedText).not.toContain('path: dist')
+			expect(askedText).not.toContain('SECRET=1')
+			expect(askedText).not.toContain('private-key')
+			expect(lines.join('\n')).toContain('patdown: passed')
+		}).pipe(Effect.provide(outputHarness)),
+	)
+})

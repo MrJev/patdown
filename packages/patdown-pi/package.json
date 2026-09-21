@@ -58,6 +58,7 @@
 	},
 	"dependencies": {
 		"@effect/platform-node": "catalog:effect",
+		"@effect/platform-node-shared": "catalog:effect",
 		"@patdown/rules": "workspace:*",
 		"effect": "catalog:effect",
 		"patdown": "workspace:*"
