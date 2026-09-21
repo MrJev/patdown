@@ -9,6 +9,8 @@ import {
 import { Effect, FileSystem, Option, Path, Stdio } from 'effect'
 import { Argument, Command, Flag } from 'effect/unstable/cli'
 
+import { patdownCliVersion } from '#src/patdown-cli-version'
+import { formatPatdownDoctorReport, runPatdownDoctor } from '#src/patdown-doctor'
 import { PatdownJudge, PatdownJudgeFailed, askPatdownJudge } from '#src/patdown-judge'
 import { runPatdownLint } from '#src/patdown-lint'
 import { resolvePatdownLintFileSelection } from '#src/patdown-lint-files'
@@ -134,6 +136,36 @@ function makePatdownRulesCommand(
 	).pipe(Command.withDescription('Load and print patdown rules'))
 }
 
+function makePatdownDoctorCommand(): Command.Command<
+	'doctor',
+	never,
+	object,
+	never,
+	PatdownLintServices
+> {
+	return Command.make('doctor', {}, (): Effect.Effect<void, never, PatdownLintServices> =>
+		Effect.gen(function* () {
+			const report = yield* runPatdownDoctor(patdownCliVersion)
+
+			yield* Effect.sync(() => {
+				process.stdout.write(`${formatPatdownDoctorReport(report)}\n`)
+
+				if (report.failed) process.exitCode = 1
+			})
+		}).pipe(
+			Effect.catch((error) => {
+				const message = error instanceof Error ? error.message : String(error)
+
+				return failPatdown(message)
+			}),
+		),
+	).pipe(
+		Command.withDescription(
+			'Check rule discovery and TYPESAFE_API_KEY in this process without calling the judge',
+		),
+	)
+}
+
 function makePatdownAskCommand(): Command.Command<
 	'ask',
 	never,
@@ -227,6 +259,7 @@ export function makePatdownCommand(
 ): Command.Command<'patdown', never, object, never, PatdownLintServices> {
 	const rulesCommand = makePatdownRulesCommand(discoverAdapters)
 	const askCommand = makePatdownAskCommand()
+	const doctorCommand = makePatdownDoctorCommand()
 
 	return Command.make(
 		'patdown',
@@ -261,7 +294,7 @@ export function makePatdownCommand(
 	).pipe(
 		Command.withDescription('Lint a tree against fuzzy markdown rules'),
 		Command.withShortDescription('Patdown CLI'),
-		Command.withSubcommands([askCommand, rulesCommand]),
+		Command.withSubcommands([askCommand, doctorCommand, rulesCommand]),
 	)
 }
 

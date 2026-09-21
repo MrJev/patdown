@@ -36,6 +36,7 @@ pnpm -w patdown
 pnpm -w patdown -- --rules ./rules.md
 pnpm -w patdown -- --rules ./packs/typescript --verbose
 pnpm -w patdown -- rules
+pnpm -w patdown -- doctor
 pnpm -w patdown -- ask "Is this markdown heading title case?" --input-text "# Hello World"
 pnpm -w patdown -- ask "Is this urgent?" --input-text "ASAP" --verbose
 pnpm -w patdown -- --yes-threshold 0.9
@@ -49,7 +50,7 @@ git ls-files 'src' | pnpm -w patdown -- --files-from -
 
 Do not run `pnpm build` by hand just to exercise the CLI, and do not use bare `npx patdown` against an unpublished branch (that installs the last registry version). After a release, consumers use `npx patdown` / `pnpm add -D patdown` as usual.
 
-Default command lints from the current directory. `rules` prints what it loaded. `ask` answers a yes/no question, no files involved. It prints `yes` or `no`; `--verbose` also shows a P(yes) shade bar, the cutoff, and how long the judge call took. The old `--noul` and `--state` flags have been replaced by a positional question and `--input-text`.
+Default command lints from the current directory. `rules` prints what it loaded. `doctor` loads the same rules and checks `TYPESAFE_API_KEY` in this process without calling the judge. `ask` answers a yes/no question, no files involved. It prints `yes` or `no`; `--verbose` also shows a P(yes) shade bar, the cutoff, and how long the judge call took. The old `--noul` and `--state` flags have been replaced by a positional question and `--input-text`.
 
 To judge piped output, use `--stdin`:
 
@@ -66,7 +67,7 @@ A leading `---` frontmatter block may have one `include` key: a path, or a YAML 
 
 ## Adapters
 
-The default rule source parses markdown. Swap it with a module that exports `PatdownRuleSourceLive`, an Effect Layer for `PatdownRuleSource`.
+The default rule source parses markdown. Swap it with a module that exports `loadPatdownRules(override)` (no `effect` import) or `PatdownRuleSourceLive`, an Effect Layer for `PatdownRuleSource`. Use the plain export when the app is on another Effect major.
 
 ```
 pnpm -w patdown -- --adapter ./patdown-yaml-rules.js

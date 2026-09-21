@@ -236,9 +236,16 @@ export function installPatdownPiExtension(pi: ExtensionAPI): void {
 
 	pi.on('session_start', async (_event, ctx) => {
 		session = await loadPatdownPiSession(ctx.cwd)
+		const status = formatPatdownPiStatus(session)
+
+		if (!session.enabled) {
+			pi.appendEntry('patdown', { type: 'info', text: status })
+		}
 
 		if (ctx.hasUI) {
-			ctx.ui.setStatus('patdown', formatPatdownPiStatus(session))
+			ctx.ui.setStatus('patdown', status)
+
+			if (!session.enabled) ctx.ui.notify(status, 'info')
 		}
 	})
 

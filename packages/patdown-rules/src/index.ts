@@ -30,6 +30,14 @@ export {
 } from '#src/patdown-yes-threshold'
 
 export {
+	patdownModuleHasPlainRuleSource,
+	patdownPlainRuleSourceLayer,
+	type PatdownPlainRule,
+	type PatdownPlainRuleSource,
+	type PatdownPlainRulesDocument,
+} from '#src/patdown-plain-rule-source'
+
+export {
 	findPatdownRulesFilePath,
 	MarkdownPatdownRuleSourceLive,
 	PatdownRuleSource,

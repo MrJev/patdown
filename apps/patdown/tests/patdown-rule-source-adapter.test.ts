@@ -19,6 +19,10 @@ const fixture = fileURLToPath(
 	new URL('./fixtures/fixed-patdown-rule-source-adapter.js', import.meta.url),
 )
 
+const plainFixture = fileURLToPath(
+	new URL('./fixtures/plain-patdown-rule-source-adapter.js', import.meta.url),
+)
+
 const directories: string[] = []
 
 const originalCwd = process.cwd()
@@ -51,6 +55,14 @@ describe('rule source adapters', () => {
 		Effect.gen(function* () {
 			const document = yield* loadAdapter(fixture)
 			expect(document.patdownRules[0]?.patdownRuleTitle).toBe('From adapter')
+		}),
+	)
+
+	it.effect('executes a plain loadPatdownRules export without an Effect layer', () =>
+		Effect.gen(function* () {
+			const document = yield* loadAdapter(plainFixture)
+			expect(document.patdownRules[0]?.patdownRuleTitle).toBe('From plain adapter')
+			expect(document.patdownRulesFilePath).toBe('plain-adapter')
 		}),
 	)
 

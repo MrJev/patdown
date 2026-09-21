@@ -14,7 +14,9 @@ Same boundary as [`@patdown/pi`](pi.md): write/edit steering only.
 | Reconstruct proposed file, judge in memory | Steer / warn session modes (Pi only for now) |
 | `permissionDecision: deny` on FAIL | General agent supervision |
 
-Judge errors are never treated as a pass. Missing `AGENTS.PATDOWN.md` disables judging instead of blocking every write. Rule discovery matches the CLI (including `package.json#patdown.adapter`); only `--adapter` / `--rules` flags are unavailable in the hook.
+Judge errors are never treated as a pass. Missing `AGENTS.PATDOWN.md` (and no `package.json#patdown.adapter`) disables judging instead of blocking every write. The hook writes one stderr line, `patdown: skipped write to <path> (...)`, so a quiet allow is not a pass. Rule discovery matches the CLI, including a plain `loadPatdownRules` adapter; only `--adapter` / `--rules` flags are unavailable in the hook.
+
+`TYPESAFE_API_KEY` has to be in the hook process. A shell `echo` next to Claude does not count. `pnpm exec patdown doctor` checks the key in the process that runs it.
 
 ## Install
 
@@ -38,7 +40,12 @@ pnpm add -D patdown @patdown/rules
 pnpm exec patdown rules
 ```
 
-Prefer `pnpm exec patdown` over bare `npx patdown`. Requires `TYPESAFE_API_KEY` for the default TypeSafe/Jev judge.
+Prefer `pnpm exec patdown` over bare `npx patdown`. Requires `TYPESAFE_API_KEY` for the default TypeSafe/Jev judge. Confirm discovery before blaming the plugin:
+
+```sh
+pnpm exec patdown doctor
+pnpm exec patdown rules
+```
 
 If Claude shows a cached path like `.../plugins/cache/patdown/patdown/0.8.0/...` after a newer release, reinstall or bump the marketplace plugin so `plugin.json` matches the package version.
 

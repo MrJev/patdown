@@ -220,7 +220,9 @@ async function main() {
 		const message = cause instanceof Error ? cause.message : String(cause)
 
 		// Same policy as Pi: no rules file means skip judging, do not block every write.
+		// Print one line so a quiet allow is not mistaken for a pass.
 		if (isMissingRulesMessage(message)) {
+			process.stderr.write(`patdown: skipped write to ${proposed.relativePath} (${message})\n`)
 			process.exit(0)
 		}
 
