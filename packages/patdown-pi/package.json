@@ -1,6 +1,6 @@
 {
 	"name": "@patdown/pi",
-	"version": "0.9.0",
+	"version": "0.10.0",
 	"description": "Pi extension that steers write/edit against patdown rules before they hit disk",
 	"keywords": [
 		"pi-package"

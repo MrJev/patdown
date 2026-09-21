@@ -1,6 +1,6 @@
 {
 	"name": "patdown",
-	"version": "0.9.0",
+	"version": "0.10.0",
 	"description": "Standalone CLI that lints a tree against fuzzy markdown rules",
 	"homepage": "https://github.com/tyler-dot-earth/patdown",
 	"bugs": {
