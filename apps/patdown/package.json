@@ -61,6 +61,7 @@
 	"dependencies": {
 		"@effect/ai-typesafe": "catalog:effect",
 		"@effect/platform-node": "catalog:effect",
+		"@effect/platform-node-shared": "catalog:effect",
 		"@patdown/rules": "workspace:*",
 		"effect": "catalog:effect",
 		"import-meta-resolve": "catalog:"

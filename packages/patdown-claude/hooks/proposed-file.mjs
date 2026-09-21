@@ -1,31 +1,30 @@
 import { existsSync, lstatSync, readFileSync, realpathSync } from 'node:fs'
-import { isAbsolute, relative, resolve, sep } from 'node:path'
+import { isAbsolute, matchesGlob, relative, resolve, sep } from 'node:path'
 
-/** Directories skipped the same way as the CLI. */
+/** Paths skipped the same way as the CLI. Keep in sync with apps/patdown/src/patdown-glob.ts. */
 const patdownGlobExcludes = [
 	'**/.git/**',
+	'**/.git',
 	'**/.turbo/**',
+	'**/.turbo',
 	'**/coverage/**',
+	'**/coverage',
 	'**/dist/**',
+	'**/dist',
 	'**/node_modules/**',
+	'**/node_modules',
+	'**/.env',
+	'**/.env.*',
+	'**/*.pem',
+	'**/id_rsa',
+	'**/id_rsa.*',
+	'**/credentials.json',
+	'**/secrets.yaml',
+	'**/secrets.yml',
 ]
 
 /** Internal deadline for the Claude PreToolUse judge, under the hook's 120s timeout. */
 export const patdownClaudeJudgeTimeoutMs = 90_000
-
-function pathMatchesExclude(relativePath, pattern) {
-	// Minimal glob: **/dir/** prefix/suffix. Enough for the fixed exclude list.
-	if (pattern.startsWith('**/') && pattern.endsWith('/**')) {
-		const segment = pattern.slice(3, -3)
-		return (
-			relativePath === segment ||
-			relativePath.startsWith(`${segment}/`) ||
-			relativePath.includes(`/${segment}/`)
-		)
-	}
-
-	return false
-}
 
 function toPosixRelative(from, to) {
 	return relative(from, to).split(sep).join('/')
@@ -77,7 +76,7 @@ export function patdownRelativeToolPath(cwd, rawPath) {
 		return null
 	}
 
-	if (patdownGlobExcludes.some((pattern) => pathMatchesExclude(lexicalRelative, pattern))) {
+	if (patdownGlobExcludes.some((pattern) => matchesGlob(lexicalRelative, pattern))) {
 		return null
 	}
 

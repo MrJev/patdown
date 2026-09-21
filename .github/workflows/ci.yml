@@ -37,3 +37,26 @@ jobs:
           node apps/patdown/dist/patdown-cli-bin.js --version
           node apps/patdown/dist/patdown-cli-bin.js --help
           node apps/patdown/dist/patdown-cli-bin.js rules --rules AGENTS.PATDOWN.md
+
+      - name: Smoke-test packed npm install
+        run: |
+          set -euo pipefail
+          pack_dir="$RUNNER_TEMP/patdown-pack"
+          install_dir="$RUNNER_TEMP/patdown-npm-install"
+          mkdir -p "$pack_dir" "$install_dir"
+          pnpm --filter @patdown/rules pack --pack-destination "$pack_dir"
+          pnpm --filter patdown pack --pack-destination "$pack_dir"
+          rules_tgz="$(echo "$pack_dir"/patdown-rules-*.tgz)"
+          cli_tgz="$(ls "$pack_dir"/patdown-*.tgz | grep -v '/patdown-rules-')"
+          cd "$install_dir"
+          npm init -y >/dev/null
+          npm install "$rules_tgz" "$cli_tgz"
+          shared_version="$(node -p "require('@effect/platform-node-shared/package.json').version")"
+          effect_version="$(node -p "require('effect/package.json').version")"
+          test "$shared_version" = "4.0.0-rc.116"
+          test "$effect_version" = "4.0.0-rc.116"
+          mkdir fixture && cd fixture
+          printf '# Keep prose short\nglobs: **/*.md\n\nPrefer short sentences.\n' > rules.md
+          npx patdown --version
+          # rules reads through FileSystem; without the shared pin this fails with Service not found.
+          npx patdown rules --rules rules.md

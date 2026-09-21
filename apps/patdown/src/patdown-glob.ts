@@ -1,12 +1,29 @@
 import { matchesGlob } from 'node:path'
 
-/** Directories skipped for every rule glob and every --files path. */
+/**
+ * Paths skipped for every rule glob and every --files path. Build directories, their bare entries,
+ * and common credential filenames. Credential paths are skipped so their contents are never posted
+ * to the judge.
+ */
 export const patdownGlobExcludes = [
 	'**/.git/**',
+	'**/.git',
 	'**/.turbo/**',
+	'**/.turbo',
 	'**/coverage/**',
+	'**/coverage',
 	'**/dist/**',
+	'**/dist',
 	'**/node_modules/**',
+	'**/node_modules',
+	'**/.env',
+	'**/.env.*',
+	'**/*.pem',
+	'**/id_rsa',
+	'**/id_rsa.*',
+	'**/credentials.json',
+	'**/secrets.yaml',
+	'**/secrets.yml',
 ] as const
 
 /** Empty rule globs mean the whole tree. */
@@ -14,7 +31,7 @@ export function patdownGlobPatterns(globs: ReadonlyArray<string>): ReadonlyArray
 	return globs.length === 0 ? ['**/*'] : globs
 }
 
-/** True when a cwd-relative path is under a skipped directory. */
+/** True when a cwd-relative path is under a skipped directory or matches a skipped credential file. */
 export function patdownPathIsExcluded(relativePath: string): boolean {
 	return patdownGlobExcludes.some((pattern) => matchesGlob(relativePath, pattern))
 }

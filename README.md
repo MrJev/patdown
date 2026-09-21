@@ -178,11 +178,11 @@ github-annotation: error
 Markdown headings must use sentence case, not title case.
 ```
 
-No globs means `**/*`. Globs are relative to cwd, not to the rules file. Always skipped: `.git`, `.turbo`, `coverage`, `dist`, `node_modules`.
+No globs means `**/*`. Globs are relative to cwd, not to the rules file. Always skipped: `.git`, `.turbo`, `coverage`, `dist`, `node_modules`, plus common credential filenames (`.env` / `.env.*`, `*.pem`, `id_rsa` / `id_rsa.*`, `credentials.json`, `secrets.yaml` / `secrets.yml`). Directory matches from empty globs are dropped before reading; only files go to the judge.
 
 ## Lint
 
-Each matched file goes to the judge as "does this file violate the following patdown rule?" The evaluated text is `path:` plus the file contents. One file at a time.
+Each matched file goes to the judge as "does this file violate the following patdown rule?" The evaluated text is `path:` plus the file contents. One file at a time. Files matched by several rules are judged once per matching rule. There is no result cache and no request budget yet; watch TypeSafe usage on large trees.
 
 A rule with no matches prints `patdown: no files matched ...` and does not fail.
 
