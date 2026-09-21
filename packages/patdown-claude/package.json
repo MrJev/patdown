@@ -1,0 +1,46 @@
+{
+	"name": "@patdown/claude",
+	"version": "0.8.0",
+	"description": "Claude Code plugin that judges Write/Edit against patdown rules before they hit disk",
+	"homepage": "https://github.com/tyler-dot-earth/patdown",
+	"bugs": {
+		"url": "https://github.com/tyler-dot-earth/patdown/issues"
+	},
+	"license": "0BSD",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/tyler-dot-earth/patdown.git",
+		"directory": "packages/patdown-claude"
+	},
+	"files": [
+		".claude-plugin",
+		"LICENSE",
+		"README.md",
+		"hooks",
+		"skills"
+	],
+	"type": "module",
+	"publishConfig": {
+		"access": "public"
+	},
+	"scripts": {
+		"build": "node ../../scripts/warn-direct-package-task.mjs build && printf 'content package: no build.\\n'",
+		"check": "node ../../scripts/warn-direct-package-task.mjs check && pnpm run lint && pnpm run format:check && pnpm run typecheck && pnpm run test",
+		"clean": "rm -f LICENSE",
+		"format": "oxfmt --write package.json hooks/*.mjs",
+		"format:check": "node ../../scripts/warn-direct-package-task.mjs format:check && oxfmt --check package.json hooks/*.mjs",
+		"lint": "node ../../scripts/warn-direct-package-task.mjs lint && printf 'content package: no TypeScript to lint.\\n'",
+		"prepack": "node ../../scripts/copy-package-license.mjs",
+		"test": "node ../../scripts/warn-direct-package-task.mjs test && node --test hooks/proposed-file.test.mjs",
+		"typecheck": "node ../../scripts/warn-direct-package-task.mjs typecheck && printf 'content package: no TypeScript to typecheck.\\n'"
+	},
+	"devDependencies": {
+		"oxfmt": "catalog:"
+	},
+	"engines": {
+		"node": ">=22.22.2"
+	},
+	"patdown": {
+		"packageKind": "content-package"
+	}
+}
