@@ -124,6 +124,7 @@ describe('human-readable judgments', () => {
 	it.effect('leaves a blank line between verbose rule boxes', () =>
 		Effect.gen(function* () {
 			const output = yield* PatdownOutput
+
 			const first = {
 				violated: false,
 				filePath: 'README.md',
@@ -134,6 +135,7 @@ describe('human-readable judgments', () => {
 				yesThreshold: 0.85,
 				elapsedMs: 9,
 			} as const
+
 			const second = {
 				violated: false,
 				filePath: 'apps/patdown/src/cli.ts',

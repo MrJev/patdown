@@ -63,7 +63,38 @@ function resolveFrom(specifier, paths) {
 	return require.resolve(specifier, { paths })
 }
 
+function isMissingRulesMessage(message) {
+	return message.includes('patdown: no ') && message.includes(' found walking up from ')
+}
+
+function isMissingModuleMessage(message) {
+	return (
+		message.includes("Cannot find module 'patdown'") ||
+		message.includes('Cannot find module "patdown"') ||
+		message.includes("Cannot find package 'patdown'") ||
+		message.includes('Cannot find package "patdown"') ||
+		message.includes("Cannot find module '@patdown/rules'") ||
+		message.includes('Cannot find module "@patdown/rules"')
+	)
+}
+
+function formatMissingInstall(cwd, cause) {
+	const detail = cause instanceof Error ? cause.message : String(cause)
+
+	return [
+		`patdown: cannot resolve CLI packages from ${cwd}.`,
+		'The Claude plugin cache does not ship `patdown` / `@patdown/rules`; install them in the project being edited:',
+		'',
+		'  pnpm add -D patdown @patdown/rules',
+		'',
+		'Needs TYPESAFE_API_KEY for the default judge.',
+		`Resolve detail: ${detail}`,
+	].join('\n')
+}
+
 async function importPatdownModules(cwd) {
+	// Resolve from the project cwd first. The plugin cache under ~/.claude never contains
+	// patdown itself; join(pluginRoot, '..') only helps monorepo --plugin-dir checkouts.
 	const searchPaths = [cwd, join(pluginRoot, '..'), pluginRoot]
 
 	try {
@@ -81,9 +112,13 @@ async function importPatdownModules(cwd) {
 
 		return { patdown, rules, effect, platformNode }
 	} catch (cause) {
-		throw new Error(
-			`patdown: install patdown (and its Effect deps) in this project so the Claude plugin can judge writes: ${cause instanceof Error ? cause.message : String(cause)}`,
-		)
+		const detail = cause instanceof Error ? cause.message : String(cause)
+
+		if (isMissingModuleMessage(detail)) {
+			throw new Error(formatMissingInstall(cwd, cause))
+		}
+
+		throw new Error(`patdown: failed to import judge modules from ${cwd}: ${detail}`)
 	}
 }
 
@@ -172,9 +207,14 @@ async function main() {
 
 		writeDeny(formatBlockReason(proposed.relativePath, failures))
 	} catch (cause) {
-		writeDeny(
-			`patdown judge failed (not converted to a pass): ${cause instanceof Error ? cause.message : String(cause)}`,
-		)
+		const message = cause instanceof Error ? cause.message : String(cause)
+
+		// Same policy as Pi: no rules file means skip judging, do not block every write.
+		if (isMissingRulesMessage(message)) {
+			process.exit(0)
+		}
+
+		writeDeny(`patdown judge failed (not converted to a pass): ${message}`)
 	}
 }
 

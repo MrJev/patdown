@@ -17,6 +17,10 @@ const publishablePackageJsonPaths = [
 	join(repoRoot, 'packages/patdown-packs/package.json'),
 ]
 const patdownCliPackageJsonPath = publishablePackageJsonPaths[0]
+const claudePluginVersionPaths = [
+	join(repoRoot, 'packages/patdown-claude/.claude-plugin/plugin.json'),
+	join(repoRoot, '.claude-plugin/marketplace.json'),
+]
 
 function runReleaseCommand(command, args) {
 	const result = spawnSync(command, args, {
@@ -118,6 +122,10 @@ function writePublishablePackageVersions(nextVersion) {
 	for (const packageJsonPath of publishablePackageJsonPaths) {
 		writePublishablePackageVersion(packageJsonPath, nextVersion)
 	}
+
+	for (const versionPath of claudePluginVersionPaths) {
+		writePublishablePackageVersion(versionPath, nextVersion)
+	}
 }
 
 function pushPatdownReleaseRemotes() {
@@ -204,7 +212,7 @@ if (gitStdout(['tag', '--list', tagName]).trim())
 runReleaseCommand('pnpm', ['check'])
 
 writePublishablePackageVersions(nextVersion)
-runReleaseCommand('git', ['add', ...publishablePackageJsonPaths])
+runReleaseCommand('git', ['add', ...publishablePackageJsonPaths, ...claudePluginVersionPaths])
 runReleaseCommand('git', ['commit', '-m', tagName])
 runReleaseCommand('git', ['tag', '-a', tagName, '-m', tagName])
 pushPatdownReleaseRemotes()
