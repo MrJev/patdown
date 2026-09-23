@@ -184,7 +184,7 @@ No globs means `**/*`. Globs are relative to cwd, not to the rules file. Always 
 
 ## Lint
 
-Each matched file goes to the judge as "does this file violate the following patdown rule?" The evaluated text is `path:` plus the file contents. One file at a time. Files matched by several rules are judged once per matching rule, so a rule pack multiplies the call count; a file is read from disk once per run and every rule judges that same snapshot. A FAIL costs one more call to locate the evidence. There is no result cache across runs, so watch TypeSafe usage on large trees, and see `--max-judgments` below.
+Each matched file goes to the judge as "does this file violate the following patdown rule?" The evaluated text is `path:` plus the file contents. One file at a time. Files matched by several rules are judged once per matching rule, so a rule pack multiplies the call count. A file matched by several rules is read from disk once and every one of those rules judges that same snapshot — which is there for within-run consistency and fewer disk reads, not for fewer API calls. A FAIL costs one more call to locate the evidence. There is no result cache across runs, so watch TypeSafe usage on large trees, and see `--max-judgments` below.
 
 A rule with no matches prints `patdown: no files matched ...` and does not fail.
 
@@ -209,13 +209,15 @@ patdown: failed (elapsed: 1840ms)
 
 `--files` (repeatable) and `--files-from` accept files, directories, or globs, then intersect with each rule's globs. That is how CI should run over a pull request. See [GitHub Actions](docs/github-actions.md).
 
-`--max-judgments N` caps what one run may spend. Patdown resolves every rule's file list before the first judge call, so a run whose plan is larger than the cap stops without sending anything:
+`--max-judgments N` limits the number of planned file/rule evaluations. Evidence requests are additional; this is not a total-request or monetary budget. Patdown resolves every rule's file list before the first judge call, so a run whose plan is larger than the limit stops without sending anything:
 
 ```
 patdown: refusing to start: 412 file judgments planned, --max-judgments is 100. Narrow the run with --files or --files-from, or raise the cap.
 ```
 
-The count is file/rule pairs, which is the floor: each FAIL adds an evidence call on top. There is no cap by default.
+What is counted is file/rule pairs. Each FAIL adds one evidence call that the limit does not count, so the number of requests a run makes is between N and 2N. There is no limit by default.
+
+It is also a workload limit rather than a spending one in a second sense: the same file evaluated against two rules is two judgments and should be, because they are two different questions. Reading the file twice is what the run avoids, not asking about it twice.
 
 Patdown counts estimated P(yes) strictly above the cutoff as yes; for lint, yes means violation. Default cutoff is 0.85. Override it with `--yes-threshold`, package.json `patdown.yesThreshold`, or a per-rule `yes-threshold:` line. The flag wins over package.json; a per-rule value wins for that rule only. `1` is rejected because nothing can exceed it. This cutoff belongs to patdown, not the provider.
 

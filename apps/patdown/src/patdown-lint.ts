@@ -7,7 +7,7 @@ import {
 	type PatdownRulesDocument,
 	type PatdownYesThreshold,
 } from '@patdown/rules'
-import { Clock, Effect, FileSystem, Option, Path, Ref } from 'effect'
+import { Clock, Effect, FileSystem, Option, Path } from 'effect'
 
 import {
 	formatPatdownEvidenceChoiceState,
@@ -28,8 +28,37 @@ import { selectPatdownRuleFiles, type PatdownLintFileSelection } from '#src/patd
 import { PatdownOutput, type PatdownLintEvidenceSpan } from '#src/patdown-output'
 import { decodePatdownRuleYesThreshold } from '#src/patdown-yes-threshold-config'
 
-/** File contents read once per run and reused by every rule that matches the same file. */
-type PatdownFileContentsCache = Ref.Ref<ReadonlyMap<string, string>>
+/**
+ * File contents held only while more than one rule still has to read them.
+ *
+ * Both execution loops below run at `concurrency: 1`, so a plain mutable map is enough; the
+ * copy-on-write `Ref` this replaced copied every existing entry on every miss, which is quadratic
+ * in the number of unique files.
+ *
+ * `remaining` is the number of planned reads left for each path, counted from the plans before any
+ * judging starts. A file only one rule matches is never stored, and a file several rules match is
+ * dropped after its last planned read — so a run holds the contents it is about to reuse rather
+ * than every file it has ever opened.
+ */
+type PatdownFileContentsCache = {
+	readonly contents: Map<string, string>
+	readonly remaining: Map<string, number>
+}
+
+/** Count the planned reads per path, so the cache knows when a file is finished with. */
+function makePatdownFileContentsCache(
+	plans: ReadonlyArray<PatdownRulePlan>,
+): PatdownFileContentsCache {
+	const remaining = new Map<string, number>()
+
+	for (const plan of plans) {
+		for (const filePath of plan.files) {
+			remaining.set(filePath, (remaining.get(filePath) ?? 0) + 1)
+		}
+	}
+
+	return { contents: new Map<string, string>(), remaining }
+}
 
 /** Glob rule targets and keep files only. Effect FileSystem.glob also returns directories. */
 function globPatdownRuleFiles(
@@ -73,9 +102,17 @@ function readPatdownFileContents(
 	relativePath: string,
 ): Effect.Effect<string, PatdownJudgeFailed, FileSystem.FileSystem> {
 	return Effect.gen(function* () {
-		const cached = (yield* Ref.get(cache)).get(filePath)
+		// Spend one planned read whether it hits or misses; at zero nothing will ask again.
+		const remaining = (cache.remaining.get(filePath) ?? 1) - 1
+		cache.remaining.set(filePath, remaining)
 
-		if (cached !== undefined) return cached
+		const cached = cache.contents.get(filePath)
+
+		if (cached !== undefined) {
+			if (remaining <= 0) cache.contents.delete(filePath)
+
+			return cached
+		}
 
 		const fileSystem = yield* FileSystem.FileSystem
 
@@ -88,7 +125,7 @@ function readPatdownFileContents(
 			),
 		)
 
-		yield* Ref.update(cache, (entries) => new Map(entries).set(filePath, contents))
+		if (remaining > 0) cache.contents.set(filePath, contents)
 
 		return contents
 	})
@@ -305,7 +342,7 @@ export function runPatdownLint(
 			}
 		}
 
-		const cache: PatdownFileContentsCache = yield* Ref.make<ReadonlyMap<string, string>>(new Map())
+		const cache = makePatdownFileContentsCache(plans)
 
 		const failures = yield* Effect.forEach(
 			plans,

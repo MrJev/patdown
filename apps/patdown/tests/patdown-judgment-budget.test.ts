@@ -63,6 +63,33 @@ function twoRulesOverTwoFiles(): string {
 	return root
 }
 
+/** Two rules over the same two files, the second rule carrying an unusable cutoff. */
+function secondRuleHasAnInvalidThreshold(): string {
+	const root = projectDirectory()
+
+	writeFileSync(
+		join(root, 'AGENTS.PATDOWN.md'),
+		[
+			'# Explicit actors',
+			'globs: **/*.ts',
+			'',
+			'Prefer explicit actors.',
+			'',
+			'# Sentence case',
+			'globs: **/*.ts',
+			'yes-threshold: 1',
+			'',
+			'Use sentence case.',
+			'',
+		].join('\n'),
+	)
+	writeFileSync(join(root, 'service.ts'), 'export const x = 1\n')
+	writeFileSync(join(root, 'client.ts'), 'export const y = 2\n')
+	process.chdir(root)
+
+	return root
+}
+
 const outputHarness = Layer.mergeAll(PatdownOutputLive, TestConsole.layer, NodeServices.layer)
 
 describe('judgment budget', () => {
@@ -166,6 +193,102 @@ describe('judgment budget', () => {
 			expect(clientJudgments).toHaveLength(2)
 			expect(clientJudgments[0]).toBe(clientJudgments[1])
 			expect(process.exitCode).not.toBe(1)
+		}).pipe(Effect.provide(outputHarness)),
+	)
+})
+
+describe('judgment budget and the rest of the run', () => {
+	it.effect('a narrowed selection fits a cap the whole tree does not', () =>
+		Effect.gen(function* () {
+			twoRulesOverTwoFiles()
+
+			const asked: string[] = []
+
+			const judge = Layer.succeed(PatdownJudge, {
+				ask: (_question, text) =>
+					Effect.sync(() => {
+						asked.push(text)
+
+						return { yesProbability: 0.1 }
+					}),
+			})
+
+			// Four judgments planned over the tree, two over one file. The cap counts what the
+			// selection leaves, not what the globs would have matched.
+			yield* runPatdownCli(MarkdownPatdownRuleSourceLive, ['--max-judgments', '2'], judge)
+
+			expect(asked).toHaveLength(0)
+			expect(process.exitCode).toBe(1)
+
+			process.exitCode = originalExitCode
+			asked.length = 0
+
+			yield* runPatdownCli(
+				MarkdownPatdownRuleSourceLive,
+				['--max-judgments', '2', '--files', 'service.ts'],
+				judge,
+			)
+
+			expect(asked).toHaveLength(2)
+			expect(asked.every((text) => text.startsWith('path: service.ts'))).toBe(true)
+			expect(process.exitCode).not.toBe(1)
+		}).pipe(Effect.provide(outputHarness)),
+	)
+
+	it.effect('a later rule with an unusable cutoff spends nothing on the earlier ones', () =>
+		Effect.gen(function* () {
+			secondRuleHasAnInvalidThreshold()
+
+			const asked: string[] = []
+
+			const judge = Layer.succeed(PatdownJudge, {
+				ask: (_question, text) =>
+					Effect.sync(() => {
+						asked.push(text)
+
+						return { yesProbability: 0.1 }
+					}),
+			})
+
+			// Planning resolves every rule's cutoff before the first judge call, so the second
+			// rule's `yes-threshold: 1` is rejected before the first rule is judged. The old
+			// order judged rule one, then failed. This pins the change.
+			yield* runPatdownCli(MarkdownPatdownRuleSourceLive, [], judge)
+
+			expect(asked).toHaveLength(0)
+			expect(process.exitCode).toBe(1)
+		}).pipe(Effect.provide(outputHarness)),
+	)
+
+	it.effect('evidence calls are extra requests the cap does not count', () =>
+		Effect.gen(function* () {
+			twoRulesOverTwoFiles()
+
+			const judgments: string[] = []
+			const evidence: string[] = []
+
+			const judge = Layer.succeed(PatdownJudge, {
+				ask: (_question, text) =>
+					Effect.sync(() => {
+						judgments.push(text)
+
+						return { yesProbability: 0.99 }
+					}),
+				locateEvidence: (_question, text) =>
+					Effect.sync(() => {
+						evidence.push(text)
+
+						return null
+					}),
+			})
+
+			// Four planned judgments, a cap of exactly four, and every one of them a violation.
+			// The run is accepted and makes four more requests than the cap names.
+			yield* runPatdownCli(MarkdownPatdownRuleSourceLive, ['--max-judgments', '4'], judge)
+
+			expect(judgments).toHaveLength(4)
+			expect(evidence).toHaveLength(4)
+			expect(process.exitCode).toBe(1)
 		}).pipe(Effect.provide(outputHarness)),
 	)
 })
