@@ -27,6 +27,7 @@ jobs:
           cache: pnpm
 
       - uses: vercel/setup-turborepo-remote-cache-action@v1.1.0
+        if: vars.TURBO_TEAM != ''
         with:
           team: ${{ vars.TURBO_TEAM }}
 
