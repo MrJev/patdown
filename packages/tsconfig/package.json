@@ -13,7 +13,7 @@
 		"./node-library.json": "./node-library.json"
 	},
 	"scripts": {
-		"check": "node ../../scripts/warn-direct-package-task.mjs check && pnpm run lint && pnpm run format:check && pnpm run typecheck && pnpm run test",
+		"check": "node ../../scripts/warn-direct-package-task.mjs check",
 		"format": "oxfmt --write .",
 		"format:check": "node ../../scripts/warn-direct-package-task.mjs format:check && oxfmt --check .",
 		"lint": "node ../../scripts/warn-direct-package-task.mjs lint && oxlint .",

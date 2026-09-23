@@ -1,0 +1,11 @@
+{
+	"extends": ["//"],
+	"tasks": {
+		"build": {
+			"outputs": ["anti-slop/**", "effect/**", "typescript/**"]
+		},
+		"typecheck": {
+			"outputs": []
+		}
+	}
+}

@@ -17,3 +17,4 @@ console.warn('Dependency graph ordering, cache behavior, and upstream builds may
 console.warn(`Prefer: ${workspaceCommand}`)
 console.warn('Use ALLOW_DIRECT_TASK=1 only for intentional local debugging.')
 console.warn('')
+process.exit(1)
