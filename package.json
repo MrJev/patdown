@@ -9,6 +9,7 @@
 		"build": "turbo run build",
 		"check": "turbo run check \"//#format:root\" --output-logs=errors-only",
 		"check:all": "turbo run check --output-logs=errors-only",
+		"check:ci": "turbo run check build --output-logs=errors-only",
 		"clean": "turbo run clean",
 		"dev": "turbo run dev",
 		"format": "turbo run format",

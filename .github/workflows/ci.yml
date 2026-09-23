@@ -40,7 +40,7 @@ jobs:
           TURBO_TELEMETRY_DISABLED: '1'
         run: |
           pnpm install
-          pnpm check
+          pnpm check:ci
 
       - name: Smoke-test built CLI
         run: |

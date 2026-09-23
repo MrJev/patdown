@@ -54,9 +54,8 @@
 			"inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/.oxfmtrc.json"]
 		},
 		"check": {
-			"description": "Run the full package verification pipeline: build, lint, format, test, and typecheck.",
+			"description": "Run the full package verification pipeline: lint, format, test, and typecheck.",
 			"dependsOn": [
-				"build",
 				"lint",
 				"format:check",
 				"test",
