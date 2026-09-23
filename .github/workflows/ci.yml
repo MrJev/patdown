@@ -16,6 +16,7 @@ jobs:
     runs-on: ubuntu-24.04
     permissions:
       contents: read
+      id-token: write
     steps:
       - uses: actions/checkout@v5
 
@@ -26,11 +27,16 @@ jobs:
           node-version: ${{ matrix.node }}
           cache: pnpm
 
+      - uses: vercel/setup-turborepo-remote-cache-action@v1.1.0
+        with:
+          team: ${{ vars.TURBO_TEAM }}
+
       - name: Check
+        env:
+          TURBO_TELEMETRY_DISABLED: '1'
         run: |
           pnpm install
           pnpm check
-          pnpm build
 
       - name: Smoke-test built CLI
         run: |

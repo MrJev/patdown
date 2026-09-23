@@ -25,7 +25,7 @@
 	},
 	"scripts": {
 		"build": "node ../../scripts/warn-direct-package-task.mjs build && printf 'content package: no build.\\n'",
-		"check": "node ../../scripts/warn-direct-package-task.mjs check && pnpm run lint && pnpm run format:check && pnpm run typecheck && pnpm run test",
+		"check": "node ../../scripts/warn-direct-package-task.mjs check",
 		"clean": "printf 'content package: nothing to clean.\n'",
 		"format": "oxfmt --write package.json hooks/*.mjs",
 		"format:check": "node ../../scripts/warn-direct-package-task.mjs format:check && oxfmt --check package.json hooks/*.mjs",

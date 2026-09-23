@@ -7,8 +7,8 @@
 	"type": "module",
 	"scripts": {
 		"build": "turbo run build",
-		"check": "turbo run check \"//#format:root\" --output-logs=errors-only --concurrency=2",
-		"check:all": "turbo run check --output-logs=errors-only --concurrency=2",
+		"check": "turbo run check \"//#format:root\" --output-logs=errors-only",
+		"check:all": "turbo run check --output-logs=errors-only",
 		"clean": "turbo run clean",
 		"dev": "turbo run dev",
 		"format": "turbo run format",

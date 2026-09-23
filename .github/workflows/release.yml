@@ -22,11 +22,16 @@ jobs:
           cache: pnpm
           registry-url: 'https://registry.npmjs.org'
 
+      - uses: vercel/setup-turborepo-remote-cache-action@v1.1.0
+        with:
+          team: ${{ vars.TURBO_TEAM }}
+
       - name: Check
+        env:
+          TURBO_TELEMETRY_DISABLED: '1'
         run: |
           pnpm install
           pnpm check
-          pnpm build
 
       - name: Create GitHub Release
         env:
