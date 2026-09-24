@@ -46,7 +46,7 @@
 	},
 	"scripts": {
 		"build": "node ../../scripts/warn-direct-package-task.mjs build && tsc -p tsconfig.build.json",
-		"check": "node ../../scripts/warn-direct-package-task.mjs check && pnpm run lint && pnpm run format:check && pnpm run typecheck && pnpm run test",
+		"check": "node ../../scripts/warn-direct-package-task.mjs check",
 		"clean": "rm -rf dist coverage",
 		"dev": "tsc -p tsconfig.build.json --watch --preserveWatchOutput",
 		"format": "oxfmt --write .",

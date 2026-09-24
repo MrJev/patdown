@@ -16,6 +16,7 @@ jobs:
     runs-on: ubuntu-24.04
     permissions:
       contents: read
+      id-token: write
     steps:
       - uses: actions/checkout@v5
 
@@ -26,11 +27,20 @@ jobs:
           node-version: ${{ matrix.node }}
           cache: pnpm
 
+      - uses: vercel/setup-turborepo-remote-cache-action@v1.1.0
+        if: >-
+          vars.TURBO_TEAM != '' &&
+          (github.event_name != 'pull_request' ||
+          github.event.pull_request.head.repo.full_name == github.repository)
+        with:
+          team: ${{ vars.TURBO_TEAM }}
+
       - name: Check
+        env:
+          TURBO_TELEMETRY_DISABLED: '1'
         run: |
           pnpm install
-          pnpm check
-          pnpm build
+          pnpm check:ci
 
       - name: Smoke-test built CLI
         run: |
