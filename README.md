@@ -215,7 +215,7 @@ patdown: failed (elapsed: 1840ms)
 patdown: refusing to start: 412 file judgments planned, --max-judgments is 100. Narrow the run with --files or --files-from, or raise the cap.
 ```
 
-What is counted is file/rule pairs. Each FAIL adds one evidence call that the limit does not count, so the number of requests a run makes is between N and 2N. There is no limit by default.
+What is counted is file/rule pairs. For J planned evaluations, each FAIL adds one evidence call, so the run makes between J and 2J requests. J may be less than the configured cap. There is no limit by default.
 
 It is also a workload limit rather than a spending one in a second sense: the same file evaluated against two rules is two judgments and should be, because they are two different questions. Reading the file twice is what the run avoids, not asking about it twice.
 

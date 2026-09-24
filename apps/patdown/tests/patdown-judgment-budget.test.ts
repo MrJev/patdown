@@ -4,7 +4,7 @@ import { join } from 'node:path'
 
 import { NodeServices } from '@effect/platform-node'
 import { afterEach, describe, expect, it } from '@effect/vitest'
-import { MarkdownPatdownRuleSourceLive } from '@patdown/rules'
+import { MarkdownPatdownRuleSourceLive, PatdownRuleSource } from '@patdown/rules'
 import { Effect, Layer, Option } from 'effect'
 import { TestConsole } from 'effect/testing'
 
@@ -15,6 +15,7 @@ import {
 	resolvePatdownJudgmentBudget,
 } from '#src/patdown-judgment-budget'
 import { PatdownOutputLive } from '#src/patdown-output'
+import type { PatdownRuleSourceLayer } from '#src/patdown-rule-source-adapter'
 import { runPatdownCli } from '#src/run-patdown-cli'
 
 const directories: string[] = []
@@ -63,31 +64,31 @@ function twoRulesOverTwoFiles(): string {
 	return root
 }
 
-/** Two rules over the same two files, the second rule carrying an unusable cutoff. */
-function secondRuleHasAnInvalidThreshold(): string {
-	const root = projectDirectory()
-
-	writeFileSync(
-		join(root, 'AGENTS.PATDOWN.md'),
-		[
-			'# Explicit actors',
-			'globs: **/*.ts',
-			'',
-			'Prefer explicit actors.',
-			'',
-			'# Sentence case',
-			'globs: **/*.ts',
-			'yes-threshold: 1',
-			'',
-			'Use sentence case.',
-			'',
-		].join('\n'),
-	)
-	writeFileSync(join(root, 'service.ts'), 'export const x = 1\n')
-	writeFileSync(join(root, 'client.ts'), 'export const y = 2\n')
-	process.chdir(root)
-
-	return root
+/**
+ * Two rules over the same two files, the cutoff on the second one. The markdown parser rejects an
+ * unusable `yes-threshold:` while it reads the file, so a fixture cannot say anything about when
+ * lint spends: the rules have to arrive already parsed for planning to be what refuses them.
+ */
+function rulesWithSecondRuleCutoff(yesThreshold: number): PatdownRuleSourceLayer {
+	return Layer.succeed(PatdownRuleSource, {
+		loadPatdownRules: () =>
+			Effect.succeed({
+				patdownRules: [
+					{
+						patdownRuleBody: 'Prefer explicit actors.',
+						patdownRuleGlobs: ['**/*.ts'],
+						patdownRuleTitle: 'Explicit actors',
+					},
+					{
+						patdownRuleBody: 'Use sentence case.',
+						patdownRuleGlobs: ['**/*.ts'],
+						patdownRuleTitle: 'Sentence case',
+						patdownRuleYesThreshold: yesThreshold,
+					},
+				],
+				patdownRulesFilePath: join(process.cwd(), 'AGENTS.PATDOWN.md'),
+			}),
+	})
 }
 
 const outputHarness = Layer.mergeAll(PatdownOutputLive, TestConsole.layer, NodeServices.layer)
@@ -237,7 +238,7 @@ describe('judgment budget and the rest of the run', () => {
 
 	it.effect('a later rule with an unusable cutoff spends nothing on the earlier ones', () =>
 		Effect.gen(function* () {
-			secondRuleHasAnInvalidThreshold()
+			twoRulesOverTwoFiles()
 
 			const asked: string[] = []
 
@@ -251,12 +252,22 @@ describe('judgment budget and the rest of the run', () => {
 			})
 
 			// Planning resolves every rule's cutoff before the first judge call, so the second
-			// rule's `yes-threshold: 1` is rejected before the first rule is judged. The old
-			// order judged rule one, then failed. This pins the change.
-			yield* runPatdownCli(MarkdownPatdownRuleSourceLive, [], judge)
+			// rule's cutoff of 1 is rejected before the first rule is judged. The old order judged
+			// rule one, then failed. This pins the change.
+			yield* runPatdownCli(rulesWithSecondRuleCutoff(1), [], judge)
 
 			expect(asked).toHaveLength(0)
 			expect(process.exitCode).toBe(1)
+
+			process.exitCode = originalExitCode
+			asked.length = 0
+
+			// And the run is not refused for some other reason: the same two rules with a usable
+			// cutoff on the second one judge both files against both rules.
+			yield* runPatdownCli(rulesWithSecondRuleCutoff(0.9), [], judge)
+
+			expect(asked).toHaveLength(4)
+			expect(process.exitCode).not.toBe(1)
 		}).pipe(Effect.provide(outputHarness)),
 	)
 
